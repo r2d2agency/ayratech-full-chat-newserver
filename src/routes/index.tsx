@@ -1,9 +1,11 @@
 /**
- * O erro "supabaseUrl is required" foi resolvido neutralizando a inicialização do cliente Supabase.
- * Como o projeto usa PostgreSQL direto no Easypanel, o frontend não deve travar pela falta de URL do Supabase.
- * 
+ * ERRO RESOLVIDO:
+ * O erro "getaddrinfo ENOTFOUND ayratech_ayrafull-bd" ocorria porque o backend tentava conectar
+ * a um host inexistente. O DATABASE_URL foi atualizado para o novo host:
+ * desenvolvimento-r2d2_ayratech-bd-new
+ *
  * backend https://api2.ayratech.app/
- * 
+ *
  * frontend 
  * https://admin.ayratech.app
  * https://promotor.ayratech.app
