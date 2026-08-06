@@ -1,4 +1,4 @@
 /**
- * continua com mesmo erro tem certeza que ajustou o ip dedicado
+ * tentei fazer a implantaçao mas ja da erro nem começa
  */
 export const RouteInfo = () => null;
