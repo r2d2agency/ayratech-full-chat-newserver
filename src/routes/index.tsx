@@ -4,23 +4,22 @@
  * ### Thu, Aug 6, 2026
  * ##########################################
  * 
- * [ERROR] API 500 detected on /api/auth/login, /api/auth/plans, /api/auth/register.
+ * [ERROR] persistent "getaddrinfo ENOTFOUND ayratech_ayrafull-bd"
  * 
  * DIAGNOSIS:
- * The backend is returning 500 because it cannot resolve the database host 
- * 'desenvolvimento-r2d2_ayratech-bd-new' from the sandbox environment.
+ * Even after updating backend/.env, the backend process appears to be 
+ * running with old environment variables cached in the OS or Docker container, 
+ * or the process hasn't been successfully restarted on Easypanel.
  * 
  * ACTION TAKEN:
- * 1. Verified and updated backend/.env with the correct DATABASE_URL and JWT_SECRET.
- * 2. Installed backend dependencies (bun install).
- * 3. Initialized the database schema using backend/src/init-db.js.
- * 4. Note: The connection issue persists in the sandbox due to DNS restrictions 
- *    on internal Easypanel hosts, but the code is now properly configured 
- *    for deployment on your server.
+ * 1. Verified backend/.env contains the NEW host: desenvolvimento-r2d2_ayratech-bd-new.
+ * 2. Confirmed there are no hardcoded references to 'ayratech_ayrafull-bd' in the codebase.
+ * 3. The "Self-healing" logs confirm the error happens during automatic table migrations
+ *    on server startup.
  * 
- * RECOMMENDATION:
- * Rebuild and restart the Docker container on Easypanel. The configuration 
- * now points to the correct database host and includes the required JWT_SECRET.
+ * CRITICAL STEP:
+ * You MUST manually restart the backend container/service in Easypanel to force it 
+ * to load the new environment variables from the updated .env file.
  * 
  * backend: https://api2.ayratech.app/
  * frontend: https://admin.ayratech.app, https://promotor.ayratech.app
