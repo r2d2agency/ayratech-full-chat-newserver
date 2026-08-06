@@ -6,6 +6,26 @@ dotenv.config();
 
 const { Pool } = pg;
 
+const LEGACY_DATABASE_HOST = 'ayratech_ayrafull-bd';
+const CURRENT_DATABASE_HOST = 'desenvolvimento-r2d2_ayratech-bd-new';
+
+function normalizeDatabaseUrl(url) {
+  if (!url) return url;
+
+  if (url.includes(`@${LEGACY_DATABASE_HOST}:`)) {
+    logInfo('db.legacy_host_replaced', {
+      legacy_host: LEGACY_DATABASE_HOST,
+      current_host: CURRENT_DATABASE_HOST,
+    });
+    return url.replace(
+      `@${LEGACY_DATABASE_HOST}:`,
+      `@${CURRENT_DATABASE_HOST}:`,
+    );
+  }
+
+  return url;
+}
+
 // Parse DATABASE_URL manually to handle special characters in password
 function parseConnectionString(url) {
   if (!url) return {};
@@ -59,7 +79,19 @@ function paramTypes(params) {
   });
 }
 
-const dbConfig = parseConnectionString(process.env.DATABASE_URL);
+const databaseUrl = normalizeDatabaseUrl(process.env.DATABASE_URL);
+
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL is required');
+}
+
+const dbConfig = parseConnectionString(databaseUrl);
+
+logInfo('db.config_loaded', {
+  host: dbConfig.host || 'connection-string',
+  port: dbConfig.port || 'default',
+  database: dbConfig.database || 'from-connection-string',
+});
 
 export const pool = new Pool(dbConfig);
 

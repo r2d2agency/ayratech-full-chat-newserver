@@ -48,6 +48,16 @@ O Docker vai parar os containers atuais e subir instantaneamente os containers d
 As migrações de banco de dados (arquivos `.sql` em `backend/`) devem ser aplicadas ao banco de produção. 
 Recomenda-se usar uma ferramenta de migração ou aplicar os scripts manualmente via `psql` no servidor.
 
+No serviço do backend no Easypanel, configure `DATABASE_URL` com o hostname interno atual:
+
+```env
+DATABASE_URL=postgresql://postgres:SENHA@desenvolvimento-r2d2_ayratech-bd-new:5432/ayratech-bd-new?sslmode=disable
+```
+
+Variáveis configuradas pelo painel têm prioridade sobre arquivos `.env` da imagem. Depois de alterar
+o valor, faça um novo deploy/restart do backend. Durante a transição, o backend também converte
+automaticamente o hostname legado `ayratech_ayrafull-bd` para o hostname atual.
+
 ---
 **Dica:** No servidor de produção, você pode criar um arquivo `.env` na raiz com:
 ```env
@@ -59,30 +69,11 @@ E rodar apenas `docker-compose up -d`.
 
 ---
 
-## 5. Variáveis do Frontend (erro "supabaseUrl is required")
+## 5. Variáveis do Frontend
 
-O frontend é Vite: as variáveis `VITE_*` são **injetadas no momento do build**, não em runtime.
-Se o build rodar sem elas, o bundle sai com `supabaseUrl` undefined e o app quebra com
-`Uncaught Error: supabaseUrl is required.`
-
-No servidor (EasyPanel/Docker), garanta que o `.env` da raiz exista com:
+O frontend é Vite: `VITE_API_URL` é injetada no momento do build. Configure-a como build arg e
+reconstrua a imagem após qualquer mudança:
 
 ```env
-VITE_SUPABASE_URL=...
-VITE_SUPABASE_PUBLISHABLE_KEY=...
-VITE_SUPABASE_PROJECT_ID=...
-VITE_API_URL=https://admin.ayratech.app/api
+VITE_API_URL=https://api2.ayratech.app/api
 ```
-
-ou passe como build args:
-
-```bash
-docker build \
-  --build-arg VITE_SUPABASE_URL=... \
-  --build-arg VITE_SUPABASE_PUBLISHABLE_KEY=... \
-  --build-arg VITE_API_URL=... \
-  -t app-frontend .
-```
-
-Importante: **reconstruir a imagem** após mudar essas variáveis (não basta reiniciar o container).
-Esses valores são públicos (protegidos por RLS) — pode versioná-los.
