@@ -1,4 +1,15 @@
 /**
- * tentei fazer a implantaçao mas ja da erro nem começa
+ * backend https://api2.ayratech.app/
+ * 
+ * frontend 
+ * https://admin.ayratech.app
+ * https://promotor.ayratech.app
  */
-export const RouteInfo = () => null;
+
+export const ServerConfig = {
+  backend: "https://api2.ayratech.app/",
+  frontend: [
+    "https://admin.ayratech.app",
+    "https://promotor.ayratech.app"
+  ]
+};
