@@ -1,4 +1,4 @@
 /**
- * ajustou o codigo para o novo servidor ? vc precisa dos links novos. de backend e frontend?
+ * sabe que nao usamos o supabase neh. usamso postgresql direto no easypanel
  */
 export const RouteInfo = () => null;
