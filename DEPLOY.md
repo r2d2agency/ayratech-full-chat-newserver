@@ -56,3 +56,33 @@ FRONTEND_PORT=80
 BACKEND_PORT=3001
 ```
 E rodar apenas `docker-compose up -d`.
+
+---
+
+## 5. Variáveis do Frontend (erro "supabaseUrl is required")
+
+O frontend é Vite: as variáveis `VITE_*` são **injetadas no momento do build**, não em runtime.
+Se o build rodar sem elas, o bundle sai com `supabaseUrl` undefined e o app quebra com
+`Uncaught Error: supabaseUrl is required.`
+
+No servidor (EasyPanel/Docker), garanta que o `.env` da raiz exista com:
+
+```env
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_PUBLISHABLE_KEY=...
+VITE_SUPABASE_PROJECT_ID=...
+VITE_API_URL=https://admin.ayratech.app/api
+```
+
+ou passe como build args:
+
+```bash
+docker build \
+  --build-arg VITE_SUPABASE_URL=... \
+  --build-arg VITE_SUPABASE_PUBLISHABLE_KEY=... \
+  --build-arg VITE_API_URL=... \
+  -t app-frontend .
+```
+
+Importante: **reconstruir a imagem** após mudar essas variáveis (não basta reiniciar o container).
+Esses valores são públicos (protegidos por RLS) — pode versioná-los.
