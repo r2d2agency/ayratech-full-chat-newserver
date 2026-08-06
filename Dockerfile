@@ -14,6 +14,21 @@ RUN npm install --legacy-peer-deps
 # Copy source code
 COPY . .
 
+# Build-time public env vars (Vite inlines these into the bundle)
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_PUBLISHABLE_KEY
+ARG VITE_SUPABASE_PROJECT_ID
+ARG VITE_API_URL
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY
+ENV VITE_SUPABASE_PROJECT_ID=$VITE_SUPABASE_PROJECT_ID
+ENV VITE_API_URL=$VITE_API_URL
+
+# Fail fast instead of shipping a broken bundle
+RUN if [ -z "$VITE_SUPABASE_URL" ] && ! grep -q "VITE_SUPABASE_URL" .env 2>/dev/null; then \
+      echo "ERRO: VITE_SUPABASE_URL nao definido (use --build-arg ou inclua .env)"; exit 1; \
+    fi
+
 # Build the application
 RUN npm run build
 
