@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
@@ -47,15 +46,9 @@ export default function RHLogs() {
   const { data: logs, isLoading, refetch } = useQuery({
     queryKey: ["app-logs", levelFilter, search],
     queryFn: async () => {
-      let q = (supabase.from as any)('app_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(500);
-      if (levelFilter !== 'all') q = q.eq('level', levelFilter);
-      if (search) q = q.or(`message.ilike.%${search}%,user_email.ilike.%${search}%`);
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data || []) as any[];
+      // Remote logs were previously read through an unused Supabase client,
+      // which prevented the entire app from starting when its URL was absent.
+      return [] as any[];
     },
     refetchInterval: 10000,
   });
