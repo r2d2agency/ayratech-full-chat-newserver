@@ -6,4 +6,3 @@
  *    at index-DYlBu6Xs.js:1663:56600
  */
 export const RouteInfo = () => null;
-export const RouteInfo = () => null;
