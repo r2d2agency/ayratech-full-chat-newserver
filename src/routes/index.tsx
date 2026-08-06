@@ -1,5 +1,4 @@
 /**
- * Entendi. Vocês usam PostgreSQL direto no Easypanel e não o Supabase.
- * Removi a verificação obrigatória de VITE_SUPABASE_URL do Dockerfile para permitir o build.
+ * continua com mesmo erro tem certeza que ajustou o ip dedicado
  */
 export const RouteInfo = () => null;
