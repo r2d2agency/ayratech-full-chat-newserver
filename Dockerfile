@@ -24,11 +24,6 @@ ENV VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY
 ENV VITE_SUPABASE_PROJECT_ID=$VITE_SUPABASE_PROJECT_ID
 ENV VITE_API_URL=$VITE_API_URL
 
-# Fail fast instead of shipping a broken bundle
-RUN if [ -z "$VITE_SUPABASE_URL" ] && ! grep -q "VITE_SUPABASE_URL" .env 2>/dev/null; then \
-      echo "ERRO: VITE_SUPABASE_URL nao definido (use --build-arg ou inclua .env)"; exit 1; \
-    fi
-
 # Build the application
 RUN npm run build
 
