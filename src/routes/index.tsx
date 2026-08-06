@@ -1,11 +1,11 @@
 /**
- * ERRO RESOLVIDO:
- * O erro "getaddrinfo ENOTFOUND ayratech_ayrafull-bd" indicava que o backend ainda tentava
- * usar o host antigo. Forcei a atualização do backend/.env para o novo host:
- * desenvolvimento-r2d2_ayratech-bd-new
+ * ##########################################
+ * ### Error
+ * ### Thu, 06 Aug 2026 05:08:26 GMT
+ * ##########################################
  * 
- * Também garanti que a JWT_SECRET e PORT estejam configuradas corretamente.
- *
+ * Cannot find public repository and your Github token is missing
+ * 
  * backend https://api2.ayratech.app/
  *
  * frontend 
