@@ -1,5 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
-
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
 interface LogData {
@@ -48,22 +46,11 @@ export const logger = {
       // eslint-disable-next-line no-console
       (console as any)[consoleMethod](`[${level.toUpperCase()}] ${message}`, context);
 
-      const payload = {
-        level,
-        message,
-        context: { ...context, isOnline: navigator.onLine },
-        user_email: getUserEmail(),
-        page_url: typeof window !== 'undefined' ? window.location.href : null,
-        device_info: getDeviceInfo(),
-        stack_trace: stack_trace || (level === 'error' || level === 'fatal' ? new Error().stack : null),
-      };
-
-      // Insert directly into Supabase – bypasses the (missing) custom backend route.
-      const { error } = await (supabase.from as any)('app_logs').insert(payload);
-      if (error) {
-        // eslint-disable-next-line no-console
-        console.warn('[logger] supabase insert failed', error.message);
-      }
+      // Logs remain available in the browser console. Remote persistence must
+      // go through the application's own API, never a browser database client.
+      void getUserEmail();
+      void getDeviceInfo();
+      void stack_trace;
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('Failed to process log:', err);
