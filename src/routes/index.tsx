@@ -4,28 +4,21 @@
  * ### Sun, Aug 9, 2026
  * ##########################################
  * 
- * [ERROR] 500 POST /api/auth/login
- * 
- * The login endpoint is returning a 500 error.
+ * [ERROR] nem o app do promotor funciona.
  * 
  * DIAGNOSIS:
- * 1. The backend is configured with DATABASE_URL in backend/.env.
- * 2. Dependencies (pg, etc.) have been installed.
- * 3. The 500 error typically indicates a database connection failure or a missing table.
+ * Ambos os apps (Admin e Promotor) dependem do mesmo backend (api2.ayratech.app).
+ * Se o login no Admin retorna 500, o Promotor também falhará, pois o backend
+ * não consegue validar as credenciais ou acessar o banco de dados.
  * 
  * CRITICAL ACTION:
- * You MUST go to Easypanel and:
- * 1. RESTART the backend container.
- * 2. Ensure that the 'Environment Variables' section in Easypanel for the backend
- *    includes:
+ * Você deve resolver a conexão do backend primeiro no Easypanel:
+ * 1. REINICIE o container do backend.
+ * 2. Verifique se as variáveis de ambiente no Easypanel estão idênticas ao backend/.env:
  *    DATABASE_URL=postgres://postgres:zc5tgyxpplqek58e1unb@desenvolvimento-r2d2_ayratech-bd-new:5432/ayratech-bd-new?sslmode=disable
  *    JWT_SECRET=ayratech-secret-key-2024-3wy64p
  * 
- * If the error persists after a restart, the issue is likely a missing table in the 
- * database (e.g., 'users').
- * 
- * backend: https://api2.ayratech.app/
- * frontend: https://admin.ayratech.app
+ * Enquanto o backend retornar Erro 500, nenhum dos aplicativos funcionará.
  */
 
 export const ServerConfig = {
