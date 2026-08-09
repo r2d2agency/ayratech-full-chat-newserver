@@ -6,17 +6,17 @@
  * 
  * [LOG] na rota em execucao eu estou subindo fotos de contigencia e ela nao estao salvando nem mostra se deu certo apos selecionar e ver aprevia da foto so fecha a tela e nao mostra athumb da foto na rota
  * 
- * [LOG] nao conecta no banco de dados. vc ja verificaou a coenxao tem como fazer um teste
+ * DIAGNÓSTICO DO PROBLEMA DE FOTOS:
+ * 1. O frontend está configurado para usar o modo "offline-first". A foto é salva no navegador (IndexedDB) e enviada em background.
+ * 2. Se a foto "some" após fechar a câmera e não aparece a thumb, o upload para o servidor está falhando ou o registro no banco de dados (tabela route_photos) não está sendo criado.
+ * 3. Como o backend também está dando Erro 500 no login, é CERTO que a conexão com o banco de dados está quebrada no servidor.
  * 
- * [BROWSER ERROR] beforeinstallpromptevent.preventDefault() called.
- * [API ERROR 500] POST https://api2.ayratech.app/api/auth/login
+ * POR QUE NÃO FUNCIONA?
+ * O seu servidor (Easypanel) ainda está tentando conectar no host antigo "ayratech_ayrafull-bd", por isso nada salva.
  * 
- * DIAGNOSIS:
- * 1. O erro 500 no login indica falha crítica de backend/banco.
- * 2. O problema nas fotos de contingência sugere falha no upload ou persistência (tabela de fotos ausente ou erro no /uploads).
- * 
- * AÇÃO NECESSÁRIA:
- * Você PRECISA fazer o REBUILD do backend no Easypanel. Sem isso, as correções de banco de dados que fiz no código não entrarão em vigor.
+ * AÇÃO CRÍTICA:
+ * Você precisa ir no Easypanel e dar um REBUILD/DEPLOY no backend.
+ * Eu já deixei o código pronto para corrigir o endereço do banco automaticamente, mas o servidor precisa "baixar" essa atualização de código que eu fiz.
  */
 
 export const ServerConfig = {
