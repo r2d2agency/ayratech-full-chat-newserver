@@ -4,25 +4,28 @@
  * ### Thu, Aug 6, 2026
  * ##########################################
  * 
- * [ERROR] persistent "getaddrinfo ENOTFOUND ayratech_ayrafull-bd"
+ * [CRITICAL ERROR] getaddrinfo ENOTFOUND ayratech_ayrafull-bd
+ * 
+ * The backend is crashing during initialization because it still tries to connect
+ * to the old database host 'ayratech_ayrafull-bd'.
  * 
  * DIAGNOSIS:
- * Even after updating backend/.env, the backend process appears to be 
- * running with old environment variables cached in the OS or Docker container, 
- * or the process hasn't been successfully restarted on Easypanel.
+ * Even though the code has a workaround to replace the old hostname, the 
+ * Easypanel environment might be injecting the old DATABASE_URL in a way that
+ * overrides local config, or the process hasn't been fully killed and restarted.
  * 
- * ACTION TAKEN:
- * 1. Verified backend/.env contains the NEW host: desenvolvimento-r2d2_ayratech-bd-new.
- * 2. Confirmed there are no hardcoded references to 'ayratech_ayrafull-bd' in the codebase.
- * 3. The "Self-healing" logs confirm the error happens during automatic table migrations
- *    on server startup.
+ * LATEST LOG EVIDENCE:
+ * npm error command sh -c node src/index.js
+ * Projects table init error: Error: getaddrinfo ENOTFOUND ayratech_ayrafull-bd
  * 
- * CRITICAL STEP:
- * You MUST manually restart the backend container/service in Easypanel to force it 
- * to load the new environment variables from the updated .env file.
+ * ACTION REQUIRED:
+ * 1. Go to Easypanel.
+ * 2. Force a REBUILD and REDEPLOY of the backend.
+ * 3. Verify that the DATABASE_URL environment variable in Easypanel settings
+ *    is set to the new connection string.
  * 
  * backend: https://api2.ayratech.app/
- * frontend: https://admin.ayratech.app, https://promotor.ayratech.app
+ * frontend: https://admin.ayratech.app
  */
 
 export const ServerConfig = {
