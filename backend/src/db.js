@@ -12,15 +12,15 @@ const CURRENT_DATABASE_HOST = 'desenvolvimento-r2d2_ayratech-bd-new';
 function normalizeDatabaseUrl(url) {
   if (!url) return url;
 
-  if (url.includes(`@${LEGACY_DATABASE_HOST}:`)) {
+  // Handle both @host: and just host in connection string
+  if (url.includes(`@${LEGACY_DATABASE_HOST}:`) || url.includes(`@${LEGACY_DATABASE_HOST}/`)) {
     logInfo('db.legacy_host_replaced', {
       legacy_host: LEGACY_DATABASE_HOST,
       current_host: CURRENT_DATABASE_HOST,
     });
-    return url.replace(
-      `@${LEGACY_DATABASE_HOST}:`,
-      `@${CURRENT_DATABASE_HOST}:`,
-    );
+    return url
+      .replace(`@${LEGACY_DATABASE_HOST}:`, `@${CURRENT_DATABASE_HOST}:`)
+      .replace(`@${LEGACY_DATABASE_HOST}/`, `@${CURRENT_DATABASE_HOST}/`);
   }
 
   return url;
