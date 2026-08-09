@@ -147,56 +147,43 @@ function CategoryPreparation({ category, catId, routeBrandId, categoryName, rout
   const setCategoryPhoto = usePromotorCategoryPhoto();
   const [photos, setPhotos] = useState<string[]>([]);
   const [isSending, setIsSending] = useState(false);
-  const { isOnline, queueApiCall } = useOfflineSync();
+  // Estado local: garante que o promotor avance mesmo sem internet / com rede ruim,
+  // independentemente do backend confirmar o point_type.
+  const [localPointTypeSet, setLocalPointTypeSet] = useState(false);
+  const { queueApiCall } = useOfflineSync();
 
 
   // category may be null/undefined if no merch_execution_categories entry exists yet
-  const hasPointType = !!category?.point_type;
+  const hasPointType = !!category?.point_type || localPointTypeSet;
   const hasPhoto = !!category?.category_before_photo;
   const isUnlocked = !!category?.products_unlocked || (hasPointType && (hasPhoto || photoMode === 'after'));
   const photoCount = photos.length + (hasPhoto ? 1 : 0);
   const min = Math.max(1, minPhotos || 1);
 
   const handleSetPointType = (type: string) => {
-    logger.info(`Promotor tentando selecionar tipo de ponto: ${type}`, { routeId, catId, categoryName });
-    
+    logger.info(`Promotor selecionando tipo de ponto (offline-first): ${type}`, { routeId, catId, categoryName });
+
     // Se o modo for "after" (Somente Depois), já desbloqueamos os produtos imediatamente após escolher o tipo de ponto
     const shouldUnlockImmediately = photoMode === 'after';
-    const notifySuccess = () => {
-      if (shouldUnlockImmediately) onUnlocked();
-      else onPointTypeSet?.();
-    };
 
-    if (!isOnline) {
-      queueApiCall({
-        url: `/api/merch/promotor/routes/${routeId}/categories/${catId}/point-type`,
-        method: 'POST',
-        body: { 
-          route_brand_id: routeBrandId,
-          point_type: type,
-          products_unlocked: shouldUnlockImmediately 
-        },
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('promotor_token') || localStorage.getItem('auth_token')}` }
-      });
-      notifySuccess();
-      return;
-    }
-    setPointType.mutate({ 
-      routeId, 
-      catId, 
-      route_brand_id: routeBrandId,
-      point_type: type,
-      products_unlocked: shouldUnlockImmediately 
-    }, {
-      onSuccess: () => { 
-        notifySuccess();
+    // Offline-first: a chamada SEMPRE vai para a fila (que sincroniza sozinha quando
+    // houver rede). Assim, internet ruim ou ausente nunca travam o promotor.
+    queueApiCall({
+      url: `/api/merch/promotor/routes/${routeId}/categories/${catId}/point-type`,
+      method: 'POST',
+      body: {
+        route_brand_id: routeBrandId,
+        point_type: type,
+        products_unlocked: shouldUnlockImmediately,
       },
-      onError: (err: any) => {
-        logger.error(`Erro ao selecionar tipo de ponto: ${type}`, { error: err.message, routeId, catId }, err);
-        toast.error(`Erro ao selecionar ${type}: ${err.message}`);
-      },
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('promotor_token') || localStorage.getItem('auth_token')}` },
     });
+
+    setLocalPointTypeSet(true);
+    if (shouldUnlockImmediately) onUnlocked();
+    else onPointTypeSet?.();
   };
+
 
   const handleUploadPhoto = async (submittedPhotos?: string[]) => {
     const effective = submittedPhotos && submittedPhotos.length ? submittedPhotos : photos;
