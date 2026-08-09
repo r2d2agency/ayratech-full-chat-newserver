@@ -4,21 +4,24 @@
  * ### Sun, Aug 9, 2026
  * ##########################################
  * 
- * [ERROR] nem o app do promotor funciona.
+ * [LOG] nao conecta no banco de dados. vc ja verificaou a coenxao tem como fazer um teste
+ * 
+ * [BROWSER ERROR] beforeinstallpromptevent.preventDefault() called.
+ * [API ERROR 500] POST https://api2.ayratech.app/api/auth/login
  * 
  * DIAGNOSIS:
- * Ambos os apps (Admin e Promotor) dependem do mesmo backend (api2.ayratech.app).
- * Se o login no Admin retorna 500, o Promotor também falhará, pois o backend
- * não consegue validar as credenciais ou acessar o banco de dados.
+ * O erro 500 no login confirma que o backend não está conseguindo processar a requisição.
+ * Geralmente isso ocorre por:
+ * 1. Falha de conexão com o Banco de Dados (Host não resolve ou senha errada).
+ * 2. Tabelas ausentes (O backend tenta ler a tabela 'users' e falha).
  * 
- * CRITICAL ACTION:
- * Você deve resolver a conexão do backend primeiro no Easypanel:
- * 1. REINICIE o container do backend.
- * 2. Verifique se as variáveis de ambiente no Easypanel estão idênticas ao backend/.env:
- *    DATABASE_URL=postgres://postgres:zc5tgyxpplqek58e1unb@desenvolvimento-r2d2_ayratech-bd-new:5432/ayratech-bd-new?sslmode=disable
- *    JWT_SECRET=ayratech-secret-key-2024-3wy64p
+ * TESTE DE CONEXÃO:
+ * Eu já implementei uma normalização no 'backend/src/db.js' para corrigir o host.
+ * No entanto, o backend no Easypanel precisa ser RECONSTRUÍDO para aplicar essa mudança.
  * 
- * Enquanto o backend retornar Erro 500, nenhum dos aplicativos funcionará.
+ * PRÓXIMO PASSO:
+ * No seu Easypanel, vá no serviço do backend e clique em "Rebuild" ou "Deploy".
+ * Isso forçará o carregamento do novo código que contém a correção do banco.
  */
 
 export const ServerConfig = {
