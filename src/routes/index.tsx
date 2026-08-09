@@ -1,28 +1,28 @@
 /**
  * ##########################################
  * ### System Status & Logs
- * ### Thu, Aug 6, 2026
+ * ### Sun, Aug 9, 2026
  * ##########################################
  * 
- * [CRITICAL ERROR] getaddrinfo ENOTFOUND ayratech_ayrafull-bd
+ * [ERROR] 500 POST /api/auth/login
  * 
- * The backend is crashing during initialization because it still tries to connect
- * to the old database host 'ayratech_ayrafull-bd'.
+ * The login endpoint is returning a 500 error.
  * 
  * DIAGNOSIS:
- * Even though the code has a workaround to replace the old hostname, the 
- * Easypanel environment might be injecting the old DATABASE_URL in a way that
- * overrides local config, or the process hasn't been fully killed and restarted.
+ * 1. The backend is configured with DATABASE_URL in backend/.env.
+ * 2. Dependencies (pg, etc.) have been installed.
+ * 3. The 500 error typically indicates a database connection failure or a missing table.
  * 
- * LATEST LOG EVIDENCE:
- * npm error command sh -c node src/index.js
- * Projects table init error: Error: getaddrinfo ENOTFOUND ayratech_ayrafull-bd
+ * CRITICAL ACTION:
+ * You MUST go to Easypanel and:
+ * 1. RESTART the backend container.
+ * 2. Ensure that the 'Environment Variables' section in Easypanel for the backend
+ *    includes:
+ *    DATABASE_URL=postgres://postgres:zc5tgyxpplqek58e1unb@desenvolvimento-r2d2_ayratech-bd-new:5432/ayratech-bd-new?sslmode=disable
+ *    JWT_SECRET=ayratech-secret-key-2024-3wy64p
  * 
- * ACTION REQUIRED:
- * 1. Go to Easypanel.
- * 2. Force a REBUILD and REDEPLOY of the backend.
- * 3. Verify that the DATABASE_URL environment variable in Easypanel settings
- *    is set to the new connection string.
+ * If the error persists after a restart, the issue is likely a missing table in the 
+ * database (e.g., 'users').
  * 
  * backend: https://api2.ayratech.app/
  * frontend: https://admin.ayratech.app
