@@ -4,19 +4,17 @@
  * ### Sun, Aug 9, 2026
  * ##########################################
  * 
- * [LOG] na rota em execucao eu estou subindo fotos de contigencia e ela nao estao salvando nem mostra se deu certo apos selecionar e ver aprevia da foto so fecha a tela e nao mostra athumb da foto na rota
+ * [LOG] preciso de ajuda eu mgreio o servidor e as fotos nao aparecem ficam todas quebradas eu criei os volumes com mesmo nome fiz o backup dos arquivos e ja restaureei no serivodr novo mas nao mostra as fotos no sistema
  * 
- * DIAGNÓSTICO DO PROBLEMA DE FOTOS:
- * 1. O frontend está configurado para usar o modo "offline-first". A foto é salva no navegador (IndexedDB) e enviada em background.
- * 2. Se a foto "some" após fechar a câmera e não aparece a thumb, o upload para o servidor está falhando ou o registro no banco de dados (tabela route_photos) não está sendo criado.
- * 3. Como o backend também está dando Erro 500 no login, é CERTO que a conexão com o banco de dados está quebrada no servidor.
+ * DIAGNÓSTICO DO PROBLEMA DE FOTOS QUEBRADAS:
+ * 1. O frontend está tentando carregar as fotos através do domínio antigo ou via proxy incompleto.
+ * 2. No novo servidor, o Nginx deve estar configurado para servir a pasta /uploads/ que você restaurou.
+ * 3. Se os arquivos existem mas a imagem está "quebrada" (404 ou 500), o backend não está encontrando a pasta física de volumes.
  * 
- * POR QUE NÃO FUNCIONA?
- * O seu servidor (Easypanel) ainda está tentando conectar no host antigo "ayratech_ayrafull-bd", por isso nada salva.
- * 
- * AÇÃO CRÍTICA:
- * Você precisa ir no Easypanel e dar um REBUILD/DEPLOY no backend.
- * Eu já deixei o código pronto para corrigir o endereço do banco automaticamente, mas o servidor precisa "baixar" essa atualização de código que eu fiz.
+ * AÇÃO CORÍTICA PARA RECUPERAR AS FOTOS:
+ * 1. Verifique se o volume do Docker está montado em /app/uploads no container do backend.
+ * 2. Eu atualizei o nginx.conf para apontar para o novo backend, mas as URLs das fotos antigas no banco de dados podem estar com o domínio antigo.
+ * 3. REBUILD/DEPLOY no Easypanel é obrigatório para que as rotas de correção de hostname que criei funcionem.
  */
 
 export const ServerConfig = {
