@@ -171,10 +171,9 @@ export default function PromotorHome() {
     staleTime: 300000,
   });
 
-  const isFacialActive = facialConfig?.enabled && 
+  const isFacialActive = !!(facialConfig?.enabled && 
     facialConfig?.use_for_attendance && 
-    facialConfig?.has_enrollment && 
-    facialConfig?.verification_enabled !== false;
+    facialConfig?.has_enrollment);
 
   const employee = data?.employee;
   const todayPunches = data?.today_punches || [];
