@@ -438,6 +438,8 @@ router.post('/employees', async (req, res) => {
     if (!orgId) return res.status(400).json({ error: 'Organização não encontrada para o usuário' });
 
     const d = normalizeEmployeePayload(req.body);
+    d.facial_required = req.body.facial_required === undefined ? null : req.body.facial_required;
+
     if (!d.full_name) return res.status(400).json({ error: 'Nome do colaborador é obrigatório' });
 
     // Upsert: se CPF existir na mesma org, atualiza em vez de duplicar
@@ -485,8 +487,9 @@ router.post('/employees', async (req, res) => {
         bank_name, bank_agency, bank_account, bank_account_type, pix_key, pix_key_type,
         ctps_number, ctps_series, pis_pasep, voter_id, voter_zone, voter_section, skin_color,
         cnpj, company_name, status, photo_url, created_by,
-        salary_items, benefits, home_latitude, home_longitude)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44,$45,$46,$47,$48,$49,$50,$51,$52,$53,$54)
+        salary_items, benefits, home_latitude, home_longitude, facial_required)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44,$45,$46,$47,$48,$49,$50,$51,$52,$53,$54,$55)
+
        RETURNING *`,
       [orgId, d.full_name, d.social_name, d.cpf, d.rg, d.rg_issuer, d.birth_date, d.gender, d.marital_status, d.email, d.phone, d.phone2,
         d.address, d.address_number, d.complement, d.neighborhood, d.city, d.state, d.zip_code,
@@ -496,14 +499,11 @@ router.post('/employees', async (req, res) => {
         d.bank_name, d.bank_agency, d.bank_account, d.bank_account_type, d.pix_key, d.pix_key_type,
         d.ctps_number, d.ctps_series, d.pis_pasep, d.voter_id, d.voter_zone, d.voter_section, d.skin_color,
         d.cnpj, d.company_name, d.status, d.photo_url, req.userId,
-        JSON.stringify(d.salary_items), JSON.stringify(d.benefits), d.home_latitude, d.home_longitude]
+        JSON.stringify(d.salary_items), JSON.stringify(d.benefits), d.home_latitude, d.home_longitude, d.facial_required]
     );
-    if (req.body.facial_required === true || req.body.facial_required === false) {
-      await query(`UPDATE employees SET facial_required = $1 WHERE id = $2`, [req.body.facial_required, result.rows[0].id]);
-      result.rows[0].facial_required = req.body.facial_required;
-    }
     await auditLog(orgId, 'employee', result.rows[0].id, 'create', [{ field: 'full_name', oldVal: null, newVal: d.full_name }], req.userId);
     res.json(result.rows[0]);
+
   } catch (err) {
     logError('rh.employees.create', err, { body: req.body });
     const message = err?.detail || err?.message || 'Erro ao criar colaborador';

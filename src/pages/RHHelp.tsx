@@ -13,8 +13,9 @@ const helpItems = [
     title: "Habilitar Ponto Facial",
     description: "Como permitir que colaboradores batam ponto via celular com reconhecimento facial.",
     icon: Clock,
-    content: "No cadastro do Colaborador (RH > Colaboradores), acesse a aba 'Contrato' ou 'Segurança', ative 'Reconhecimento Facial' e, no campo 'Unidade de Trabalho', selecione a 'Sede' criada anteriormente para vincular o colaborador ao local."
+    content: "1. Empresa: No menu 'Administração' (ou Configurações), ative a obrigatoriedade facial global.\n2. Colaborador: No cadastro (RH > Colaboradores), aba 'Segurança', você pode definir se ele segue a regra da empresa, se é sempre obrigado ou se está dispensado."
   },
+
   {
     title: "Vínculo de Colaborador à Sede",
     description: "Como associar um colaborador a uma unidade específica para validação de local.",

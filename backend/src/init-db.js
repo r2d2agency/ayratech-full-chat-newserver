@@ -164,6 +164,13 @@ DO $$ BEGIN
       "buffer_minutes": 15
     }'::jsonb;
 EXCEPTION WHEN duplicate_column THEN null; END $$;
+
+-- Configuração de Ponto Facial (RH)
+DO $$ BEGIN
+    ALTER TABLE organizations ADD COLUMN IF NOT EXISTS facial_clock_in_required BOOLEAN DEFAULT false;
+    ALTER TABLE organizations ADD COLUMN IF NOT EXISTS facial_clock_in_notify_missing BOOLEAN DEFAULT false;
+EXCEPTION WHEN duplicate_column THEN null; END $$;
+
 `;
 
 // ============================================
