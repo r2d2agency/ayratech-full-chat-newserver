@@ -809,10 +809,21 @@ export default function PromotorHome() {
                         r.status === 'completed' && !isAwaitingCheckout ? 'opacity-60' : 'hover:border-primary/30'
                       }`}
                       onClick={() => {
-                        if (r.status !== 'cancelled' && r.status !== 'not_done') {
+                        if (r.status === 'cancelled' || r.status === 'not_done') return;
+                        
+                        const hasCheckin = pdvVisits.some((v: any) => v.pdv_id === r.pdv_id && v.checkin_at);
+                        if (!hasCheckin) {
+                          setActionPdv({ pdv_id: r.pdv_id, pdv_name: r.pdv_name });
+                          if (isFacialActive && facialConfig?.descriptor) {
+                            setShowFaceVerify(true);
+                          } else {
+                            setShowPdvCheckin(true);
+                          }
+                        } else {
                           navigate(`/promotor/rota/${r.id}`);
                         }
                       }}>
+
 
                     <CardContent className="p-3">
                       <div className="flex items-center justify-between">
