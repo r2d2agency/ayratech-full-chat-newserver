@@ -759,11 +759,16 @@ export default function PromotorHome() {
                   const hasCheckin = pdvVisits.some((v: any) => v.pdv_id === nextRoute.pdv_id && v.checkin_at);
                   if (!hasCheckin) {
                     setActionPdv({ pdv_id: nextRoute.pdv_id, pdv_name: nextRoute.pdv_name });
-                    setShowPdvCheckin(true);
+                    if (isFacialActive) {
+                      setShowFaceVerify(true);
+                    } else {
+                      setShowPdvCheckin(true);
+                    }
                   } else {
                     navigate(`/promotor/rota/${nextRoute.id}`);
                   }
                 }}>
+
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
                     <Badge className="bg-blue-500/20 text-blue-700 text-[10px]">📍 PRÓXIMA ROTA</Badge>
@@ -1172,7 +1177,7 @@ export default function PromotorHome() {
         </DialogContent>
       </Dialog>
 
-      {/* Facial Verification Dialog for Punch */}
+      {/* Facial Verification Dialog for Punch & Check-in */}
       <FaceVerifyDialog
         open={showFaceVerify}
         onOpenChange={setShowFaceVerify}
@@ -1180,8 +1185,20 @@ export default function PromotorHome() {
         storedPhotoUrl={facialConfig?.photo_url}
         personName={employee?.full_name}
         threshold={facialConfig?.min_confidence || 70}
-        onResult={handleFaceVerifyResult}
+        onResult={(result) => {
+          if (pendingPunchType) handleFaceVerifyResult(result);
+          else if (actionPdv?.pdv_id) {
+            setShowFaceVerify(false);
+            if (result.match) {
+              // Proceed with standard check-in flow which triggers camera
+              // The facial verification is an extra barrier
+            } else {
+              toast({ title: 'Falha na verificação', description: 'Biometria facial não confere.', variant: 'destructive' });
+            }
+          }
+        }}
       />
+
       <Dialog open={showQrScanner} onOpenChange={setShowQrScanner}>
         <DialogContent className="max-w-md">
           <DialogHeader>
