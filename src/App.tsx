@@ -87,6 +87,7 @@ import RHESocial from "./pages/RHESocial";
 import RHEscalas from "./pages/RHEscalas";
 import RHAFD from "./pages/RHAFD";
 import RHTotem from "./pages/RHTotem";
+import RHHelp from "./pages/RHHelp";
 import LiveMaps from "./pages/LiveMaps";
   import MerchDashboard from "./pages/MerchDashboard";
 import MerchMarcas from "./pages/MerchMarcas";
@@ -308,6 +309,7 @@ const App = () => (
             <Route path="/rh/treinamentos" element={<ProtectedRoute><RHTreinamentos /></ProtectedRoute>} />
             <Route path="/rh/admissao" element={<ProtectedRoute><RHAdmissao /></ProtectedRoute>} />
             <Route path="/rh/cargos" element={<ProtectedRoute><RHCargos /></ProtectedRoute>} />
+            <Route path="/rh/ajuda" element={<ProtectedRoute><RHHelp /></ProtectedRoute>} />
 
             <Route path="/rh/demissao/:employeeId" element={<ProtectedRoute><RHDemissao /></ProtectedRoute>} />
             <Route path="/rh/esocial" element={<ProtectedRoute><RHESocial /></ProtectedRoute>} />
