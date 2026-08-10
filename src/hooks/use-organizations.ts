@@ -128,7 +128,7 @@ export function useOrganizations() {
     }
   }, []);
 
-  const updateOrganization = useCallback(async (id: string, data: { name?: string; logo_url?: string }): Promise<Organization | null> => {
+  const updateOrganization = useCallback(async (id: string, data: { name?: string; logo_url?: string; facial_clock_in_required?: boolean }): Promise<Organization | null> => {
     setLoading(true);
     setError(null);
     

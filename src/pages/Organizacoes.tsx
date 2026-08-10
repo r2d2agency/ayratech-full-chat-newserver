@@ -1610,8 +1610,11 @@ export default function Organizacoes() {
                             checked={!!(selectedOrg as any)?.facial_clock_in_required}
                             onCheckedChange={async (checked) => {
                               try {
+                                if (!selectedOrg) return;
                                 await updateOrganization(selectedOrg.id, { facial_clock_in_required: checked } as any);
                                 setSelectedOrg({ ...selectedOrg, facial_clock_in_required: checked } as any);
+                                // Update the organizations list as well so it persists in the UI
+                                setOrganizations(prev => prev.map(o => o.id === selectedOrg.id ? { ...o, facial_clock_in_required: checked } : o));
                                 toast.success('Configuração facial atualizada!');
                               } catch (err) {
                                 toast.error('Erro ao atualizar configuração facial');
