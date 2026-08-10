@@ -199,11 +199,16 @@ function CategoryPreparation({ category, catId, routeBrandId, categoryName, rout
   const handleFaceVerifyResult = (result: { match: boolean; score: number; imageDataUrl: string }) => {
     setShowFaceVerify(false);
     if (result.match && pendingPointType) {
-      handleSetPointType(pendingPointType, true);
+      if (pendingPointType === 'CAPTURE_AFTER_FACE') {
+        handleUploadPhoto();
+      } else {
+        handleSetPointType(pendingPointType, true);
+      }
       setPendingPointType(null);
     } else {
       toast.error("Reconhecimento facial falhou. Tente novamente.");
     }
+
   };
 
 
@@ -311,7 +316,14 @@ function CategoryPreparation({ category, catId, routeBrandId, categoryName, rout
             min={min}
             allowExtras={min > 1}
             isSending={isSending}
-            onSubmit={handleUploadPhoto}
+            onSubmit={(submittedPhotos) => {
+              if (facialRequired && storedDescriptor) {
+                setPendingPointType('CAPTURE_AFTER_FACE'); // Marker
+                setShowFaceVerify(true);
+                return;
+              }
+              handleUploadPhoto(submittedPhotos);
+            }}
             cameraProps={{
               watermark: { pdvName, brandName, promotorName, photoType: 'Categoria (antes)' },
               customTokenGetter: () => localStorage.getItem('promotor_token') || localStorage.getItem('auth_token'),
@@ -321,6 +333,7 @@ function CategoryPreparation({ category, catId, routeBrandId, categoryName, rout
             label="Foto da categoria (ANTES da execução)"
             submitLabel="Registrar e liberar produtos"
           />
+
         )}
 
         {/* Lock message */}
