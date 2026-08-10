@@ -13,6 +13,9 @@
  * 1. Adicionados campos 'facial_clock_in_required' e 'facial_clock_in_notify_missing' na tabela 'organizations'.
  * 2. Adicionada configuração individual no cadastro de colaboradores (aba Profissional -> facial_required).
  * 3. A regra de negócio respeita a hierarquia: Colaborador (se definido) > Empresa (padrão).
+ * 
+ * REGRA DE PONTO:
+ * Sim, para poder bater os pontos o colaborador segue a jornada de trabalho configurada no sistema.
  */
 
 export const ServerConfig = {
