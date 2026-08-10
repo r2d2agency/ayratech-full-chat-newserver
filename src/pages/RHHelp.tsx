@@ -1,6 +1,6 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { HelpCircle, BookOpen, Settings, Users, MapPin, Clock, Building2 } from "lucide-react";
+import { HelpCircle, Users, Clock, Building2, ShieldCheck, MapPin } from "lucide-react";
 
 const helpItems = [
   {
@@ -22,10 +22,16 @@ const helpItems = [
     content: "Para que o ponto seja validado na sede, abra o cadastro do colaborador em 'RH > Colaboradores', clique em editar e procure pelo campo 'Filial' ou 'Unidade'. Selecione a unidade 'Sede'. Isso garante que o Geofencing valide a batida apenas naquele local."
   },
   {
+    title: "Visualização e Auditoria de Ponto",
+    description: "Como acompanhar onde os colaboradores estão batendo o ponto.",
+    icon: MapPin,
+    content: "No menu RH > Ponto, você pode ver o 'Status Geo' de cada marcação. O sistema indica se o ponto foi 'Dentro do PDV' (ou Sede) ou 'Fora'. Nos relatórios XLS, há o detalhamento completo da unidade e coordenadas de cada registro."
+  },
+  {
     title: "Controle de Acessos",
-    description: "Como definir quais usuários têm acesso ao módulo de RH e Ponto.",
-    icon: Settings,
-    content: "Em Gestão de Permissões/Perfis, atribua ao usuário o perfil que permite acesso ao módulo de Ponto. Colaboradores comuns só visualizam seus próprios registros de ponto, a menos que possuam permissão administrativa no módulo RH."
+    description: "Regras de visibilidade para colaboradores e gestores.",
+    icon: ShieldCheck,
+    content: "Colaboradores comuns veem apenas seu próprio ponto. Gestores com permissão administrativa acessam o painel completo de auditoria no módulo RH para monitorar toda a equipe."
   }
 ];
 
