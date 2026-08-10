@@ -17,7 +17,7 @@ import { useOrganizations } from '@/hooks/use-organizations';
 import { useSuperadmin } from '@/hooks/use-superadmin';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import { Building2, Plus, Users, Trash2, UserPlus, Crown, Shield, User, Briefcase, Loader2, Pencil, Link2, Settings, KeyRound, Megaphone, Receipt, UsersRound, CalendarClock, Bot, Layers, MessagesSquare, Upload, Image, BarChart3, Lock, Copy } from 'lucide-react';
+import { Building2, Plus, Users, Trash2, UserPlus, Crown, Shield, User, Briefcase, Loader2, Pencil, Link2, Settings, KeyRound, Megaphone, Receipt, UsersRound, CalendarClock, Bot, Layers, MessagesSquare, Upload, Image, BarChart3, Lock, Copy, Fingerprint } from 'lucide-react';
 import { useUpload } from '@/hooks/use-upload';
 import { PAGE_PERMISSIONS, PAGE_SECTIONS, createFullPermissions, createEmptyPermissions } from '@/lib/page-permissions';
 
@@ -1589,6 +1589,34 @@ export default function Organizacoes() {
                           <Switch
                             checked={modulesEnabled.shared_conversations}
                             onCheckedChange={(checked) => setModulesEnabled(prev => ({ ...prev, shared_conversations: checked }))}
+                            disabled={!canManageOrg}
+                          />
+                        </div>
+
+                        {/* Facial Recognition Setting */}
+                        <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 p-4">
+                          <div className="flex items-center gap-4">
+                            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <Fingerprint className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium">Obrigatoriedade Facial (Ponto/Check-in)</p>
+                              <p className="text-sm text-muted-foreground">
+                                Exige validação facial para bater ponto e iniciar visitas em PDVs
+                              </p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={!!(selectedOrg as any)?.facial_clock_in_required}
+                            onCheckedChange={async (checked) => {
+                              try {
+                                await updateOrganization(selectedOrg.id, { facial_clock_in_required: checked } as any);
+                                setSelectedOrg({ ...selectedOrg, facial_clock_in_required: checked } as any);
+                                toast.success('Configuração facial atualizada!');
+                              } catch (err) {
+                                toast.error('Erro ao atualizar configuração facial');
+                              }
+                            }}
                             disabled={!canManageOrg}
                           />
                         </div>
