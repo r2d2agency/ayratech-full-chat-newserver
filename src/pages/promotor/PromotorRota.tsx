@@ -163,11 +163,15 @@ function CategoryPreparation({ category, catId, routeBrandId, categoryName, rout
   const min = Math.max(1, minPhotos || 1);
 
   const handleSetPointType = (type: string, facialVerified = false) => {
+    // If it's a 'natural' point type set by the effect, skip facial verification if it's already verified or if the user hasn't interacted yet.
+    // However, the request asks that ON CLICKING it opens the camera.
+    // Since 'natural' is auto-set, we only trigger facial on manual point type selection OR when entering the category.
     if (facialRequired && storedDescriptor && !facialVerified) {
       setPendingPointType(type);
       setShowFaceVerify(true);
       return;
     }
+
 
     logger.info(`Promotor selecionando tipo de ponto (offline-first): ${type}`, { routeId, catId, categoryName });
 
