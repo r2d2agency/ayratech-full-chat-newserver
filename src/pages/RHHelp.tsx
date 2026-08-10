@@ -13,7 +13,7 @@ const helpItems = [
     title: "Habilitar Ponto Facial",
     description: "Como permitir que colaboradores batam ponto via celular com reconhecimento facial.",
     icon: Clock,
-    content: "1. Empresa: No menu 'Administração' (ou Configurações), ative a obrigatoriedade facial global.\n2. Colaborador: No cadastro (RH > Colaboradores), aba 'Segurança', você pode definir se ele segue a regra da empresa, se é sempre obrigado ou se está dispensado."
+    content: "1. Empresa: No menu 'Administração' > 'Organizações', selecione a organização e vá na aba 'Configurações'. Ative o switch 'Obrigatoriedade Facial'.\n2. Colaborador: No cadastro (RH > Colaboradores), aba 'Segurança', você pode definir se ele segue a regra da empresa, se é sempre obrigado ou se está dispensado."
   },
 
   {
