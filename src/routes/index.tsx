@@ -13,7 +13,9 @@
  *    - Registro de Ponto Extra / Início de Categoria.
  * 
  * REGRA DE PONTO:
- * Sim, para poder bater os pontos o colaborador segue a jornada de trabalho configurada no sistema.
+ * 1. Sim, para poder bater os pontos o colaborador segue a jornada de trabalho configurada no sistema.
+ * 2. PRIORIDADE: A Escala (collaborator_daily_assignments) agora tem precedência sobre a Jornada (work_schedule).
+ * 3. Se não houver escala definida para o dia, o sistema utiliza a jornada padrão do colaborador.
  */
 
 

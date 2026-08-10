@@ -287,24 +287,30 @@ router.get('/home', authenticatePromotor, async (req, res) => {
       pdvVisits = visitRes.rows;
     } catch { /* table may not exist */ }
 
-    // Check schedule status
-    const wsRaw = employee.rows[0]?.work_schedule || '08:00-17:00';
+    // Check schedule status (prioritize daily assignment if present)
     let scheduleStart = '08:00';
     let scheduleEnd = '17:00';
-    try {
-      const parsed = typeof wsRaw === 'object' ? wsRaw : (typeof wsRaw === 'string' && wsRaw.trim().startsWith('{') ? JSON.parse(wsRaw) : null);
-      if (parsed && parsed.entry) {
-        scheduleStart = parsed.entry;
-        scheduleEnd = parsed.exit || '17:00';
-      } else {
+    
+    if (assignment.rows[0]?.start_time && assignment.rows[0]?.end_time) {
+      scheduleStart = assignment.rows[0].start_time;
+      scheduleEnd = assignment.rows[0].end_time;
+    } else {
+      const wsRaw = employee.rows[0]?.work_schedule || '08:00-17:00';
+      try {
+        const parsed = typeof wsRaw === 'object' ? wsRaw : (typeof wsRaw === 'string' && wsRaw.trim().startsWith('{') ? JSON.parse(wsRaw) : null);
+        if (parsed && parsed.entry) {
+          scheduleStart = parsed.entry;
+          scheduleEnd = parsed.exit || '17:00';
+        } else {
+          const parts = String(wsRaw).split('-');
+          if (parts.length >= 2) { scheduleStart = parts[0].trim(); scheduleEnd = parts[1].trim(); }
+        }
+      } catch { 
         const parts = String(wsRaw).split('-');
         if (parts.length >= 2) { scheduleStart = parts[0].trim(); scheduleEnd = parts[1].trim(); }
       }
-    } catch { 
-      const parts = String(wsRaw).split('-');
-      if (parts.length >= 2) { scheduleStart = parts[0].trim(); scheduleEnd = parts[1].trim(); }
     }
-    const now = new Date();
+
     const currentMin = nowBR.getHours() * 60 + nowBR.getMinutes();
     const startMin = scheduleStart.split(':').reduce((h, m) => parseInt(h) * 60 + parseInt(m), 0) || 480;
     const endMin = scheduleEnd.split(':').reduce((h, m) => parseInt(h) * 60 + parseInt(m), 0) || 1020;
@@ -369,30 +375,49 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
 
     // ===== WORK SCHEDULE VALIDATION =====
     const empRes = await query(`SELECT work_schedule, face_descriptor, facial_required FROM employees WHERE id = $1`, [req.employeeId]);
-    const wsRaw = empRes.rows[0]?.work_schedule || '08:00-17:00';
     const now = is_offline && offline_local_time
       ? new Date(offline_local_time)
       : new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-    // Parse schedule — supports JSON {"entry":"HH:MM","exit":"HH:MM"} or plain "HH:MM-HH:MM"
-    let schedStartStr = '08:00', schedEndStr = '17:00';
+    // 1. Check for specific daily assignment (Escala) first
+    let scheduleStart = null, scheduleEnd = null;
     try {
-      const parsed = typeof wsRaw === 'object' ? wsRaw : (typeof wsRaw === 'string' && wsRaw.trim().startsWith('{') ? JSON.parse(wsRaw) : null);
-      if (parsed && parsed.entry) { schedStartStr = parsed.entry; schedEndStr = parsed.exit || '17:00'; }
-      else { const parts = String(wsRaw).split('-'); if (parts.length >= 2) { schedStartStr = parts[0].trim(); schedEndStr = parts[1].trim(); } }
-    } catch { const parts = String(wsRaw).split('-'); if (parts.length >= 2) { schedStartStr = parts[0].trim(); schedEndStr = parts[1].trim(); } }
-    const scheduleStart = schedStartStr.split(':').reduce((h, m) => parseInt(h) * 60 + parseInt(m), 0) || 480;
-    const scheduleEnd = schedEndStr.split(':').reduce((h, m) => parseInt(h) * 60 + parseInt(m), 0) || 1020;
+      const assignment = await query(
+        `SELECT start_time, end_time FROM collaborator_daily_assignments 
+         WHERE employee_id = $1 AND assignment_date = $2 LIMIT 1`,
+        [req.employeeId, today]
+      );
+      if (assignment.rows[0]?.start_time && assignment.rows[0]?.end_time) {
+        scheduleStart = assignment.rows[0].start_time;
+        scheduleEnd = assignment.rows[0].end_time;
+      }
+    } catch (e) { /* ignore table not found */ }
+
+    // 2. Fallback to general work schedule (Jornada) if no specific assignment
+    let schedStartStr = '08:00', schedEndStr = '17:00';
+    if (!scheduleStart) {
+      const wsRaw = empRes.rows[0]?.work_schedule || '08:00-17:00';
+      try {
+        const parsed = typeof wsRaw === 'object' ? wsRaw : (typeof wsRaw === 'string' && wsRaw.trim().startsWith('{') ? JSON.parse(wsRaw) : null);
+        if (parsed && parsed.entry) { schedStartStr = parsed.entry; schedEndStr = parsed.exit || '17:00'; }
+        else { const parts = String(wsRaw).split('-'); if (parts.length >= 2) { schedStartStr = parts[0].trim(); schedEndStr = parts[1].trim(); } }
+      } catch { const parts = String(wsRaw).split('-'); if (parts.length >= 2) { schedStartStr = parts[0].trim(); schedEndStr = parts[1].trim(); } }
+      scheduleStart = schedStartStr;
+      scheduleEnd = schedEndStr;
+    }
+
+    const scheduleStartMin = scheduleStart.split(':').reduce((h, m) => parseInt(h) * 60 + parseInt(m), 0) || 480;
+    const scheduleEndMin = scheduleEnd.split(':').reduce((h, m) => parseInt(h) * 60 + parseInt(m), 0) || 1020;
 
     // Allow 30 min before start and 15 min after end as tolerance
     const toleranceBefore = 30;
     const toleranceAfter = 15;
-    const isWithinSchedule = currentMinutes >= (scheduleStart - toleranceBefore) && currentMinutes <= (scheduleEnd + toleranceAfter);
+    const isWithinSchedule = currentMinutes >= (scheduleStartMin - toleranceBefore) && currentMinutes <= (scheduleEndMin + toleranceAfter);
 
     if (!isWithinSchedule) {
       // Check for approved overtime request for today
-      const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
       const otReq = await query(
         `SELECT id, requested_start, requested_end FROM overtime_requests
          WHERE employee_id = $1 AND request_date = $2 AND status = 'aprovado'
@@ -401,12 +426,10 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
       );
 
       if (!otReq.rows[0]) {
-        const startFmt = schedStartStr;
-        const endFmt = schedEndStr;
         return res.status(403).json({
-          error: `Fora do horário de trabalho (${startFmt} - ${endFmt}). Solicite autorização de hora extra ao supervisor.`,
+          error: `Fora do horário de trabalho (${scheduleStart} - ${scheduleEnd}). Solicite autorização de hora extra ao supervisor.`,
           code: 'OUTSIDE_SCHEDULE',
-          schedule: { start: startFmt, end: endFmt },
+          schedule: { start: scheduleStart, end: scheduleEnd },
           current_time: `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
         });
       }
