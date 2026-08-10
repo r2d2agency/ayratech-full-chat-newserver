@@ -1,6 +1,6 @@
-import { Layout } from "@/components/layout/Layout";
+import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { HelpCircle, BookOpen, Settings, Users, MapPin, Clock } from "lucide-react";
+import { HelpCircle, BookOpen, Settings, Users, MapPin, Clock, Building2 } from "lucide-react";
 
 const helpItems = [
   {
@@ -23,11 +23,9 @@ const helpItems = [
   }
 ];
 
-import { Building2 } from "lucide-react";
-
 export default function RHHelp() {
   return (
-    <Layout>
+    <MainLayout>
       <div className="flex flex-col gap-6 p-6">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2 text-foreground">
@@ -58,6 +56,6 @@ export default function RHHelp() {
           ))}
         </div>
       </div>
-    </Layout>
+    </MainLayout>
   );
 }
