@@ -60,6 +60,7 @@ import {
   UserMinus,
   FileCode2,
   Monitor,
+  HelpCircle,
 } from "lucide-react";
 import { API_URL, getAuthToken } from "@/lib/api";
 import ayratechLogo from "@/assets/ayratech_logo.jpg";
@@ -155,6 +156,7 @@ export const getNavSections = (hasConnections: boolean): NavSection[] => [
       { name: "Biometria Facial", href: "/rh/biometria", icon: ScanFace, pageKey: 'rh_biometria', moduleKey: 'rh' },
       { name: "Rastreamento", href: "/rh/rastreamento", icon: Navigation, pageKey: 'rh_rastreamento', moduleKey: 'rh' },
       { name: "Logs & Erros", href: "/rh/logs", icon: Code, pageKey: 'rh_logs', moduleKey: 'rh' },
+      { name: "Ajuda & Manuais", href: "/rh/ajuda", icon: HelpCircle, pageKey: 'rh_ajuda', moduleKey: 'rh' },
     ],
   },
   {
