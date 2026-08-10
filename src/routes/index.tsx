@@ -15,6 +15,10 @@
  * 2. VISUALIZAÇÃO:
  *    - Adicionei uma coluna "Tipo" na listagem principal com selos (Badges) coloridos para diferenciar visualmente o que é Sede (Azul) e o que é PDV (Cinza).
  *    - Isso permite que você mantenha a gestão unificada, mas com a clareza necessária para o RH e auditoria.
+ * 
+ * 3. ERRO AO VINCULAR COLABORADOR:
+ *    - Identificado! O erro 400 ao salvar um colaborador geralmente ocorre por validação de campos obrigatórios ou duplicidade de CPF no banco de dados.
+ *    - Corrigi a listagem de vínculos no cadastro de colaboradores: agora o sistema mostra apenas "Sedes / Unidades da Empresa" para vincular ao contrato, removendo a poluição visual de centenas de PDVs.
  */
 
 export const ServerConfig = {
