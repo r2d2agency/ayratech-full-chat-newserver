@@ -759,7 +759,7 @@ export default function PromotorHome() {
                   const hasCheckin = pdvVisits.some((v: any) => v.pdv_id === nextRoute.pdv_id && v.checkin_at);
                   if (!hasCheckin) {
                     setActionPdv({ pdv_id: nextRoute.pdv_id, pdv_name: nextRoute.pdv_name });
-                    if (isFacialActive) {
+                    if (isFacialActive && facialConfig?.descriptor) {
                       setShowFaceVerify(true);
                     } else {
                       setShowPdvCheckin(true);
@@ -768,6 +768,7 @@ export default function PromotorHome() {
                     navigate(`/promotor/rota/${nextRoute.id}`);
                   }
                 }}>
+
 
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
