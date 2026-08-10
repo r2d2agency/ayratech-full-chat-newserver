@@ -184,7 +184,7 @@ export default function RHPDVs() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold flex items-center gap-2"><MapPin className="h-5 w-5" /> Cadastro de PDVs</h1>
+            <h1 className="text-xl font-bold flex items-center gap-2"><MapPin className="h-5 w-5" /> PDVs & Sedes</h1>
             <Button variant="outline" size="sm" asChild>
               <Link to="/merch/dashboard" className="flex items-center gap-2">
                 <LayoutDashboard className="h-4 w-4" /> Dashboard

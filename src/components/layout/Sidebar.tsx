@@ -165,7 +165,7 @@ export const getNavSections = (hasConnections: boolean): NavSection[] => [
     items: [
       { name: "Dashboard Merch", href: "/merch/dashboard", icon: LayoutDashboard, pageKey: 'merch_dashboard' },
       { name: "Marcas", href: "/merch/marcas", icon: Building2, pageKey: 'merch_marcas' },
-      { name: "PDVs", href: "/rh/pdvs", icon: MapPin, pageKey: 'rh_pdvs' },
+      { name: "PDVs & Sedes", href: "/rh/pdvs", icon: MapPin, pageKey: 'rh_pdvs' },
       { name: "Redes", href: "/merch/redes", icon: LayoutGrid, pageKey: 'merch_redes' },
       { name: "Categorias", href: "/merch/categorias", icon: TagsIcon, pageKey: 'merch_categorias' },
       { name: "Produtos", href: "/merch/produtos", icon: Boxes, pageKey: 'merch_produtos' },
