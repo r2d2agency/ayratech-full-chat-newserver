@@ -19,6 +19,9 @@
  * 3. ERRO AO VINCULAR COLABORADOR:
  *    - Identificado! O erro 400 ao salvar um colaborador geralmente ocorre por validação de campos obrigatórios ou duplicidade de CPF no banco de dados.
  *    - Corrigi a listagem de vínculos no cadastro de colaboradores: agora o sistema mostra apenas "Sedes / Unidades da Empresa" para vincular ao contrato, removendo a poluição visual de centenas de PDVs.
+ * 
+ * 4. CORREÇÃO DE PERSISTÊNCIA:
+ *    - Corrigi a função de salvamento em `src/pages/RHPDVs.tsx` para garantir que o campo `type` (PDV vs Sede) seja enviado corretamente para o servidor.
  */
 
 export const ServerConfig = {
