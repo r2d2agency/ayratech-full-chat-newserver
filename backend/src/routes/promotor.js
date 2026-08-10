@@ -1023,9 +1023,9 @@ router.post('/rh/pdvs', async (req, res) => {
     await ensurePdvGeofenceColumn(query);
     const polygon = Array.isArray(d.geofence_polygon) && d.geofence_polygon.length >= 3 ? JSON.stringify(d.geofence_polygon) : null;
     const result = await query(
-      `INSERT INTO pdvs (organization_id, name, client_name, address, zip_code, city, state, neighborhood, latitude, longitude, radius_meters, supervisor_id, notes, geofence_polygon)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::jsonb) RETURNING *`,
-      [orgId, d.name, d.client_name, d.address, d.zip_code, d.city, d.state, d.neighborhood, lat, lng, d.radius_meters || 200, d.supervisor_id || null, d.notes, polygon]
+      `INSERT INTO pdvs (organization_id, name, client_name, address, zip_code, city, state, neighborhood, latitude, longitude, radius_meters, supervisor_id, notes, geofence_polygon, type)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::jsonb, $15) RETURNING *`,
+      [orgId, d.name, d.client_name, d.address, d.zip_code, d.city, d.state, d.neighborhood, lat, lng, d.radius_meters || 200, d.supervisor_id || null, d.notes, polygon, d.type || 'pdv']
     );
 
     res.json(result.rows[0]);
@@ -1049,8 +1049,8 @@ router.put('/rh/pdvs/:id', async (req, res) => {
       : (d.geofence_polygon === null ? null : undefined);
     const result = await query(
       `UPDATE pdvs SET name=$2, client_name=$3, address=$4, zip_code=$5, city=$6, state=$7, neighborhood=$8, latitude=$9, longitude=$10, radius_meters=$11, supervisor_id=$12, notes=$13, active=$14,
-        geofence_polygon = COALESCE($15::jsonb, geofence_polygon), updated_at=NOW() WHERE id=$1 RETURNING *`,
-      [req.params.id, d.name, d.client_name, d.address, d.zip_code, d.city, d.state, d.neighborhood, lat, lng, d.radius_meters, d.supervisor_id || null, d.notes, d.active !== false, polygon ?? null]
+        geofence_polygon = COALESCE($15::jsonb, geofence_polygon), type=$16, updated_at=NOW() WHERE id=$1 RETURNING *`,
+      [req.params.id, d.name, d.client_name, d.address, d.zip_code, d.city, d.state, d.neighborhood, lat, lng, d.radius_meters, d.supervisor_id || null, d.notes, d.active !== false, polygon ?? null, d.type || 'pdv']
     );
 
     res.json(result.rows[0]);

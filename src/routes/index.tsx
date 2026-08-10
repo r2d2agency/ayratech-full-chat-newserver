@@ -21,7 +21,7 @@
  *    - Corrigi a listagem de vínculos no cadastro de colaboradores: agora o sistema mostra apenas "Sedes / Unidades da Empresa" para vincular ao contrato, removendo a poluição visual de centenas de PDVs.
  * 
  * 4. CORREÇÃO DE PERSISTÊNCIA:
- *    - Corrigi a função de salvamento em `src/pages/RHPDVs.tsx` para garantir que o campo `type` (PDV vs Sede) seja enviado corretamente para o servidor.
+ *    - Corrigi o backend para aceitar o campo `type` na tabela `pdvs`. Agora a alteração entre PDV e Sede é salva permanentemente.
  */
 
 export const ServerConfig = {
