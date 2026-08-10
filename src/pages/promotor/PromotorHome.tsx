@@ -171,10 +171,9 @@ export default function PromotorHome() {
     staleTime: 300000,
   });
 
-  const isFacialActive = facialConfig?.enabled && 
+  const isFacialActive = !!(facialConfig?.enabled && 
     facialConfig?.use_for_attendance && 
-    facialConfig?.has_enrollment && 
-    facialConfig?.verification_enabled !== false;
+    facialConfig?.has_enrollment);
 
   const employee = data?.employee;
   const todayPunches = data?.today_punches || [];
@@ -760,11 +759,17 @@ export default function PromotorHome() {
                   const hasCheckin = pdvVisits.some((v: any) => v.pdv_id === nextRoute.pdv_id && v.checkin_at);
                   if (!hasCheckin) {
                     setActionPdv({ pdv_id: nextRoute.pdv_id, pdv_name: nextRoute.pdv_name });
-                    setShowPdvCheckin(true);
+                    if (isFacialActive && facialConfig?.descriptor) {
+                      setShowFaceVerify(true);
+                    } else {
+                      setShowPdvCheckin(true);
+                    }
                   } else {
                     navigate(`/promotor/rota/${nextRoute.id}`);
                   }
                 }}>
+
+
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
                     <Badge className="bg-blue-500/20 text-blue-700 text-[10px]">📍 PRÓXIMA ROTA</Badge>
@@ -804,10 +809,21 @@ export default function PromotorHome() {
                         r.status === 'completed' && !isAwaitingCheckout ? 'opacity-60' : 'hover:border-primary/30'
                       }`}
                       onClick={() => {
-                        if (r.status !== 'cancelled' && r.status !== 'not_done') {
+                        if (r.status === 'cancelled' || r.status === 'not_done') return;
+                        
+                        const hasCheckin = pdvVisits.some((v: any) => v.pdv_id === r.pdv_id && v.checkin_at);
+                        if (!hasCheckin) {
+                          setActionPdv({ pdv_id: r.pdv_id, pdv_name: r.pdv_name });
+                          if (isFacialActive && facialConfig?.descriptor) {
+                            setShowFaceVerify(true);
+                          } else {
+                            setShowPdvCheckin(true);
+                          }
+                        } else {
                           navigate(`/promotor/rota/${r.id}`);
                         }
                       }}>
+
 
                     <CardContent className="p-3">
                       <div className="flex items-center justify-between">
@@ -1173,7 +1189,7 @@ export default function PromotorHome() {
         </DialogContent>
       </Dialog>
 
-      {/* Facial Verification Dialog for Punch */}
+      {/* Facial Verification Dialog for Punch & Check-in */}
       <FaceVerifyDialog
         open={showFaceVerify}
         onOpenChange={setShowFaceVerify}
@@ -1181,8 +1197,21 @@ export default function PromotorHome() {
         storedPhotoUrl={facialConfig?.photo_url}
         personName={employee?.full_name}
         threshold={facialConfig?.min_confidence || 70}
-        onResult={handleFaceVerifyResult}
+        onResult={(result) => {
+          if (!actionPdv?.pdv_id) {
+            handleFaceVerifyResult(result);
+          } else {
+            setShowFaceVerify(false);
+            if (result.match) {
+              setShowPdvCheckin(true);
+            } else {
+              toast({ title: 'Falha na verificação', description: 'Biometria facial não confere.', variant: 'destructive' });
+            }
+          }
+        }}
+
       />
+
       <Dialog open={showQrScanner} onOpenChange={setShowQrScanner}>
         <DialogContent className="max-w-md">
           <DialogHeader>

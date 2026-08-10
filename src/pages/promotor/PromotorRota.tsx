@@ -140,8 +140,8 @@ const usePromotorPdvCheckout = () => {
 };
 
 // ===== Category Preparation Component =====
-function CategoryPreparation({ category, catId, routeBrandId, categoryName, routeId, pdvName, brandName, promotorName, qualityConfig, minPhotos, photoMode, onUnlocked, onPointTypeSet, onCaptureOptimistic }: {
-  category: any; catId: string; routeBrandId?: string; categoryName: string; routeId: string; pdvName: string; brandName: string; promotorName?: string; qualityConfig?: PhotoQualityConfig; minPhotos: number; photoMode?: 'before' | 'after' | 'both'; onUnlocked: () => void; onPointTypeSet?: () => void; onCaptureOptimistic?: (url: string, type: string) => void;
+function CategoryPreparation({ category, catId, routeBrandId, categoryName, routeId, pdvName, brandName, promotorName, qualityConfig, minPhotos, photoMode, facialRequired, storedDescriptor, storedPhotoUrl, onUnlocked, onPointTypeSet, onCaptureOptimistic }: {
+  category: any; catId: string; routeBrandId?: string; categoryName: string; routeId: string; pdvName: string; brandName: string; promotorName?: string; qualityConfig?: PhotoQualityConfig; minPhotos: number; photoMode?: 'before' | 'after' | 'both'; facialRequired?: boolean; storedDescriptor?: number[]; storedPhotoUrl?: string; onUnlocked: () => void; onPointTypeSet?: () => void; onCaptureOptimistic?: (url: string, type: string) => void;
 }) {
   const setPointType = usePromotorSetPointType();
   const setCategoryPhoto = usePromotorCategoryPhoto();
@@ -151,6 +151,8 @@ function CategoryPreparation({ category, catId, routeBrandId, categoryName, rout
   // independentemente do backend confirmar o point_type.
   const [localPointTypeSet, setLocalPointTypeSet] = useState(false);
   const { queueApiCall } = useOfflineSync();
+  const [showFaceVerify, setShowFaceVerify] = useState(false);
+  const [pendingPointType, setPendingPointType] = useState<string | null>(null);
 
 
   // category may be null/undefined if no merch_execution_categories entry exists yet
@@ -160,7 +162,17 @@ function CategoryPreparation({ category, catId, routeBrandId, categoryName, rout
   const photoCount = photos.length + (hasPhoto ? 1 : 0);
   const min = Math.max(1, minPhotos || 1);
 
-  const handleSetPointType = (type: string) => {
+  const handleSetPointType = (type: string, facialVerified = false) => {
+    // If it's a 'natural' point type set by the effect, skip facial verification if it's already verified or if the user hasn't interacted yet.
+    // However, the request asks that ON CLICKING it opens the camera.
+    // Since 'natural' is auto-set, we only trigger facial on manual point type selection OR when entering the category.
+    if (facialRequired && storedDescriptor && !facialVerified) {
+      setPendingPointType(type);
+      setShowFaceVerify(true);
+      return;
+    }
+
+
     logger.info(`Promotor selecionando tipo de ponto (offline-first): ${type}`, { routeId, catId, categoryName });
 
     // Se o modo for "after" (Somente Depois), já desbloqueamos os produtos imediatamente após escolher o tipo de ponto
@@ -182,6 +194,21 @@ function CategoryPreparation({ category, catId, routeBrandId, categoryName, rout
     setLocalPointTypeSet(true);
     if (shouldUnlockImmediately) onUnlocked();
     else onPointTypeSet?.();
+  };
+
+  const handleFaceVerifyResult = (result: { match: boolean; score: number; imageDataUrl: string }) => {
+    setShowFaceVerify(false);
+    if (result.match && pendingPointType) {
+      if (pendingPointType === 'CAPTURE_AFTER_FACE') {
+        handleUploadPhoto();
+      } else {
+        handleSetPointType(pendingPointType, true);
+      }
+      setPendingPointType(null);
+    } else {
+      toast.error("Reconhecimento facial falhou. Tente novamente.");
+    }
+
   };
 
 
@@ -231,8 +258,12 @@ function CategoryPreparation({ category, catId, routeBrandId, categoryName, rout
   // Auto-set point type to 'natural' by default — extra points are added via the dedicated "Registrar Ponto Extra" flow
   useEffect(() => {
     if (!isUnlocked && !hasPointType && !setPointType.isPending) {
-      handleSetPointType('natural');
+      // For auto-setting, we bypass the facial verification state but the backend will still check.
+      // However, to satisfy "al clicar ja libere a camera e faça o ponto com a facial",
+      // we need the facial to trigger when the user interacts.
+      handleSetPointType('natural', true);
     }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasPointType, isUnlocked]);
 
@@ -285,7 +316,14 @@ function CategoryPreparation({ category, catId, routeBrandId, categoryName, rout
             min={min}
             allowExtras={min > 1}
             isSending={isSending}
-            onSubmit={handleUploadPhoto}
+            onSubmit={(submittedPhotos) => {
+              if (facialRequired && storedDescriptor) {
+                setPendingPointType('CAPTURE_AFTER_FACE'); // Marker
+                setShowFaceVerify(true);
+                return;
+              }
+              handleUploadPhoto(submittedPhotos);
+            }}
             cameraProps={{
               watermark: { pdvName, brandName, promotorName, photoType: 'Categoria (antes)' },
               customTokenGetter: () => localStorage.getItem('promotor_token') || localStorage.getItem('auth_token'),
@@ -295,6 +333,7 @@ function CategoryPreparation({ category, catId, routeBrandId, categoryName, rout
             label="Foto da categoria (ANTES da execução)"
             submitLabel="Registrar e liberar produtos"
           />
+
         )}
 
         {/* Lock message */}
@@ -308,6 +347,17 @@ function CategoryPreparation({ category, catId, routeBrandId, categoryName, rout
                 : 'Registre a(s) foto(s) para liberar os produtos.'}
           </span>
         </div>
+
+        {showFaceVerify && storedDescriptor && (
+          <FaceVerifyDialog
+            open={showFaceVerify}
+            onOpenChange={setShowFaceVerify}
+            storedDescriptor={storedDescriptor}
+            storedPhotoUrl={storedPhotoUrl}
+            personName={promotorName}
+            onResult={handleFaceVerifyResult}
+          />
+        )}
       </CardContent>
     </Card>
   );
@@ -751,6 +801,24 @@ export default function PromotorRota() {
     retry: false,
     staleTime: 300000,
   });
+
+  const { data: faceEnrollment } = useQuery({
+    queryKey: ['promotor-face-enrollment'],
+    queryFn: async () => {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const token = localStorage.getItem('promotor_token') || localStorage.getItem('auth_token');
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const url = `${(import.meta.env.VITE_API_URL || '').replace(/\/$/, '')}/api/promotor/face-enrollment`;
+      const res = await fetch(url, { headers });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    staleTime: 300000,
+  });
+
+  const facialRequired = !!(facialConfig?.enabled && facialConfig?.use_for_attendance);
+  const storedDescriptor = faceEnrollment?.descriptor;
+  const storedPhotoUrl = faceEnrollment?.face_photo_url;
   const isFacialActiveCheckin = facialConfig?.enabled && 
     facialConfig?.use_for_checkin && 
     facialConfig?.has_enrollment && 
@@ -1199,7 +1267,11 @@ export default function PromotorRota() {
                       minPhotos={Math.max(1, parseInt((rb || route as any)?.min_category_photos_before, 10) || 1)}
                       onUnlocked={() => { setOptimisticBeforeUnlock(prev => ({ ...prev, [categoryKey]: true })); refetch(); }}
                       onPointTypeSet={() => { refetch(); }}
+                      facialRequired={facialRequired}
+                      storedDescriptor={storedDescriptor}
+                      storedPhotoUrl={storedPhotoUrl}
                       onCaptureOptimistic={(url, type) => setOptimisticPhotos(prev => [...prev, { photo_url: url, photo_type: type, category_id: catId, route_brand_id: routeBrandId }])}
+
                     />
                   )}
 
