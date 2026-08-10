@@ -589,7 +589,22 @@ router.put('/employees/:id', async (req, res) => {
   } catch (err) {
     logError('rh.employees.update', err, { body: req.body, employee_id: req.params.id });
     const message = err?.detail || err?.message || 'Erro ao atualizar colaborador';
-    res.status(400).json({ error: message, details: err?.detail || err?.hint || '' });
+    
+    // Log detailed context to help debug 400 errors
+    console.error('[RH_UPDATE_ERROR]', {
+      id: req.params.id,
+      error: err,
+      detail: err?.detail,
+      constraint: err?.constraint,
+      bodyKeys: Object.keys(req.body)
+    });
+
+    res.status(400).json({ 
+      error: message, 
+      details: err?.detail || err?.hint || '',
+      code: err?.code,
+      constraint: err?.constraint
+    });
   }
 });
 
