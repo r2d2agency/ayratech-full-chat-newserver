@@ -3674,7 +3674,7 @@ CREATE TABLE IF NOT EXISTS employees (
   employment_type employment_type DEFAULT 'clt',
   position VARCHAR(255),
   role_level VARCHAR(100),
-  branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+  branch_id UUID, pdv_id UUID,
   department_id UUID REFERENCES rh_departments(id) ON DELETE SET NULL,
   cost_center_id UUID REFERENCES cost_centers(id) ON DELETE SET NULL,
   direct_manager_id UUID,
