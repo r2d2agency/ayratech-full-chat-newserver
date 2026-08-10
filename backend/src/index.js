@@ -93,10 +93,13 @@ let databaseInitError = null;
 
 // Add CORS headers to EVERY response (must be absolute first)
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  // Permitir origens conhecidas ou qualquer uma se for desenvolvimento
+  res.header('Access-Control-Allow-Origin', origin || '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Request-Id');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Request-Id, X-Idempotency-Key');
   res.header('Access-Control-Max-Age', '86400');
+  res.header('Access-Control-Allow-Credentials', 'true');
   
   // Handle preflight immediately
   if (req.method === 'OPTIONS') {
