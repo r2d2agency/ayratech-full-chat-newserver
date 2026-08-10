@@ -1186,17 +1186,18 @@ export default function PromotorHome() {
         personName={employee?.full_name}
         threshold={facialConfig?.min_confidence || 70}
         onResult={(result) => {
-          if (pendingPunchType) handleFaceVerifyResult(result);
-          else if (actionPdv?.pdv_id) {
+          if (!actionPdv?.pdv_id) {
+            handleFaceVerifyResult(result);
+          } else {
             setShowFaceVerify(false);
             if (result.match) {
-              // Proceed with standard check-in flow which triggers camera
-              // The facial verification is an extra barrier
+              setShowPdvCheckin(true);
             } else {
               toast({ title: 'Falha na verificação', description: 'Biometria facial não confere.', variant: 'destructive' });
             }
           }
         }}
+
       />
 
       <Dialog open={showQrScanner} onOpenChange={setShowQrScanner}>
