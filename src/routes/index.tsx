@@ -4,24 +4,27 @@
  * ### Mon, Aug 10, 2026
  * ##########################################
  * 
- * [LOG] como diferencia uma sede de um pdv ? no cadastro de pdv e sede nao tem nenhuma opcao la pra eu falar que é uma unidade da empresas. ou sede. fica tudo misturado com os pdvs ?
+ * [LOG] to cum um promotor que ja bateru as fotos fez o checklist mas fica sincronizando 26 fotos e nao sai.. e nao deixa finalizar pq nao carrega as fotos. poderia verificar. lembrand que trocamos de servidor. tem algo que possa da errado. e tem cmo ela refazer o sincronismo la no app ?
  * 
  * RESPOSTA / ANÁLISE:
  * 
- * 1. DIFERENCIAÇÃO DE UNIDADES:
- *    - Implementado! Agora, na tela de **PDVs & Sedes**, você tem um novo campo chamado "Tipo de Unidade".
- *    - Ao cadastrar ou editar, você pode selecionar se o item é um "PDV (Ponto de Venda)" ou uma "Sede / Unidade da Empresa".
+ * 1. CAUSA PROVÁVEL:
+ *    - Com a troca de servidor, se o endereço de backend (`VITE_API_URL`) no App do promotor ainda estiver apontando para o servidor antigo ou se houver bloqueio de CORS no novo servidor, as fotos ficam presas na fila do IndexedDB (`AyraOfflineDB`).
+ *    - O App usa um sistema de fila offline que tenta reenviar automaticamente, mas se o erro for persistente (ex: 404 ou 500 no endpoint de upload), ele marca como 'failed' e tenta novamente a cada 30 segundos.
  * 
- * 2. VISUALIZAÇÃO:
- *    - Adicionei uma coluna "Tipo" na listagem principal com selos (Badges) coloridos para diferenciar visualmente o que é Sede (Azul) e o que é PDV (Cinza).
- *    - Isso permite que você mantenha a gestão unificada, mas com a clareza necessária para o RH e auditoria.
+ * 2. COMO REFAZER O SINCRONISMO:
+ *    - O promotor pode tocar no indicador de sincronismo (o selo amarelo que diz "Sincronizando...") para forçar uma nova tentativa imediata.
+ *    - Se as fotos estiverem "travadas" mesmo com internet, recomendo:
+ *      a) Fechar e abrir o App totalmente.
+ *      b) Verificar se a URL do servidor nas configurações do App (se acessível) está como `https://api2.ayratech.app/`.
+ *      c) Em casos extremos, limpar o cache do navegador no celular (isso pode apagar fotos não sincronizadas, então use como último recurso).
  * 
- * 3. ERRO AO VINCULAR COLABORADOR:
- *    - Identificado! O erro 400 ao salvar um colaborador geralmente ocorre por validação de campos obrigatórios ou duplicidade de CPF no banco de dados.
- *    - Corrigi a listagem de vínculos no cadastro de colaboradores: agora o sistema mostra apenas "Sedes / Unidades da Empresa" para vincular ao contrato, removendo a poluição visual de centenas de PDVs.
+ * 3. AÇÕES NO SERVIDOR:
+ *    - Verifiquei o `backend/src/routes/uploads.js`. O servidor está configurado para salvar em `/app/uploads`. Certifique-se de que a pasta tem permissão de escrita no novo servidor.
+ *    - Adicionei um cabeçalho de CORS mais permissivo no `backend/src/index.js` para garantir que o App (`promotor.ayratech.app`) consiga enviar arquivos sem bloqueios.
  * 
- * 4. CORREÇÃO DE PERSISTÊNCIA:
- *    - Corrigi o backend para aceitar o campo `type` na tabela `pdvs`. Agora a alteração entre PDV e Sede é salva permanentemente.
+ * 4. BOTÃO DE EMERGÊNCIA:
+ *    - Implementei um botão "Tentar Sincronizar Agora" no painel de diagnóstico do promotor para facilitar o reprocessamento da fila.
  */
 
 export const ServerConfig = {

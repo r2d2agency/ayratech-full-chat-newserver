@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { usePromotorPunches } from "@/hooks/use-promotor";
 import { format, subDays } from "date-fns";
 import { useState, useEffect } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "@/lib/offline-db";
+import { useOfflineSync } from "@/hooks/use-offline-sync";
 
 export function SyncDiagnosticPanel() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -24,8 +27,11 @@ export function SyncDiagnosticPanel() {
   const pending = punches.filter((p: any) => p.sync_status === 'pending');
   const offline = punches.filter((p: any) => p.is_offline);
 
-  // Check offline queue in localStorage
-  const offlineQueue = JSON.parse(localStorage.getItem('promotor_offline_queue') || '[]');
+  // Check offline queue in IndexedDB via our hook
+  const { sync, isSyncing } = useOfflineSync();
+  const pendingUploads = useLiveQuery(() => db.pending_uploads.count()) || 0;
+  const pendingCalls = useLiveQuery(() => db.pending_api_calls.count()) || 0;
+  const totalPending = pendingUploads + pendingCalls;
 
   return (
     <Card>
@@ -70,7 +76,7 @@ export function SyncDiagnosticPanel() {
           </div>
           <div className="text-center p-2 rounded-lg bg-yellow-50 dark:bg-yellow-950/20">
             <Clock className="h-4 w-4 mx-auto text-yellow-600 mb-1" />
-            <p className="text-lg font-bold text-yellow-700">{pending.length + offlineQueue.length}</p>
+            <p className="text-lg font-bold text-yellow-700">{pending.length + totalPending}</p>
             <p className="text-[10px] text-yellow-600">Pendentes</p>
           </div>
           <div className="text-center p-2 rounded-lg bg-blue-50 dark:bg-blue-950/20">
@@ -81,13 +87,25 @@ export function SyncDiagnosticPanel() {
         </div>
 
         {/* Offline Queue Alert */}
-        {offlineQueue.length > 0 && (
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200">
-            <AlertTriangle className="h-4 w-4 text-yellow-600 flex-shrink-0" />
-            <div>
-              <p className="text-xs font-medium text-yellow-700">{offlineQueue.length} evento(s) na fila offline</p>
-              <p className="text-[10px] text-yellow-600">Serão enviados automaticamente quando voltar a conexão</p>
+        {totalPending > 0 && (
+          <div className="flex flex-col gap-2 p-2 rounded-lg bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-yellow-600 flex-shrink-0" />
+              <div>
+                <p className="text-xs font-medium text-yellow-700">{totalPending} item(s) travados na fila local</p>
+                <p className="text-[10px] text-yellow-600">Inclui fotos e checklists pendentes.</p>
+              </div>
             </div>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="w-full text-xs h-8 border-yellow-300 bg-yellow-100 hover:bg-yellow-200 text-yellow-800"
+              onClick={() => sync()}
+              disabled={isSyncing || !isOnline}
+            >
+              {isSyncing ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <RefreshCw className="h-3 w-3 mr-2" />}
+              Tentar Sincronizar Agora
+            </Button>
           </div>
         )}
 
