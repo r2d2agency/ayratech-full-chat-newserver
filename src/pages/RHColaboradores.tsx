@@ -175,7 +175,7 @@ export default function RHColaboradores() {
     return rawEmployees.filter((e: any) => e.worker_profile === profileFilter);
   }, [rawEmployees, profileFilter]);
   const { data: departments = [] } = useRhDepartments();
-  const { data: branches = [] } = useBranches();
+  const { data: branches = [] } = usePDVs(); // Usando PDVs & Sedes unificados
   const { data: positions = [] } = useRhPositions();
   const { data: workerProfiles = [] } = useWorkerProfiles();
   const { data: schedules = [] } = useSchedules();
