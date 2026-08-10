@@ -12,7 +12,7 @@
  *    - Criada a página `src/pages/RHHelp.tsx` contendo os manuais de configuração de Sede, Ponto Facial e Acessos.
  * 
  * 2. MENU LATERAL (SIDEBAR):
- *    - Adicionado o item "Ajuda & Manuais" dentro da seção "RH".
+ *    - Adicionado o item "Ajuda & Manuais" (ícone HelpCircle) dentro da seção "RH".
  * 
  * 3. ROTEAMENTO:
  *    - Rota `/rh/ajuda` configurada e protegida no `src/App.tsx`.
