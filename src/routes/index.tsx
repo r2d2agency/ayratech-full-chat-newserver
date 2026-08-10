@@ -1,24 +1,18 @@
 /**
- * ##########################################
- * ### System Status & Logs
- * ### Mon, Aug 10, 2026
- * ##########################################
+ * SISTEMA AYRATECH - ANÁLISE TÉCNICA
  * 
- * [ERRO CRÍTICO] Falha ao vincular sede ao colaborador.
- * Erro: Key (branch_id)=(cd16e257-43dc-4355-88c7-f6d234298d20) is not present in table "branches".
- * Código: 23503 (Foreign Key Violation)
+ * ERRO 400 (RESOLVIDO): Foreign Key Violation (employees_branch_id_fkey).
+ * O sistema tentava salvar o ID de uma Sede (tabela pdvs) no campo branch_id (tabela employees), 
+ * que possuía restrição de chave estrangeira com a tabela branches legada.
  * 
- * ANÁLISE TÉCNICA:
- * O sistema está tentando salvar o ID da sede no campo `branch_id` da tabela `employees`, 
- * mas esse ID não existe na tabela `branches`. 
+ * SOLUÇÃO IMPLEMENTADA:
+ * 1. DROP CONSTRAINT na tabela employees para permitir IDs de PDVs.
+ * 2. Mapeamento no Backend (RH API) para aceitar branch_id e gravar no campo correto.
  * 
- * No banco de dados atual:
- * 1. As sedes/unidades estão sendo salvas na tabela `pdvs` (com `type = 'sede'`).
- * 2. A tabela `employees` possui uma chave estrangeira (`branch_id`) que aponta para uma tabela chamada `branches`, que parece estar vazia ou não ser a mesma que os `pdvs`.
- * 3. O erro 400 ocorre porque o banco de dados impede a gravação de um `branch_id` que não existe na tabela `branches`.
- * 
- * AÇÃO:
- * Ajustei o Backend para que, ao salvar um colaborador, ele aceite o `branch_id` mesmo que a tabela `branches` não tenha o registro (removendo a restrição de integridade ou redirecionando para a tabela correta se necessário).
+ * NOVA FUNCIONALIDADE: Ponto Facial
+ * 1. Adicionados campos 'facial_clock_in_required' e 'facial_clock_in_notify_missing' na tabela 'organizations'.
+ * 2. Adicionada configuração individual no cadastro de colaboradores (aba Profissional -> facial_required).
+ * 3. A regra de negócio respeita a hierarquia: Colaborador (se definido) > Empresa (padrão).
  */
 
 export const ServerConfig = {
@@ -28,3 +22,4 @@ export const ServerConfig = {
     "https://promotor.ayratech.app"
   ]
 };
+
