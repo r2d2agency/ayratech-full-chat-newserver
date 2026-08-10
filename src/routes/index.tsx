@@ -4,18 +4,17 @@
  * ### Mon, Aug 10, 2026
  * ##########################################
  * 
- * [LOG] no cadastro do colaborador aparece a lista para eu selecionar mas mostra so um item que criei do bota gerenciar antigo.. agora clico em gerenciar ele abre pdv e sede mas nao deixa eu selecinar
+ * [LOG] como diferencia uma sede de um pdv ? no cadastro de pdv e sede nao tem nenhuma opcao la pra eu falar que é uma unidade da empresas. ou sede. fica tudo misturado com os pdvs ?
  * 
  * RESPOSTA / ANÁLISE:
  * 
- * 1. SINCRONIZAÇÃO DE DADOS:
- *    - Corrigido! O campo de seleção de Filial no RH ainda estava buscando dados da tabela antiga, por isso só mostrava o item antigo.
- *    - Agora, o campo "Filial / Sede" busca os dados em tempo real da mesma lista de **PDVs & Sedes** que você gerencia.
+ * 1. DIFERENCIAÇÃO DE UNIDADES:
+ *    - Implementado! Agora, na tela de **PDVs & Sedes**, você tem um novo campo chamado "Tipo de Unidade".
+ *    - Ao cadastrar ou editar, você pode selecionar se o item é um "PDV (Ponto de Venda)" ou uma "Sede / Unidade da Empresa".
  * 
- * 2. FLUXO DE TRABALHO:
- *    - Ao clicar em "Configurar Sedes", você abre a tela de gestão unificada.
- *    - Após cadastrar ou editar lá, volte ao cadastro do colaborador e a nova Sede aparecerá imediatamente na lista para seleção.
- *    - O vínculo agora é direto e unificado entre os módulos.
+ * 2. VISUALIZAÇÃO:
+ *    - Adicionei uma coluna "Tipo" na listagem principal com selos (Badges) coloridos para diferenciar visualmente o que é Sede (Azul) e o que é PDV (Cinza).
+ *    - Isso permite que você mantenha a gestão unificada, mas com a clareza necessária para o RH e auditoria.
  */
 
 export const ServerConfig = {

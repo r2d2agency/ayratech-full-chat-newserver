@@ -21,7 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PDVImportDialog } from "@/components/promotor/PDVImportDialog";
 import { PdvGeofenceEditor, type PolygonPoint } from "@/components/promotor/PdvGeofenceEditor";
 
-const EMPTY_PDV: any = { name: '', client_name: '', address: '', address_number: '', complement: '', zip_code: '', city: '', state: '', neighborhood: '', latitude: '', longitude: '', radius_meters: 200, supervisor_id: '', notes: '', active: true, geofence_polygon: null as PolygonPoint[] | null };
+const EMPTY_PDV: any = { name: '', client_name: '', address: '', address_number: '', complement: '', zip_code: '', city: '', state: '', neighborhood: '', latitude: '', longitude: '', radius_meters: 200, supervisor_id: '', notes: '', active: true, geofence_polygon: null as PolygonPoint[] | null, type: 'pdv' };
 
 
 function splitAddressAndNumber(address: string) {
@@ -107,7 +107,7 @@ export default function RHPDVs() {
   const openCreate = () => { setForm(EMPTY_PDV); setEditId(null); setShowDialog(true); };
   const openEdit = (pdv: any) => {
     const parsed = splitAddressAndNumber(pdv.address || '');
-    setForm({ name: pdv.name, client_name: pdv.client_name || '', address: parsed.street || pdv.address || '', address_number: pdv.address_number || parsed.number || '', complement: pdv.complement || '', zip_code: pdv.zip_code || '', city: pdv.city || '', state: pdv.state || '', neighborhood: pdv.neighborhood || '', latitude: pdv.latitude || '', longitude: pdv.longitude || '', radius_meters: pdv.radius_meters || 200, supervisor_id: pdv.supervisor_id || '', notes: pdv.notes || '', active: pdv.active !== false, geofence_polygon: Array.isArray(pdv.geofence_polygon) ? pdv.geofence_polygon : null });
+    setForm({ name: pdv.name, client_name: pdv.client_name || '', address: parsed.street || pdv.address || '', address_number: pdv.address_number || parsed.number || '', complement: pdv.complement || '', zip_code: pdv.zip_code || '', city: pdv.city || '', state: pdv.state || '', neighborhood: pdv.neighborhood || '', latitude: pdv.latitude || '', longitude: pdv.longitude || '', radius_meters: pdv.radius_meters || 200, supervisor_id: pdv.supervisor_id || '', notes: pdv.notes || '', active: pdv.active !== false, geofence_polygon: Array.isArray(pdv.geofence_polygon) ? pdv.geofence_polygon : null, type: pdv.type || 'pdv' });
     setEditId(pdv.id);
     setShowDialog(true);
   };
@@ -203,7 +203,7 @@ export default function RHPDVs() {
                 <Button variant="outline" onClick={() => setShowImportDialog(true)}><Upload className="h-4 w-4 mr-2" /> Importar</Button>
               </>
             )}
-            <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> Novo PDV</Button>
+            <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> Novo Item</Button>
           </div>
         </div>
 
@@ -219,6 +219,7 @@ export default function RHPDVs() {
                     onCheckedChange={toggleAll} 
                   />
                 </TableHead>
+                <TableHead>Tipo</TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Cidade/UF</TableHead>
@@ -237,6 +238,13 @@ export default function RHPDVs() {
                       onCheckedChange={() => toggleOne(p.id)} 
                     />
                   </TableCell>
+                  <TableCell>
+                    {p.type === 'sede' ? (
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Sede</Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">PDV</Badge>
+                    )}
+                  </TableCell>
                   <TableCell className="font-medium">{p.name}</TableCell>
                   <TableCell>{p.client_name || '-'}</TableCell>
                   <TableCell>{p.city ? `${p.city}/${p.state}` : '-'}</TableCell>
@@ -253,7 +261,7 @@ export default function RHPDVs() {
                   </TableCell>
                 </TableRow>
               ))}
-              {filtered.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhum PDV cadastrado</TableCell></TableRow>}
+              {filtered.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Nenhum PDV ou Sede cadastrado</TableCell></TableRow>}
             </TableBody>
           </Table>
         </Card>
@@ -265,7 +273,19 @@ export default function RHPDVs() {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editId ? 'Editar PDV' : 'Novo PDV'}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label>Tipo de Unidade *</Label>
+                <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pdv">PDV (Ponto de Venda)</SelectItem>
+                    <SelectItem value="sede">Sede / Unidade da Empresa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-1"><Label>Nome *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
               <div className="space-y-1"><Label>Cliente</Label><Input value={form.client_name} onChange={e => setForm(f => ({ ...f, client_name: e.target.value }))} /></div>
             </div>
