@@ -116,9 +116,22 @@ export default function RHPDVs() {
     if (!form.name) { toast({ title: 'Nome obrigatório', variant: 'destructive' }); return; }
     try {
       if (editId) {
-        await updatePDV.mutateAsync({ id: editId, ...form, address: [form.address, form.address_number].filter(Boolean).join(', '), latitude: form.latitude ? Number(form.latitude) : null, longitude: form.longitude ? Number(form.longitude) : null });
+        await updatePDV.mutateAsync({ 
+          id: editId, 
+          ...form, 
+          type: form.type, // Explicitly ensuring type is passed
+          address: [form.address, form.address_number].filter(Boolean).join(', '), 
+          latitude: form.latitude ? Number(form.latitude) : null, 
+          longitude: form.longitude ? Number(form.longitude) : null 
+        });
       } else {
-        await createPDV.mutateAsync({ ...form, address: [form.address, form.address_number].filter(Boolean).join(', '), latitude: form.latitude ? Number(form.latitude) : null, longitude: form.longitude ? Number(form.longitude) : null });
+        await createPDV.mutateAsync({ 
+          ...form, 
+          type: form.type, // Explicitly ensuring type is passed
+          address: [form.address, form.address_number].filter(Boolean).join(', '), 
+          latitude: form.latitude ? Number(form.latitude) : null, 
+          longitude: form.longitude ? Number(form.longitude) : null 
+        });
       }
       toast({ title: editId ? 'PDV atualizado!' : 'PDV criado!' });
       setShowDialog(false);
