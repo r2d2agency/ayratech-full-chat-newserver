@@ -4,18 +4,17 @@
  * ### Mon, Aug 10, 2026
  * ##########################################
  * 
- * [LOG] quero todos os preocedimentos de ajuda num item do menu por exemplo tudo do rh tem que esta na lista do rh em
+ * [LOG] nao achei no paine aonde fica gestao de unidades e locais. ?
  * 
- * ATUALIZAÇÃO DO SISTEMA:
+ * RESPOSTA / ANÁLISE:
  * 
- * 1. NOVA PÁGINA DE AJUDA RH:
- *    - Criada a página `src/pages/RHHelp.tsx` contendo os manuais de configuração de Sede, Ponto Facial e Acessos.
+ * 1. GESTÃO DE UNIDADES E LOCAIS:
+ *    - A gestão de Unidades (Sedes/PDVs) e Locais (Redes/Agências) está centralizada no módulo de "Controle de Acesso".
+ *    - No menu lateral, acesse: ADM > Controle de Acesso.
+ *    - Dentro desta página, existem abas para: "Redes", "Unidades", "Agências" e "Funções".
  * 
- * 2. MENU LATERAL (SIDEBAR):
- *    - Adicionado o item "Ajuda & Manuais" (ícone HelpCircle) dentro da seção "RH".
- * 
- * 3. ROTEAMENTO:
- *    - Rota `/rh/ajuda` configurada e protegida no `src/App.tsx`.
+ * 2. CONFIGURAÇÃO DA SEDE (PARA PONTO FACIAL):
+ *    - Para cadastrar a Sede da empresa, vá em "Unidades" e adicione um novo registro com as coordenadas GPS corretas.
  */
 
 export const ServerConfig = {
