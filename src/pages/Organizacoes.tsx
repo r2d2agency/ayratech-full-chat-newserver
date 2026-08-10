@@ -1593,6 +1593,34 @@ export default function Organizacoes() {
                           />
                         </div>
 
+                        {/* Facial Recognition Setting */}
+                        <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 p-4">
+                          <div className="flex items-center gap-4">
+                            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <Fingerprint className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium">Obrigatoriedade Facial (Ponto/Check-in)</p>
+                              <p className="text-sm text-muted-foreground">
+                                Exige validação facial para bater ponto e iniciar visitas em PDVs
+                              </p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={!!(selectedOrg as any)?.facial_clock_in_required}
+                            onCheckedChange={async (checked) => {
+                              try {
+                                await updateOrganization(selectedOrg.id, { facial_clock_in_required: checked } as any);
+                                setSelectedOrg({ ...selectedOrg, facial_clock_in_required: checked } as any);
+                                toast.success('Configuração facial atualizada!');
+                              } catch (err) {
+                                toast.error('Erro ao atualizar configuração facial');
+                              }
+                            }}
+                            disabled={!canManageOrg}
+                          />
+                        </div>
+
                         {/* Save Button */}
                         {canManageOrg && (
                           <div className="flex justify-end pt-4">

@@ -6,9 +6,11 @@
  * 2. O colaborador visualiza uma tela de "Acesso Bloqueado" com instruções para procurar o RH.
  * 3. Validação robusta no backend (punch e home) para garantir a integridade da escala (Precedência: Escala > Jornada).
  * 
- * ERRO DE REGISTRO DE PONTO:
- * O erro "Confirmação facial obrigatória" indica que o colaborador tem biometria ativa mas a foto não foi validada no momento do clique.
- * Corrigido fluxo de `handlePunch` no frontend para garantir que `setShowFaceVerify(true)` interrompa o fluxo direto.
+ * ATIVAÇÃO DE BIOMETRIA NA EMPRESA:
+ * Para ativar a obrigatoriedade facial global:
+ * 1. Vá em "Administração" > "Organizações".
+ * 2. Selecione a organização, vá na aba "Configurações".
+ * 3. Ative o switch "Obrigatoriedade Facial (Ponto/Check-in)".
  */
 
 export const ServerConfig = {
