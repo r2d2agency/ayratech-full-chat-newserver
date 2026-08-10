@@ -1625,7 +1625,6 @@ export default function Organizacoes() {
                           />
                         </div>
 
-                        {/* Facial Recognition Setting - REMOVED DUPLICATE AT THE BOTTOM */}
 
                         {/* Save Button */}
                         {canManageOrg && (
