@@ -685,13 +685,13 @@ export default function RHColaboradores() {
                 </div>
                 <div>
                   <div className="flex items-center justify-between">
-                    <Label>Filial</Label>
-                    <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1" onClick={() => setShowBranchManager(!showBranchManager)}>
-                      <MapPin className="h-3 w-3" /> Gerenciar
+                    <Label>Filial / Sede</Label>
+                    <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1" onClick={() => navigate("/rh/pdvs")}>
+                      <MapPin className="h-3 w-3" /> Configurar Sedes
                     </Button>
                   </div>
                   <Select value={form.branch_id || ""} onValueChange={v => setField("branch_id", v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecionar filial" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Selecionar filial ou sede" /></SelectTrigger>
                     <SelectContent>
                       {branches.map((b: any) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                       {branches.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">Nenhuma filial cadastrada</p>}

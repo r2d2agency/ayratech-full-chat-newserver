@@ -4,20 +4,19 @@
  * ### Mon, Aug 10, 2026
  * ##########################################
  * 
- * [LOG] nao achei onde vinvculo o colaborador a sede, e isso precisa estar no ajuda do rh. e o pontode acesso os colaboradores cda um ve o seu a nao ser que tenha permissao para ver o modulo rh.
+ * [LOG] nao deu certo  fui em filial ou sede ele deixa eu cadastrar tem um botao geraciar no cadastro do colaborador. mas nao é o mesmo que ciei la em pdv e sede?
  * 
  * RESPOSTA / ANÁLISE:
  * 
- * 1. VÍNCULO COLABORADOR -> SEDE:
- *    - No cadastro do colaborador (**RH > Colaboradores**), ao editar um registro, utilize o campo "Unidade" ou "Filial" para selecionar a Sede cadastrada.
- *    - Isso é fundamental para que o Geofencing saiba onde validar o ponto desse usuário.
+ * 1. UNIFICAÇÃO DE SEDES/FILIAIS:
+ *    - Você tem razão. O sistema tinha uma lista separada de "Filiais" no RH e "PDVs & Sedes" no Merchandising.
+ *    - Ajustei o cadastro do colaborador para que o botão "Gerenciar" agora leve diretamente para a tela de **PDVs & Sedes** que você já configurou.
+ *    - Assim, a "Sede" que você criou lá será a mesma que você vincula ao colaborador aqui.
  * 
- * 2. VISUALIZAÇÃO DE PONTO:
- *    - Por padrão, colaboradores comuns só acessam seus próprios registros através do app/ponto.
- *    - O acesso ao monitor geral de ponto ou gestão de outros usuários é restrito a perfis com permissão administrativa no módulo RH.
- * 
- * 3. CENTRAL DE AJUDA:
- *    - Atualizei o módulo **RH > Ajuda & Manuais** com estas instruções detalhadas sobre o vínculo de unidades e regras de visibilidade.
+ * 2. COMO VINCULAR:
+ *    - Vá em **RH > Colaboradores**, edite o colaborador.
+ *    - No campo "Filial / Sede", selecione a unidade que você cadastrou previamente em "PDVs & Sedes".
+ *    - Se precisar criar uma nova Sede, use o link "Configurar Sedes" que agora aponta para o lugar correto.
  */
 
 export const ServerConfig = {
