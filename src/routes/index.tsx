@@ -4,21 +4,20 @@
  * ### Mon, Aug 10, 2026
  * ##########################################
  * 
- * [LOG] sim entao nao é todos que vao ter acesso a esse modulo. o rh por exemmplo nao tera. e preciso fazer com que as pessosa batam o ponto na sede. cda um em seu celular. ai preciso cadastrar a sede. mas isso temque esta em rh
+ * [LOG] nao achei onde vinvculo o colaborador a sede, e isso precisa estar no ajuda do rh. e o pontode acesso os colaboradores cda um ve o seu a nao ser que tenha permissao para ver o modulo rh.
  * 
  * RESPOSTA / ANÁLISE:
  * 
- * 1. MÓDULO DE PDVs NO RH:
- *    - O RH já possui o menu "PDVs" (atualmente `/rh/pdvs`), que é o local para cadastrar as Unidades.
- *    - Renomearei este menu de "PDVs" para "PDVs & Sedes" para ficar mais claro que a Sede também deve ser cadastrada ali.
+ * 1. VÍNCULO COLABORADOR -> SEDE:
+ *    - No cadastro do colaborador (**RH > Colaboradores**), ao editar um registro, utilize o campo "Unidade" ou "Filial" para selecionar a Sede cadastrada.
+ *    - Isso é fundamental para que o Geofencing saiba onde validar o ponto desse usuário.
  * 
- * 2. CADASTRO DA SEDE:
- *    - Para cadastrar a sede, o RH deve ir em: **RH > PDVs & Sedes**.
- *    - Cadastre a "Sede" como uma nova unidade, informando o endereço e garantindo que a Latitude/Longitude (GPS) estejam corretas para o Geofencing (cerca eletrônica).
+ * 2. VISUALIZAÇÃO DE PONTO:
+ *    - Por padrão, colaboradores comuns só acessam seus próprios registros através do app/ponto.
+ *    - O acesso ao monitor geral de ponto ou gestão de outros usuários é restrito a perfis com permissão administrativa no módulo RH.
  * 
- * 3. CONFIGURAÇÃO DE ACESSO:
- *    - No RH, você deve ir em "Acessos App" ou "Colaboradores" para habilitar o "Ponto Mobile" para cada pessoa individualmente.
- *    - O módulo de "Controle de Acesso" (Supermercados) permanecerá restrito à ADM e não será visto pelo RH.
+ * 3. CENTRAL DE AJUDA:
+ *    - Atualizei o módulo **RH > Ajuda & Manuais** com estas instruções detalhadas sobre o vínculo de unidades e regras de visibilidade.
  */
 
 export const ServerConfig = {
