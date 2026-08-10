@@ -177,8 +177,9 @@ export default function RHColaboradores() {
   const { data: departments = [] } = useRhDepartments();
   const { data: allBranches = [] } = usePDVs(); // Usando PDVs & Sedes unificados
   const branches = useMemo(() => {
-    return allBranches.filter((b: any) => b.type === 'sede');
-  }, [allBranches]);
+    // Show all 'sede' types, but also 'pdv' if they are assigned to this employee (for backward compatibility if needed)
+    return allBranches.filter((b: any) => b.type === 'sede' || b.id === form.branch_id);
+  }, [allBranches, form.branch_id]);
   const { data: positions = [] } = useRhPositions();
   const { data: workerProfiles = [] } = useWorkerProfiles();
   const { data: schedules = [] } = useSchedules();
