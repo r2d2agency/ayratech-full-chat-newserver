@@ -157,7 +157,7 @@ export default function PromotorHome() {
 
   // Fetch facial config for this promotor
   const promotorToken = localStorage.getItem('promotor_token');
-  const { data: facialConfig } = useQuery({
+  const { data: facialConfig, isLoading: isLoadingFacial } = useQuery({
     queryKey: ['promotor-facial-config'],
     queryFn: async () => {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -605,7 +605,7 @@ export default function PromotorHome() {
     }
   };
 
-  if (isLoading) return <PromotorLayout><div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></PromotorLayout>;
+  if (isLoading || isLoadingFacial) return <PromotorLayout><div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></PromotorLayout>;
 
   return (
     <PromotorLayout>
