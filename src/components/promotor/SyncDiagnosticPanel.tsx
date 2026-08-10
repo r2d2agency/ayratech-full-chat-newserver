@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { usePromotorPunches } from "@/hooks/use-promotor";
 import { format, subDays } from "date-fns";
 import { useState, useEffect } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "@/lib/offline-db";
+import { useOfflineSync } from "@/hooks/use-offline-sync";
 
 export function SyncDiagnosticPanel() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
