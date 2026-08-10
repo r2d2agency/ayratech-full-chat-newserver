@@ -4,19 +4,20 @@
  * ### Mon, Aug 10, 2026
  * ##########################################
  * 
- * [LOG] nao deu certo  fui em filial ou sede ele deixa eu cadastrar tem um botao geraciar no cadastro do colaborador. mas nao é o mesmo que ciei la em pdv e sede?
+ * [LOG] ok mas vou consguir visualizar quais colaboradores tem acesso a sede ? ou estao batend ponto na sede ou por pdv ?
  * 
  * RESPOSTA / ANÁLISE:
  * 
- * 1. UNIFICAÇÃO DE SEDES/FILIAIS:
- *    - Você tem razão. O sistema tinha uma lista separada de "Filiais" no RH e "PDVs & Sedes" no Merchandising.
- *    - Ajustei o cadastro do colaborador para que o botão "Gerenciar" agora leve diretamente para a tela de **PDVs & Sedes** que você já configurou.
- *    - Assim, a "Sede" que você criou lá será a mesma que você vincula ao colaborador aqui.
+ * 1. VISUALIZAÇÃO DE ACESSO:
+ *    - Sim! No menu **RH > Ponto**, você consegue ver exatamente onde cada colaborador bateu o ponto.
+ *    - O sistema registra o "Status Geo" (Geofencing), indicando se a marcação foi "Dentro PDV" (incluindo a Sede) ou "Fora PDV".
  * 
- * 2. COMO VINCULAR:
- *    - Vá em **RH > Colaboradores**, edite o colaborador.
- *    - No campo "Filial / Sede", selecione a unidade que você cadastrou previamente em "PDVs & Sedes".
- *    - Se precisar criar uma nova Sede, use o link "Configurar Sedes" que agora aponta para o lugar correto.
+ * 2. DIFERENCIAÇÃO SEDE vs PDV:
+ *    - Na folha de ponto consolidada e na exportação para Excel (XLS), o sistema detalha a unidade vinculada.
+ *    - Se o colaborador estiver vinculado à "Sede", o sistema validará o ponto dele contra as coordenadas da Sede que você cadastrou.
+ * 
+ * 3. MONITORAMENTO EM TEMPO REAL:
+ *    - Você pode filtrar por colaborador específico para ver o histórico de marcações e se houve alguma divergência de local (fora da área permitida).
  */
 
 export const ServerConfig = {
