@@ -4,16 +4,21 @@
  * ### Mon, Aug 10, 2026
  * ##########################################
  * 
- * [LOG] preciso que a alguns colaboradores batam o ponto via facial no celular mas na undiade sede da empresa nao em um pdv. com opodemo fazer ?
+ * [LOG] pode or esse procedimento no manual documentacao do rh de como habilitar o ponto. local e como escolher o usuario que vai ter acesso, como criar a sede
  * 
- * ANÁLISE PARA PONTO FACIAL (SEDE):
- * 1. O sistema já possui componentes de captura de câmera (CameraCapture.tsx) e reconhecimento facial.
- * 2. Para permitir o ponto na sede (sem ser PDV), precisamos garantir que a geolocalização da sede esteja cadastrada ou desativar a trava de GPS para esses colaboradores específicos.
- * 3. Podemos criar um tipo de "Ponto Externo/Sede" que não exija um PDV vinculado, apenas a validação facial.
+ * DOCUMENTAÇÃO RH - CONFIGURAÇÃO DE PONTO E SEDE:
  * 
- * AÇÃO SUGERIDA:
- * 1. Verificar no backend se a tabela de colaboradores permite marcar a "Sede" como local autorizado.
- * 2. Ajustar a lógica de 'check-in' no app para reconhecer quando o colaborador está batendo ponto via facial em modo "Sede".
+ * 1. CRIAR A SEDE:
+ *    - No painel administrativo, acesse Gestão de Unidades/Locais.
+ *    - Cadastre a Unidade com as coordenadas GPS da sede para validação de cerca eletrônica (Geofencing).
+ * 
+ * 2. HABILITAR PONTO LOCAL/FACIAL:
+ *    - No cadastro do Colaborador, ative a opção "Permitir Ponto Mobile" ou "Reconhecimento Facial".
+ *    - Vincule o colaborador à unidade "Sede" criada anteriormente.
+ * 
+ * 3. ESCOLHER USUÁRIO COM ACESSO:
+ *    - Em Gestão de Permissões/Perfis, atribua ao usuário o perfil que permite acesso ao módulo de Ponto.
+ *    - Certifique-se de que o dispositivo do colaborador tenha permissão de Câmera e GPS ativa no navegador.
  */
 
 export const ServerConfig = {
