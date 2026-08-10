@@ -4,8 +4,10 @@
  * ### Mon, Aug 10, 2026
  * ##########################################
  * 
- * [LOG] PUT https://api2.ayratech.app/api/rh/employees/f60bfd3a-fe97-49e3-b125-95b70bb1fbe7 400 (Bad Request)
- * Mensagem: "nao tem cpf ou email duplicado. ja conferi"
+ * [LOG] Failed to load resource: the server responded with a status of 400 ()
+ * index-CUvuTv0q.js:1477 [api] request failed Object
+ * ge @ index-CUvuTv0q.js:1477
+ * index-CUvuTv0q.js:1620 [ERROR] [API 400] PUT /api/rh/employees/1473fe42-7a3c-4198-8445-0152869c7798 Object
  * 
  * ANÁLISE TÉCNICA (Erro 400 Persistente):
  * 
