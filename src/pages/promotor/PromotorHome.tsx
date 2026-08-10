@@ -175,6 +175,11 @@ export default function PromotorHome() {
     facialConfig?.use_for_attendance && 
     facialConfig?.has_enrollment);
 
+  const isFacialBlockingApp = !!(facialConfig?.enabled && 
+    facialConfig?.use_for_attendance && 
+    !facialConfig?.has_enrollment &&
+    facialConfig?.allow_manual_fallback === false);
+
   const employee = data?.employee;
   const todayPunches = data?.today_punches || [];
   const pendingDocs = data?.pending_docs_count || 0;
@@ -610,6 +615,56 @@ export default function PromotorHome() {
   return (
     <PromotorLayout>
       <PendingJustificationsGate />
+
+      <Dialog open={isFacialBlockingApp} onOpenChange={() => {}}>
+        <DialogContent 
+          className="max-w-md"
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <ShieldAlert className="h-6 w-6" />
+              Acesso Bloqueado
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="flex justify-center">
+              <div className="bg-red-100 p-4 rounded-full">
+                <ScanFace className="h-12 w-12 text-red-600" />
+              </div>
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="font-bold text-lg">Cadastro Facial Obrigatório</h3>
+              <p className="text-muted-foreground text-sm">
+                Sua empresa exige validação facial para uso do aplicativo, mas você ainda não possui uma face cadastrada.
+              </p>
+              <div className="bg-muted p-3 rounded-md text-left text-xs space-y-2">
+                <p className="font-semibold flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3 text-amber-500" /> Como liberar seu acesso:
+                </p>
+                <ol className="list-decimal list-inside space-y-1">
+                  <li>Procure seu supervisor ou o RH</li>
+                  <li>Solicite o cadastro da sua biometria facial</li>
+                  <li>Após o cadastro, reinicie o aplicativo</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              onClick={() => {
+                localStorage.clear();
+                window.location.href = '/promotor/login';
+              }}
+            >
+              Sair da conta
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="space-y-4 p-4 max-w-lg mx-auto">
         {/* Status bar */}
         <div className="flex items-center justify-between gap-2">
