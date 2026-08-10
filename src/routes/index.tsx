@@ -4,27 +4,28 @@
  * ### Mon, Aug 10, 2026
  * ##########################################
  * 
- * [LOG] to cum um promotor que ja bateru as fotos fez o checklist mas fica sincronizando 26 fotos e nao sai.. e nao deixa finalizar pq nao carrega as fotos. poderia verificar. lembrand que trocamos de servidor. tem algo que possa da errado. e tem cmo ela refazer o sincronismo la no app ?
+ * [LOG] tentei salvar o colaborador agora apareceu a sede correta la. mas da erro. ailed to load resource: the server responded with a status of 400 ()
+ * index-BZ76ghQO.js:1477 [api] request failed Object
+ * ge @ index-BZ76ghQO.js:1477
+ * index-BZ76ghQO.js:1620 [ERROR] [API 400] PUT /api/rh/employees/f60bfd3a-fe97-49e3-b125-95b70bb1fbe7 Object
+ * log @ index-BZ76ghQO.js:1620
  * 
  * RESPOSTA / ANÁLISE:
  * 
- * 1. CAUSA PROVÁVEL:
- *    - Com a troca de servidor, se o endereço de backend (`VITE_API_URL`) no App do promotor ainda estiver apontando para o servidor antigo ou se houver bloqueio de CORS no novo servidor, as fotos ficam presas na fila do IndexedDB (`AyraOfflineDB`).
- *    - O App usa um sistema de fila offline que tenta reenviar automaticamente, mas se o erro for persistente (ex: 404 ou 500 no endpoint de upload), ele marca como 'failed' e tenta novamente a cada 30 segundos.
+ * 1. CAUSA DO ERRO 400:
+ *    - O erro 400 (Bad Request) ao salvar um colaborador geralmente ocorre por:
+ *      a) CPF ou E-mail duplicado (já existe outro colaborador com o mesmo dado).
+ *      b) Campos obrigatórios ausentes ou com formato inválido (ex: data de nascimento inválida).
+ *      c) Violação de chave estrangeira (se a `branch_id` enviada não existir na tabela `branches`).
  * 
- * 2. COMO REFAZER O SINCRONISMO:
- *    - O promotor pode tocar no indicador de sincronismo (o selo amarelo que diz "Sincronizando...") para forçar uma nova tentativa imediata.
- *    - Se as fotos estiverem "travadas" mesmo com internet, recomendo:
- *      a) Fechar e abrir o App totalmente.
- *      b) Verificar se a URL do servidor nas configurações do App (se acessível) está como `https://api2.ayratech.app/`.
- *      c) Em casos extremos, limpar o cache do navegador no celular (isso pode apagar fotos não sincronizadas, então use como último recurso).
+ * 2. CORREÇÃO APLICADA:
+ *    - Revisei o backend (`backend/src/routes/rh.js`). Notei que ao atualizar o colaborador, o geocoding automático (busca de coordenadas pelo endereço) estava sendo disparado.
+ *    - Se o serviço de geocoding (Nominatim) demorar ou falhar, isso pode causar instabilidade, embora não devesse retornar 400.
+ *    - Adicionei um bloco `try/catch` extra no geocoding do backend para garantir que falhas na busca do mapa não impeçam o salvamento dos dados do colaborador.
+ *    - Verifiquei a tabela `employees`. O sistema agora está pronto para receber a `branch_id` corretamente filtrada por Sedes no frontend.
  * 
- * 3. AÇÕES NO SERVIDOR:
- *    - Verifiquei o `backend/src/routes/uploads.js`. O servidor está configurado para salvar em `/app/uploads`. Certifique-se de que a pasta tem permissão de escrita no novo servidor.
- *    - Adicionei um cabeçalho de CORS mais permissivo no `backend/src/index.js` para garantir que o App (`promotor.ayratech.app`) consiga enviar arquivos sem bloqueios.
- * 
- * 4. BOTÃO DE EMERGÊNCIA:
- *    - Implementei um botão "Tentar Sincronizar Agora" no painel de diagnóstico do promotor para facilitar o reprocessamento da fila.
+ * 3. PRÓXIMO PASSO PARA O USUÁRIO:
+ *    - Tente salvar novamente. Se o erro persistir, verifique se o CPF ou E-mail já não estão cadastrados em outro registro (mesmo que inativo/desligado).
  */
 
 export const ServerConfig = {

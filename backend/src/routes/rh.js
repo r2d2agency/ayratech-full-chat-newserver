@@ -556,8 +556,12 @@ router.put('/employees/:id', async (req, res) => {
       const zipVal = d.zip_code || req.body.zip_code;
       const neighborhoodVal = d.neighborhood || req.body.neighborhood;
       if (addrVal || cityVal) {
-        const geo = await autoGeocodeAddress(addrVal, cityVal, stateVal, zipVal, neighborhoodVal, addressNumberVal, complementVal);
-        if (geo) { d.home_latitude = geo.lat; d.home_longitude = geo.lng; }
+        try {
+          const geo = await autoGeocodeAddress(addrVal, cityVal, stateVal, zipVal, neighborhoodVal, addressNumberVal, complementVal);
+          if (geo) { d.home_latitude = geo.lat; d.home_longitude = geo.lng; }
+        } catch (geoErr) {
+          logError('rh.employees.update.geocode', geoErr);
+        }
       }
     }
 
