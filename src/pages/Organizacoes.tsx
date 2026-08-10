@@ -1593,7 +1593,7 @@ export default function Organizacoes() {
                           />
                         </div>
 
-                        {/* Facial Recognition Setting */}
+                        {/* Facial Recognition Setting - MOVED UP and FIXED Persistence */}
                         <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 p-4">
                           <div className="flex items-center gap-4">
                             <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -1613,8 +1613,9 @@ export default function Organizacoes() {
                                 if (!selectedOrg) return;
                                 await updateOrganization(selectedOrg.id, { facial_clock_in_required: checked } as any);
                                 setSelectedOrg({ ...selectedOrg, facial_clock_in_required: checked } as any);
-                                // Update the organizations list as well so it persists in the UI
-                                setOrganizations(prev => prev.map(o => o.id === selectedOrg.id ? { ...o, facial_clock_in_required: checked } : o));
+                                // Refresh organization list to ensure it stays in state
+                                const orgs = await getOrganizations();
+                                setOrganizations(orgs);
                                 toast.success('Configuração facial atualizada!');
                               } catch (err) {
                                 toast.error('Erro ao atualizar configuração facial');
