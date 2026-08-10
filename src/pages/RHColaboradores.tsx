@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useEmployees, useCreateEmployee, useUpdateEmployee, useDeleteEmployee, useRhDepartments, useBranches, useCreateBranch, useDeleteBranch, useCreateRhDepartment, useDeleteRhDepartment, useRhPositions, useCreateRhPosition, useDeleteRhPosition, useWorkerProfiles, useCreateWorkerProfile, useDeleteWorkerProfile, useRhDocuments, useCreateRhDocument, useDeleteRhDocument } from "@/hooks/use-rh";
 import { useSchedules, useEmployeeSchedule, useAssignSchedule } from "@/hooks/use-rh-schedules";
-import { useAppAccess, useGrantAppAccess, useBlockAppAccess, useResetAppPassword } from "@/hooks/use-promotor";
+import { usePDVs, useAppAccess, useGrantAppAccess, useBlockAppAccess, useResetAppPassword } from "@/hooks/use-promotor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -175,7 +175,7 @@ export default function RHColaboradores() {
     return rawEmployees.filter((e: any) => e.worker_profile === profileFilter);
   }, [rawEmployees, profileFilter]);
   const { data: departments = [] } = useRhDepartments();
-  const { data: branches = [] } = useBranches();
+  const { data: branches = [] } = usePDVs(); // Usando PDVs & Sedes unificados
   const { data: positions = [] } = useRhPositions();
   const { data: workerProfiles = [] } = useWorkerProfiles();
   const { data: schedules = [] } = useSchedules();
@@ -697,26 +697,6 @@ export default function RHColaboradores() {
                       {branches.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">Nenhuma filial cadastrada</p>}
                     </SelectContent>
                   </Select>
-                  {showBranchManager && (
-                    <div className="mt-2 p-3 border rounded-lg bg-muted/30 space-y-2">
-                      <p className="text-xs font-medium">Filiais cadastradas:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {branches.map((b: any) => (
-                          <Badge key={b.id} variant="secondary" className="gap-1 pr-1">
-                            {b.name}
-                            <button onClick={() => deleteBranchMut.mutate(b.id)} className="ml-1 hover:text-destructive"><X className="h-3 w-3" /></button>
-                          </Badge>
-                        ))}
-                      </div>
-                      <div className="flex gap-1">
-                        <Input value={newBranchName} onChange={e => setNewBranchName(e.target.value)} placeholder="Nova filial..." className="h-8 text-sm" />
-                        <Button size="sm" className="h-8 shrink-0" disabled={!newBranchName.trim() || createBranchMut.isPending}
-                          onClick={async () => { await createBranchMut.mutateAsync({ name: newBranchName.trim() }); setNewBranchName(""); }}>
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
                 </div>
                 <div><Label>Salário Mensal (R$)</Label><Input type="number" value={form.salary} onChange={e => setField("salary", e.target.value)} /></div>
 
