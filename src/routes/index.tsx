@@ -4,20 +4,18 @@
  * ### Mon, Aug 10, 2026
  * ##########################################
  * 
- * [LOG] ok mas vou consguir visualizar quais colaboradores tem acesso a sede ? ou estao batend ponto na sede ou por pdv ?
+ * [LOG] no cadastro do colaborador aparece a lista para eu selecionar mas mostra so um item que criei do bota gerenciar antigo.. agora clico em gerenciar ele abre pdv e sede mas nao deixa eu selecinar
  * 
  * RESPOSTA / ANÁLISE:
  * 
- * 1. VISUALIZAÇÃO DE ACESSO:
- *    - Sim! No menu **RH > Ponto**, você consegue ver exatamente onde cada colaborador bateu o ponto.
- *    - O sistema registra o "Status Geo" (Geofencing), indicando se a marcação foi "Dentro PDV" (incluindo a Sede) ou "Fora PDV".
+ * 1. SINCRONIZAÇÃO DE DADOS:
+ *    - Corrigido! O campo de seleção de Filial no RH ainda estava buscando dados da tabela antiga, por isso só mostrava o item antigo.
+ *    - Agora, o campo "Filial / Sede" busca os dados em tempo real da mesma lista de **PDVs & Sedes** que você gerencia.
  * 
- * 2. DIFERENCIAÇÃO SEDE vs PDV:
- *    - Na folha de ponto consolidada e na exportação para Excel (XLS), o sistema detalha a unidade vinculada.
- *    - Se o colaborador estiver vinculado à "Sede", o sistema validará o ponto dele contra as coordenadas da Sede que você cadastrou.
- * 
- * 3. MONITORAMENTO EM TEMPO REAL:
- *    - Você pode filtrar por colaborador específico para ver o histórico de marcações e se houve alguma divergência de local (fora da área permitida).
+ * 2. FLUXO DE TRABALHO:
+ *    - Ao clicar em "Configurar Sedes", você abre a tela de gestão unificada.
+ *    - Após cadastrar ou editar lá, volte ao cadastro do colaborador e a nova Sede aparecerá imediatamente na lista para seleção.
+ *    - O vínculo agora é direto e unificado entre os módulos.
  */
 
 export const ServerConfig = {
