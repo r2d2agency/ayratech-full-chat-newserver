@@ -484,7 +484,7 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
       }
 
       // Check for facial_verified or bypass if no enrollment yet and allowed
-      if (facialRequired && hasEnrollment && !facial_verified) {
+      if (facialRequired && hasEnrollment && (facial_verified === undefined || facial_verified === false)) {
         return res.status(403).json({
           error: 'Confirmação facial obrigatória para registrar o ponto.',
           code: 'FACIAL_REQUIRED'

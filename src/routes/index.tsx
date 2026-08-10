@@ -12,10 +12,11 @@
  *    - Check-in e Checkout de Rota (Visita PDV).
  *    - Registro de Ponto Extra / Início de Categoria.
  * 
- * REGRA DE PONTO:
- * 1. Sim, para poder bater os pontos o colaborador segue a jornada de trabalho configurada no sistema.
- * 2. PRIORIDADE: A Escala (collaborator_daily_assignments) agora tem precedência sobre a Jornada (work_schedule).
- * 3. Se não houver escala definida para o dia, o sistema utiliza a jornada padrão do colaborador.
+ * REGRA DE PONTO & ESCALA:
+ * 1. O colaborador deve seguir a jornada de trabalho configurada.
+ * 2. PRIORIDADE ABSOLUTA: A Escala (collaborator_daily_assignments) tem precedência TOTAL sobre a Jornada (work_schedule).
+ * 3. Se houver uma escala definida para o dia (ex: 07:00-17:30), o sistema ignorará a jornada (ex: 08:00-17:00) e permitirá o ponto no horário da escala.
+ * 4. BIOMETRIA FACIAL: Corrigida validação para garantir que o prompt de foto seja exibido sempre que a configuração exigir ("Sempre exigir"), bloqueando o registro direto sem foto.
  */
 
 
