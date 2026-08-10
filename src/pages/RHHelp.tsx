@@ -11,15 +11,21 @@ const helpItems = [
   },
   {
     title: "Habilitar Ponto Facial",
-    description: "Procedimento para permitir que colaboradores batam ponto via celular com reconhecimento facial.",
+    description: "Como permitir que colaboradores batam ponto via celular com reconhecimento facial.",
     icon: Clock,
-    content: "No cadastro do Colaborador, ative a opção 'Permitir Ponto Mobile' ou 'Reconhecimento Facial'. Vincule o colaborador à unidade 'Sede' criada anteriormente."
+    content: "No cadastro do Colaborador (RH > Colaboradores), acesse a aba 'Contrato' ou 'Segurança', ative 'Reconhecimento Facial' e, no campo 'Unidade de Trabalho', selecione a 'Sede' criada anteriormente para vincular o colaborador ao local."
+  },
+  {
+    title: "Vínculo de Colaborador à Sede",
+    description: "Como associar um colaborador a uma unidade específica para validação de local.",
+    icon: Users,
+    content: "Para que o ponto seja validado na sede, abra o cadastro do colaborador em 'RH > Colaboradores', clique em editar e procure pelo campo 'Filial' ou 'Unidade'. Selecione a unidade 'Sede'. Isso garante que o Geofencing valide a batida apenas naquele local."
   },
   {
     title: "Controle de Acessos",
     description: "Como definir quais usuários têm acesso ao módulo de RH e Ponto.",
     icon: Settings,
-    content: "Em Gestão de Permissões/Perfis, atribua ao usuário o perfil que permite acesso ao módulo de Ponto. Certifique-se de que o dispositivo do colaborador tenha permissão de Câmera e GPS ativa."
+    content: "Em Gestão de Permissões/Perfis, atribua ao usuário o perfil que permite acesso ao módulo de Ponto. Colaboradores comuns só visualizam seus próprios registros de ponto, a menos que possuam permissão administrativa no módulo RH."
   }
 ];
 
