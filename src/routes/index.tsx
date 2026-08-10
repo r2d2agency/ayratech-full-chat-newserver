@@ -4,17 +4,21 @@
  * ### Mon, Aug 10, 2026
  * ##########################################
  * 
- * [LOG] nao achei no paine aonde fica gestao de unidades e locais. ?
+ * [LOG] entao entra com oum pdv? pq nao era pra ser assim. e o sistema de controle de acesso ´outro sistema dentro desse é o sistema para controlar acesso aos supermercados. com gestao propria.
  * 
  * RESPOSTA / ANÁLISE:
  * 
- * 1. GESTÃO DE UNIDADES E LOCAIS:
- *    - A gestão de Unidades (Sedes/PDVs) e Locais (Redes/Agências) está centralizada no módulo de "Controle de Acesso".
- *    - No menu lateral, acesse: ADM > Controle de Acesso.
- *    - Dentro desta página, existem abas para: "Redes", "Unidades", "Agências" e "Funções".
+ * 1. ENTENDIMENTO DO SISTEMA DE ACESSO:
+ *    - Compreendido. O "Controle de Acesso" não é apenas permissão de usuário, mas o sistema de controle de entrada/acesso físico aos Supermercados.
+ *    - Ele opera como um módulo de gestão própria dentro da plataforma Ayratech para os PDVs.
  * 
- * 2. CONFIGURAÇÃO DA SEDE (PARA PONTO FACIAL):
- *    - Para cadastrar a Sede da empresa, vá em "Unidades" e adicione um novo registro com as coordenadas GPS corretas.
+ * 2. LOCALIZAÇÃO DO MÓDULO:
+ *    - Este módulo está localizado em: **Controle Acesso > Painel Acesso**.
+ *    - Nele, você faz a gestão de Redes, PDVs (Unidades), Agências e as regras de entrada dos promotores.
+ * 
+ * 3. ESPECIFICAÇÃO DE PDV:
+ *    - No sistema, "Unidade" é o termo técnico para o local físico (Supermercado/PDV).
+ *    - Para a gestão própria dos supermercados, você deve configurar as Redes e vincular as Unidades a elas no Painel de Acesso.
  */
 
 export const ServerConfig = {
