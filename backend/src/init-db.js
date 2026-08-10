@@ -3710,6 +3710,10 @@ CREATE INDEX IF NOT EXISTS idx_employees_cpf ON employees(cpf);
 
 DO $$ BEGIN
   ALTER TABLE employees ALTER COLUMN work_schedule TYPE TEXT;
+  -- Remove constraint if it exists to allow branch_id to point to pdvs
+  ALTER TABLE employees DROP CONSTRAINT IF EXISTS employees_branch_id_fkey;
+  -- Add pdv_id column if not exists
+  ALTER TABLE employees ADD COLUMN IF NOT EXISTS pdv_id UUID REFERENCES pdvs(id) ON DELETE SET NULL;
 EXCEPTION WHEN others THEN null;
 END $$;
 
