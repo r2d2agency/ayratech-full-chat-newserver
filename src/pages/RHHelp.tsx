@@ -7,7 +7,7 @@ const helpItems = [
     title: "Configuração de Sede",
     description: "Como criar a sede da empresa para validação de ponto por geofencing.",
     icon: Building2,
-    content: "No painel administrativo, acesse Gestão de Unidades/Locais. Cadastre a Unidade com as coordenadas GPS da sede para validação de cerca eletrônica (Geofencing)."
+    content: "No painel de RH, acesse 'PDVs & Sedes'. Cadastre a Unidade 'Sede' com o endereço e as coordenadas GPS exatas para permitir a validação por cerca eletrônica (Geofencing)."
   },
   {
     title: "Habilitar Ponto Facial",
