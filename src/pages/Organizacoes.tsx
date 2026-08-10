@@ -17,7 +17,7 @@ import { useOrganizations } from '@/hooks/use-organizations';
 import { useSuperadmin } from '@/hooks/use-superadmin';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import { Building2, Plus, Users, Trash2, UserPlus, Crown, Shield, User, Briefcase, Loader2, Pencil, Link2, Settings, KeyRound, Megaphone, Receipt, UsersRound, CalendarClock, Bot, Layers, MessagesSquare, Upload, Image, BarChart3, Lock, Copy } from 'lucide-react';
+import { Building2, Plus, Users, Trash2, UserPlus, Crown, Shield, User, Briefcase, Loader2, Pencil, Link2, Settings, KeyRound, Megaphone, Receipt, UsersRound, CalendarClock, Bot, Layers, MessagesSquare, Upload, Image, BarChart3, Lock, Copy, Fingerprint } from 'lucide-react';
 import { useUpload } from '@/hooks/use-upload';
 import { PAGE_PERMISSIONS, PAGE_SECTIONS, createFullPermissions, createEmptyPermissions } from '@/lib/page-permissions';
 
