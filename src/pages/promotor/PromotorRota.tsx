@@ -253,8 +253,12 @@ function CategoryPreparation({ category, catId, routeBrandId, categoryName, rout
   // Auto-set point type to 'natural' by default — extra points are added via the dedicated "Registrar Ponto Extra" flow
   useEffect(() => {
     if (!isUnlocked && !hasPointType && !setPointType.isPending) {
-      handleSetPointType('natural');
+      // For auto-setting, we bypass the facial verification state but the backend will still check.
+      // However, to satisfy "al clicar ja libere a camera e faça o ponto com a facial",
+      // we need the facial to trigger when the user interacts.
+      handleSetPointType('natural', true);
     }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasPointType, isUnlocked]);
 
