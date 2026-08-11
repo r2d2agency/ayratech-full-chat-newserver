@@ -1086,17 +1086,19 @@ export default function PromotorRota() {
     }
     setFaceVerifyAction(null);
 
-    await queueApiCall({
+    // Prioritize background queue for all checkouts to ensure they work offline
+    queueApiCall({
       url: `/api/merch/promotor/routes/${id}/checkout`,
       method: 'POST',
       body: { notes: actionForm.notes },
       headers: { 'Authorization': `Bearer ${localStorage.getItem('promotor_token') || localStorage.getItem('auth_token')}` }
     });
     
+    // Optimistically update UI and redirect immediately
     setShowCompleteRoute(false);
     navigate('/promotor/home');
 
-  }, [id, checkout, actionForm, navigate, isFacialActiveCheckin, faceVerifyAction, isOnline, queueApiCall]);
+  }, [id, actionForm.notes, navigate, isFacialActiveCheckin, faceVerifyAction, queueApiCall]);
 
   const handlePdvCheckout = useCallback(async () => {
     if (!route?.pdv_id) return;
@@ -1121,12 +1123,12 @@ export default function PromotorRota() {
       };
 
       // Always use background queue for PDV checkout for performance
-      await queueApiCall({
+      queueApiCall({
         url: '/api/merch/promotor/pdv-checkout',
         method: 'POST',
         body,
         headers: { 'Authorization': `Bearer ${localStorage.getItem('promotor_token') || localStorage.getItem('auth_token')}` },
-        dependsOnUploadId: pdvCheckoutPhoto.startsWith('local-file://') ? pdvCheckoutPhoto.replace('local-file://', '') : undefined
+        dependsOnUploadId: pdvCheckoutPhoto?.startsWith('local-file://') ? pdvCheckoutPhoto.replace('local-file://', '') : undefined
       });
       // Removed toast per user request
 
@@ -1567,7 +1569,9 @@ export default function PromotorRota() {
                       // Se offline, fazemos o checkout lógico na fila para liberar o promotor
                       handleCompleteRoute();
                     } else {
-                      setShowCompleteRoute(true);
+                    // Se estiver offline ou para melhor UX, chama handleCompleteRoute direto
+                    // O diálogo só é estritamente necessário se quisermos forçar nota (opcional aqui)
+                    handleCompleteRoute();
                     }
                   }} disabled={checkout.isPending} variant={canCompleteRoute ? 'default' : 'secondary'}>
                     <Check className="h-5 w-5 mr-2" /> Concluir Rota ({completedExecsGlobal}/{totalExecsGlobal})
