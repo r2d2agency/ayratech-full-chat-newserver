@@ -1265,8 +1265,12 @@ export default function PromotorRota() {
                       qualityConfig={photoQualityConfig}
                       photoMode={photoMode}
                       minPhotos={Math.max(1, parseInt((rb || route as any)?.min_category_photos_before, 10) || 1)}
-                      onUnlocked={() => { setOptimisticBeforeUnlock(prev => ({ ...prev, [categoryKey]: true })); refetch(); }}
-                      onPointTypeSet={() => { refetch(); }}
+                      onUnlocked={() => { 
+                        setOptimisticBeforeUnlock(prev => ({ ...prev, [categoryKey]: true })); 
+                        // Não damos refetch aqui para não perder o estado offline do DOM se a rede estiver oscilando
+                        // O CategoryPreparation já chamou queueApiCall
+                      }}
+                      onPointTypeSet={() => { /* offline-first state handled in component */ }}
                       facialRequired={facialRequired}
                       storedDescriptor={storedDescriptor}
                       storedPhotoUrl={storedPhotoUrl}
@@ -1439,7 +1443,7 @@ export default function PromotorRota() {
                       promotorName={route.promotor_name}
                       qualityConfig={photoQualityConfig}
                       minPhotos={Math.max(1, parseInt((rb || route as any)?.min_category_photos_after, 10) || 1)}
-                      onCompleted={() => { setOptimisticAfterPhoto(p => ({ ...p, [afterPhotoKey]: true })); refetch(); }}
+                      onCompleted={() => { setOptimisticAfterPhoto(p => ({ ...p, [afterPhotoKey]: true })); }}
                       onCaptureOptimistic={(url, type) => setOptimisticPhotos(prev => [...prev, { photo_url: url, photo_type: type, category_id: catId, route_brand_id: routeBrandId }])}
                     />
                   )}
@@ -1559,7 +1563,12 @@ export default function PromotorRota() {
                       toast.error(`Tempo mínimo de permanência não atingido. Faltam ${minDuration - elapsedMinutes} minuto(s).`);
                       return;
                     }
-                    setShowCompleteRoute(true);
+                    if (!isOnline) {
+                      // Se offline, fazemos o checkout lógico na fila para liberar o promotor
+                      handleCompleteRoute();
+                    } else {
+                      setShowCompleteRoute(true);
+                    }
                   }} disabled={checkout.isPending} variant={canCompleteRoute ? 'default' : 'secondary'}>
                     <Check className="h-5 w-5 mr-2" /> Concluir Rota ({completedExecsGlobal}/{totalExecsGlobal})
                   </Button>
