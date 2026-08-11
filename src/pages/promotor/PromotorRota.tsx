@@ -1086,17 +1086,19 @@ export default function PromotorRota() {
     }
     setFaceVerifyAction(null);
 
-    await queueApiCall({
+    // Prioritize background queue for all checkouts to ensure they work offline
+    queueApiCall({
       url: `/api/merch/promotor/routes/${id}/checkout`,
       method: 'POST',
       body: { notes: actionForm.notes },
       headers: { 'Authorization': `Bearer ${localStorage.getItem('promotor_token') || localStorage.getItem('auth_token')}` }
     });
     
+    // Optimistically update UI and redirect immediately
     setShowCompleteRoute(false);
     navigate('/promotor/home');
 
-  }, [id, checkout, actionForm, navigate, isFacialActiveCheckin, faceVerifyAction, isOnline, queueApiCall]);
+  }, [id, actionForm.notes, navigate, isFacialActiveCheckin, faceVerifyAction, queueApiCall]);
 
   const handlePdvCheckout = useCallback(async () => {
     if (!route?.pdv_id) return;
@@ -1121,12 +1123,12 @@ export default function PromotorRota() {
       };
 
       // Always use background queue for PDV checkout for performance
-      await queueApiCall({
+      queueApiCall({
         url: '/api/merch/promotor/pdv-checkout',
         method: 'POST',
         body,
         headers: { 'Authorization': `Bearer ${localStorage.getItem('promotor_token') || localStorage.getItem('auth_token')}` },
-        dependsOnUploadId: pdvCheckoutPhoto.startsWith('local-file://') ? pdvCheckoutPhoto.replace('local-file://', '') : undefined
+        dependsOnUploadId: pdvCheckoutPhoto?.startsWith('local-file://') ? pdvCheckoutPhoto.replace('local-file://', '') : undefined
       });
       // Removed toast per user request
 
@@ -1265,8 +1267,12 @@ export default function PromotorRota() {
                       qualityConfig={photoQualityConfig}
                       photoMode={photoMode}
                       minPhotos={Math.max(1, parseInt((rb || route as any)?.min_category_photos_before, 10) || 1)}
-                      onUnlocked={() => { setOptimisticBeforeUnlock(prev => ({ ...prev, [categoryKey]: true })); refetch(); }}
-                      onPointTypeSet={() => { refetch(); }}
+                      onUnlocked={() => { 
+                        setOptimisticBeforeUnlock(prev => ({ ...prev, [categoryKey]: true })); 
+                        // Não damos refetch aqui para não perder o estado offline do DOM se a rede estiver oscilando
+                        // O CategoryPreparation já chamou queueApiCall
+                      }}
+                      onPointTypeSet={() => { /* offline-first state handled in component */ }}
                       facialRequired={facialRequired}
                       storedDescriptor={storedDescriptor}
                       storedPhotoUrl={storedPhotoUrl}
@@ -1439,7 +1445,7 @@ export default function PromotorRota() {
                       promotorName={route.promotor_name}
                       qualityConfig={photoQualityConfig}
                       minPhotos={Math.max(1, parseInt((rb || route as any)?.min_category_photos_after, 10) || 1)}
-                      onCompleted={() => { setOptimisticAfterPhoto(p => ({ ...p, [afterPhotoKey]: true })); refetch(); }}
+                      onCompleted={() => { setOptimisticAfterPhoto(p => ({ ...p, [afterPhotoKey]: true })); }}
                       onCaptureOptimistic={(url, type) => setOptimisticPhotos(prev => [...prev, { photo_url: url, photo_type: type, category_id: catId, route_brand_id: routeBrandId }])}
                     />
                   )}
@@ -1559,7 +1565,14 @@ export default function PromotorRota() {
                       toast.error(`Tempo mínimo de permanência não atingido. Faltam ${minDuration - elapsedMinutes} minuto(s).`);
                       return;
                     }
-                    setShowCompleteRoute(true);
+                    if (!isOnline) {
+                      // Se offline, fazemos o checkout lógico na fila para liberar o promotor
+                      handleCompleteRoute();
+                    } else {
+                    // Se estiver offline ou para melhor UX, chama handleCompleteRoute direto
+                    // O diálogo só é estritamente necessário se quisermos forçar nota (opcional aqui)
+                    handleCompleteRoute();
+                    }
                   }} disabled={checkout.isPending} variant={canCompleteRoute ? 'default' : 'secondary'}>
                     <Check className="h-5 w-5 mr-2" /> Concluir Rota ({completedExecsGlobal}/{totalExecsGlobal})
                   </Button>
