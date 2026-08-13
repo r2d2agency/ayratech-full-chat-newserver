@@ -1,10 +1,10 @@
 /**
  * SISTEMA AYRATECH - STATUS E LOGS
  * 
- * ATUALIZAÇÃO RECENTE: Bloqueio de App por Falta de Biometria
- * 1. Implementado bloqueio total no PromotorHome quando a organização exige biometria e o colaborador não tem face cadastrada.
- * 2. O colaborador visualiza uma tela de "Acesso Bloqueado" com instruções para procurar o RH.
- * 3. Validação robusta no backend (punch e home) para garantir a integridade da escala (Precedência: Escala > Jornada).
+ * ATUALIZAÇÃO RECENTE: Priorização de Escalas no Ponto
+ * 1. O sistema agora prioriza Escalas (Diárias ou Recorrentes) sobre a Jornada fixa do cadastro.
+ * 2. Precedência: Escala Diária (collaborator_daily_assignments) > Escala Recorrente (rh_schedules/rh_employee_schedules) > Jornada Fixa (employees.work_schedule).
+ * 3. Validação robusta no backend (/punch) e exibição correta no app (/home).
  * 
  * ATIVAÇÃO DE BIOMETRIA NA EMPRESA:
  * Para ativar a obrigatoriedade facial global:

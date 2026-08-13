@@ -287,26 +287,58 @@ router.get('/home', authenticatePromotor, async (req, res) => {
       pdvVisits = visitRes.rows;
     } catch { /* table may not exist */ }
 
-    // Check schedule status (prioritize daily assignment if present)
+    // Check schedule status (prioritize daily assignment or recurring schedule)
     let scheduleStart = '08:00';
     let scheduleEnd = '17:00';
     
+    // 1. Check daily assignment
     if (assignment.rows[0]?.start_time && assignment.rows[0]?.end_time) {
       scheduleStart = assignment.rows[0].start_time;
       scheduleEnd = assignment.rows[0].end_time;
     } else {
-      const wsRaw = employee.rows[0]?.work_schedule || '08:00-17:00';
+      // 2. Check recurring schedule (Escala)
       try {
-        const parsed = typeof wsRaw === 'object' ? wsRaw : (typeof wsRaw === 'string' && wsRaw.trim().startsWith('{') ? JSON.parse(wsRaw) : null);
-        if (parsed && parsed.entry) {
-          scheduleStart = parsed.entry;
-          scheduleEnd = parsed.exit || '17:00';
+        const dowMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
+        const dayOfWeek = dowMap[nowBR.getDay()];
+        const recurring = await safeQuery(
+          `SELECT s.items FROM rh_employee_schedules es
+           JOIN rh_schedules s ON s.id = es.schedule_id
+           WHERE es.employee_id = $1 AND es.active = true LIMIT 1`,
+          [empId]
+        );
+        
+        if (recurring.rows[0]?.items) {
+          const items = recurring.rows[0].items;
+          const todaySchedule = Array.isArray(items) ? items.find(i => i.day === dayOfWeek) : null;
+          if (todaySchedule && todaySchedule.entry && todaySchedule.exit) {
+            scheduleStart = todaySchedule.entry;
+            scheduleEnd = todaySchedule.exit;
+          } else {
+            // 3. Fallback to general work schedule (Jornada)
+            const wsRaw = employee.rows[0]?.work_schedule || '08:00-17:00';
+            const parsed = typeof wsRaw === 'object' ? wsRaw : (typeof wsRaw === 'string' && wsRaw.trim().startsWith('{') ? JSON.parse(wsRaw) : null);
+            if (parsed && parsed.entry) {
+              scheduleStart = parsed.entry;
+              scheduleEnd = parsed.exit || '17:00';
+            } else {
+              const parts = String(wsRaw).split('-');
+              if (parts.length >= 2) { scheduleStart = parts[0].trim(); scheduleEnd = parts[1].trim(); }
+            }
+          }
         } else {
-          const parts = String(wsRaw).split('-');
-          if (parts.length >= 2) { scheduleStart = parts[0].trim(); scheduleEnd = parts[1].trim(); }
+          // 3. Fallback to general work schedule (Jornada)
+          const wsRaw = employee.rows[0]?.work_schedule || '08:00-17:00';
+          const parsed = typeof wsRaw === 'object' ? wsRaw : (typeof wsRaw === 'string' && wsRaw.trim().startsWith('{') ? JSON.parse(wsRaw) : null);
+          if (parsed && parsed.entry) {
+            scheduleStart = parsed.entry;
+            scheduleEnd = parsed.exit || '17:00';
+          } else {
+            const parts = String(wsRaw).split('-');
+            if (parts.length >= 2) { scheduleStart = parts[0].trim(); scheduleEnd = parts[1].trim(); }
+          }
         }
-      } catch { 
-        const parts = String(wsRaw).split('-');
+      } catch {
+        const parts = String(employee.rows[0]?.work_schedule || '08:00-17:00').split('-');
         if (parts.length >= 2) { scheduleStart = parts[0].trim(); scheduleEnd = parts[1].trim(); }
       }
     }
@@ -381,9 +413,10 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
     const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-    // 1. Check for specific daily assignment (Escala) first
+    // 1. Check for specific daily assignment (Escala) or recurring schedule first
     let scheduleStart = null, scheduleEnd = null;
     try {
+      // Prioritize daily assignment (highest priority)
       const assignment = await query(
         `SELECT start_time, end_time FROM collaborator_daily_assignments 
          WHERE employee_id = $1 AND assignment_date = $2 LIMIT 1`,
@@ -392,8 +425,27 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
       if (assignment.rows[0]?.start_time && assignment.rows[0]?.end_time) {
         scheduleStart = assignment.rows[0].start_time;
         scheduleEnd = assignment.rows[0].end_time;
+      } else {
+        // Check for recurring work schedule (Escala recorrente)
+        const dowMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
+        const dayOfWeek = dowMap[now.getDay()];
+        const recurring = await query(
+          `SELECT s.items FROM rh_employee_schedules es
+           JOIN rh_schedules s ON s.id = es.schedule_id
+           WHERE es.employee_id = $1 AND es.active = true LIMIT 1`,
+          [req.employeeId]
+        );
+        
+        if (recurring.rows[0]?.items) {
+          const items = recurring.rows[0].items; // Array of { day, entry, exit, ... }
+          const todaySchedule = Array.isArray(items) ? items.find(i => i.day === dayOfWeek) : null;
+          if (todaySchedule && todaySchedule.entry && todaySchedule.exit) {
+            scheduleStart = todaySchedule.entry;
+            scheduleEnd = todaySchedule.exit;
+          }
+        }
       }
-    } catch (e) { /* ignore table not found */ }
+    } catch (e) { /* ignore table/column missing */ }
 
     // 2. Fallback to general work schedule (Jornada) if no specific assignment
     let schedStartStr = '08:00', schedEndStr = '17:00';
