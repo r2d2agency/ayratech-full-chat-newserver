@@ -39,7 +39,12 @@ const emptyBrand = {
   city: '',
   zip: '',
   status: 'active', 
-  notes: '' 
+  notes: '',
+  show_routes: true,
+  show_photos: true,
+  show_stock: true,
+  show_damages: true,
+  show_stockouts: true
 };
 
 export default function MerchMarcas() {
@@ -346,6 +351,34 @@ export default function MerchMarcas() {
               </Select>
             </div>
             <div className="col-span-full space-y-2"><Label>Logotipo</Label><FileUploadInput value={form.logo_url || ''} onChange={v => set('logo_url', v)} accept="image/*" /></div>
+            
+            <div className="col-span-full mt-4 space-y-4">
+              <h3 className="text-sm font-bold border-b pb-2">Permissões de Visualização do Cliente</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="show_routes" checked={form.show_routes} onCheckedChange={(v) => set('show_routes', v)} />
+                  <Label htmlFor="show_routes" className="text-xs cursor-pointer">Ver Rotas Agendadas</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="show_photos" checked={form.show_photos} onCheckedChange={(v) => set('show_photos', v)} />
+                  <Label htmlFor="show_photos" className="text-xs cursor-pointer">Ver Book de Fotos</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="show_stock" checked={form.show_stock} onCheckedChange={(v) => set('show_stock', v)} />
+                  <Label htmlFor="show_stock" className="text-xs cursor-pointer">Ver Lista de Estoque</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="show_damages" checked={form.show_damages} onCheckedChange={(v) => set('show_damages', v)} />
+                  <Label htmlFor="show_damages" className="text-xs cursor-pointer">Ver Avarias</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="show_stockouts" checked={form.show_stockouts} onCheckedChange={(v) => set('show_stockouts', v)} />
+                  <Label htmlFor="show_stockouts" className="text-xs cursor-pointer">Ver Rupturas</Label>
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground italic">Estas permissões afetam o que os usuários vinculados a esta marca poderão ver em seu dashboard exclusivo.</p>
+            </div>
+
             <div className="col-span-full space-y-2"><Label>Descrição</Label><Textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2} /></div>
             <div className="col-span-full space-y-2"><Label>Observações</Label><Textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={2} /></div>
           </div>
