@@ -141,19 +141,21 @@ export default function MerchDashboard() {
               </div>
               
               <div className="flex flex-wrap items-center gap-2">
-                <div className="flex items-center gap-2 mr-2">
-                  <Select value={selectedBrand} onValueChange={setSelectedBrand}>
-                    <SelectTrigger className="w-[180px] h-9 bg-background">
-                      <SelectValue placeholder="Todas as Marcas" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas as Marcas</SelectItem>
-                      {brands.map((b: any) => (
-                        <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {!user?.brand_id && (
+                  <div className="flex items-center gap-2 mr-2">
+                    <Select value={selectedBrand} onValueChange={setSelectedBrand}>
+                      <SelectTrigger className="w-[180px] h-9 bg-background">
+                        <SelectValue placeholder="Todas as Marcas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas as Marcas</SelectItem>
+                        {brands.map((b: any) => (
+                          <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <div className="flex bg-muted rounded-lg p-1">
                   {(['today', 'week', 'month'] as const).map((p) => (
@@ -261,45 +263,55 @@ export default function MerchDashboard() {
           <Card className="lg:col-span-2">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-base">Evolução de Rotas ({periodLabel})</CardTitle>
-                  <CardDescription>Previsto vs Realizado por dia</CardDescription>
+                  {(!user?.brand_id || brandPermissions?.show_routes) ? (
+                    <>
+                      <div>
+                        <CardTitle className="text-base">Evolução de Rotas ({periodLabel})</CardTitle>
+                        <CardDescription>Previsto vs Realizado por dia</CardDescription>
+                      </div>
+                      <Activity className="h-4 w-4 text-muted-foreground" />
+                    </>
+                  ) : (
+                    <div>
+                      <CardTitle className="text-base">Atividade ({periodLabel})</CardTitle>
+                      <CardDescription>Resumo de presença</CardDescription>
+                    </div>
+                  )}
                 </div>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={timeline}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
-                    <XAxis 
-                      dataKey="date" 
-                      fontSize={11} 
-                      tickLine={false} 
-                      axisLine={false}
-                      tickFormatter={(val) => {
-                        try {
-                          return format(new Date(val), 'dd/MM', { locale: ptBR });
-                        } catch {
-                          return val;
-                        }
-                      }}
-                    />
-                    <YAxis fontSize={11} tickLine={false} axisLine={false} />
-                    <Tooltip 
-                      cursor={{ fill: 'hsl(var(--muted)/0.4)' }}
-                      contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))' }}
-                    />
-                    <Bar dataKey="scheduled" name="Previsto" fill="hsl(var(--muted-foreground))" radius={[4, 4, 0, 0]} fillOpacity={0.4} />
-                    <Bar dataKey="completed" name="Realizado" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="partial" name="Em Andamento" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="pending" name="Pendente" fill="hsl(var(--chart-4))" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={timeline}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
+                      <XAxis 
+                        dataKey="date" 
+                        fontSize={11} 
+                        tickLine={false} 
+                        axisLine={false}
+                        tickFormatter={(val) => {
+                          try {
+                            return format(new Date(val), 'dd/MM', { locale: ptBR });
+                          } catch {
+                            return val;
+                          }
+                        }}
+                      />
+                      <YAxis fontSize={11} tickLine={false} axisLine={false} />
+                      <Tooltip 
+                        cursor={{ fill: 'hsl(var(--muted)/0.4)' }}
+                        contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))' }}
+                      />
+                      {(!user?.brand_id || brandPermissions?.show_routes) && (
+                        <Bar dataKey="scheduled" name="Previsto" fill="hsl(var(--muted-foreground))" radius={[4, 4, 0, 0]} fillOpacity={0.4} />
+                      )}
+                      <Bar dataKey="completed" name="Realizado" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="partial" name="Em Andamento" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
 
           {/* Operational Score */}
           <Card>
@@ -356,33 +368,37 @@ export default function MerchDashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Field Health */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Activity className="h-4 w-4 text-primary" />
-                Saúde do Campo
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <HealthItem 
-                label="Tempo Médio / Visita" 
-                value={`${derived.avg_visit_duration_min || 0} min`} 
-                icon={Clock}
-              />
-              <HealthItem 
-                label="Fotos Capturadas" 
-                value={kpis.photos_captured || 0} 
-                icon={Camera}
-                subValue={`Média ${derived.avg_photos_per_route || 0} / rota`}
-              />
-              <HealthItem 
-                label="Pesquisas de Preço" 
-                value={kpis.price_research_completed || 0} 
-                icon={Target}
-                subValue={`${kpis.price_research_pending || 0} pendentes`}
-              />
-            </CardContent>
-          </Card>
+          {(!user?.brand_id || brandPermissions?.show_photos) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-primary" />
+                  Saúde do Campo
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <HealthItem 
+                  label="Tempo Médio / Visita" 
+                  value={`${derived.avg_visit_duration_min || 0} min`} 
+                  icon={Clock}
+                />
+                <HealthItem 
+                  label="Fotos Capturadas" 
+                  value={kpis.photos_captured || 0} 
+                  icon={Camera}
+                  subValue={`Média ${derived.avg_photos_per_route || 0} / rota`}
+                />
+                {!user?.brand_id && (
+                  <HealthItem 
+                    label="Pesquisas de Preço" 
+                    value={kpis.price_research_completed || 0} 
+                    icon={Target}
+                    subValue={`${kpis.price_research_pending || 0} pendentes`}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Critical Alerts */}
           <Card>
