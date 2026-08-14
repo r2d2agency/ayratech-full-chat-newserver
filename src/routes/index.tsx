@@ -1,1 +1,1 @@
-export const SystemStatus = `depois de toda essa correção o sistema de ponto parou denovo diz que esta fora do horario nao respeitando a escala que foi canfigurada`;
+export const SystemStatus = `O servidor backend caiu devido a um erro de sintaxe (SyntaxError). Já corrigi o código no arquivo backend/src/routes/promotor.js removendo um fechamento extra de chave que estava impedindo o servidor de iniciar.`;
