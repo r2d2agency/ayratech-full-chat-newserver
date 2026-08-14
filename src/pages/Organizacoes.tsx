@@ -972,6 +972,31 @@ export default function Organizacoes() {
                                       </div>
                                     </div>
                                   )}
+
+                                  {brands.length > 0 && (
+                                    <div className="space-y-2">
+                                      <Label className="flex items-center gap-2">
+                                        <Building2 className="h-4 w-4" />
+                                        Marca Vinculada (Cliente)
+                                      </Label>
+                                      <p className="text-xs text-muted-foreground mb-2">
+                                        Vincule este usuário a uma marca para filtrar o dashboard automaticamente.
+                                      </p>
+                                      <Select value={newMemberBrandId} onValueChange={setNewMemberBrandId}>
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Nenhuma (Usuário Interno)" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="none">Nenhuma (Usuário Interno)</SelectItem>
+                                          {brands.map((brand) => (
+                                            <SelectItem key={brand.id} value={brand.id}>
+                                              {brand.name}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  )}
                                 </div>
                                 <DialogFooter>
                                   <Button variant="outline" onClick={resetCreateUserDialog}>
@@ -1043,6 +1068,13 @@ export default function Organizacoes() {
                                         <RoleIcon className="h-3 w-3 mr-1" />
                                         {roleLabels[member.role].label}
                                       </Badge>
+                                      {member.brand_id && (
+                                        <div className="mt-1">
+                                          <Badge variant="outline" className="text-[10px] py-0 border-primary text-primary">
+                                            {brands.find(b => b.id === member.brand_id)?.name || 'Cliente Marca'}
+                                          </Badge>
+                                        </div>
+                                      )}
                                     </TableCell>
                                     <TableCell>
                                       {member.template_name ? (
