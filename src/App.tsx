@@ -90,6 +90,7 @@ import RHTotem from "./pages/RHTotem";
 import RHHelp from "./pages/RHHelp";
 import LiveMaps from "./pages/LiveMaps";
   import MerchDashboard from "./pages/MerchDashboard";
+import PortalMarcaLogin from "./pages/portal/PortalMarcaLogin";
 import MerchMarcas from "./pages/MerchMarcas";
 import MerchCategorias from "./pages/MerchCategorias";
 import MerchProdutos from "./pages/MerchProdutos";
@@ -242,6 +243,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/portal/marca" element={<PortalMarcaLogin />} />
             <Route path="/cadastro" element={<Cadastro />} />
             <Route path="/" element={<SmartRedirect />} />
             <Route path="/landing" element={<LandingPage />} />
