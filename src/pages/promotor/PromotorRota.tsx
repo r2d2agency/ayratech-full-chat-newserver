@@ -2048,10 +2048,9 @@ export default function PromotorRota() {
                 const observation = actionForm.product_observation ?? selectedExec.observation;
                 const expiryDate = actionForm.expiry_date || null;
 
-                if (requireValidityCheck && !expiryDate) {
-                  toast.error('Informe a data de validade mais próxima.');
-                  return;
-                }
+                // REMOVIDO: A obrigatoriedade de validade/fotos agora é apenas no checkout da ROTA,
+                // permitindo que o promotor salve o progresso parcial do produto sem travar.
+
 
                 const body = {
                   id: selectedExec.id,
