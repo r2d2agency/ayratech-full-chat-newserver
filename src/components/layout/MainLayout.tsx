@@ -6,12 +6,35 @@ import { CRMAlerts } from "./CRMAlerts";
 import { ConnectionStatusIndicator } from "./ConnectionStatusIndicator";
 import { GroupSecretaryPopup } from "./GroupSecretaryPopup";
 import { PWAUpdateBanner } from "./PWAUpdateBanner";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { ShieldCheck, LogOut } from "lucide-react";
 
 interface MainLayoutProps {
   children: ReactNode;
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
+  const { user, logout } = useAuth();
+
+  // Portal do Cliente (marca): shell limpo, sem nenhum item do sistema
+  if (user?.brand_id) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="h-14 border-b border-border/60 flex items-center justify-between px-4 bg-card/50 backdrop-blur">
+          <div className="flex items-center gap-2 font-semibold">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            Portal do Cliente
+          </div>
+          <Button variant="ghost" size="sm" onClick={logout}>
+            <LogOut className="h-4 w-4 mr-1" /> Sair
+          </Button>
+        </header>
+        <main className="p-3 xl:p-4">{children}</main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background overflow-hidden">
       <Sidebar />
