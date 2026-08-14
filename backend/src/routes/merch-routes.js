@@ -2385,7 +2385,12 @@ async function ensurePdvVisitTables() {
   } catch (e) { /* ignore if already exists */ }
 }
 
+let execCategoryTablesReady = null;
 async function ensureExecutionCategoryTables() {
+  // Executa o DDL uma única vez por processo: chamadas paralelas (várias fotos
+  // sendo enviadas ao mesmo tempo) causavam corrida na criação do índice (42P07).
+  if (execCategoryTablesReady) return execCategoryTablesReady;
+  execCategoryTablesReady = (async () => {
   try {
     await query(`CREATE TABLE IF NOT EXISTS merch_execution_categories (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -2412,10 +2417,11 @@ async function ensureExecutionCategoryTables() {
     // Add route_brand_id if it doesn't exist
     try {
       await query(`ALTER TABLE merch_execution_categories ADD COLUMN IF NOT EXISTS route_brand_id UUID REFERENCES route_brands(id) ON DELETE CASCADE`);
-      // Update unique constraint
+      // Remove constraints antigas. NÃO recriamos a constraint UNIQUE aqui:
+      // o índice único correto (idx_exec_categories_route_cat_brand) é criado abaixo
+      // com IF NOT EXISTS — recriar a constraint causava erro 42P07 (índice duplicado).
       await query(`ALTER TABLE merch_execution_categories DROP CONSTRAINT IF EXISTS merch_execution_categories_route_id_category_id_key`);
       await query(`ALTER TABLE merch_execution_categories DROP CONSTRAINT IF EXISTS merch_execution_categories_route_id_category_id_route_brand_id_key`);
-      await query(`ALTER TABLE merch_execution_categories ADD CONSTRAINT merch_execution_categories_route_unique UNIQUE NULLS NOT DISTINCT (route_id, category_id, route_brand_id)`);
     } catch (e) {
       logWarn('failed to update merch_execution_categories schema', e);
     }
@@ -2459,10 +2465,16 @@ async function ensureExecutionCategoryTables() {
     } catch (e) {
       logWarn('failed to create idx_exec_categories_route_cat_brand', { error: e?.message });
     }
-    await query(`CREATE INDEX IF NOT EXISTS idx_exec_categories_route ON merch_execution_categories(route_id)`);
+    try {
+      await query(`CREATE INDEX IF NOT EXISTS idx_exec_categories_route ON merch_execution_categories(route_id)`);
+    } catch (e) {
+      logWarn('failed to create idx_exec_categories_route', { error: e?.message });
+    }
   } catch (e) {
     logWarn('ensureExecutionCategoryTables.failed', { error: e?.message });
   }
+  })();
+  return execCategoryTablesReady;
 }
 // Run once on load
 ensurePdvVisitTables().catch(() => {});
