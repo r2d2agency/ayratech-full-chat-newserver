@@ -79,18 +79,108 @@ function tabLabel(tab: string): string {
   return map[tab] || tab;
 }
 
+// Rótulos e ordem das colunas por aba (para exportações "certinhas")
+const COLUMN_LABELS: Record<string, Record<string, string>> = {
+  pdv: {
+    pdv_name: 'PDV', network_name: 'Rede', city: 'Cidade', state: 'UF',
+    total_routes: 'Rotas', completed_routes: 'Rotas Concluídas', pending_routes: 'Rotas Pendentes',
+    brands_served: 'Marcas Atendidas', total_products: 'Produtos', executed_products: 'Produtos Executados',
+    damages: 'Avarias', stockouts: 'Rupturas', photos: 'Fotos', avg_visit_min: 'Duração Média (min)',
+  },
+  marca: {
+    brand_name: 'Marca', total_routes: 'Rotas', completed_routes: 'Rotas Concluídas',
+    pdvs_served: 'PDVs Atendidos', total_products: 'Produtos', executed_products: 'Produtos Executados',
+    damages: 'Avarias', stockouts: 'Rupturas', photos: 'Fotos',
+  },
+  promotor: {
+    promoter_name: 'Promotor', total_routes: 'Rotas', completed_routes: 'Rotas Concluídas',
+    pending_routes: 'Rotas Pendentes', brands_served: 'Marcas', pdvs_visited: 'PDVs Visitados',
+    avg_visit_min: 'Duração Média (min)', score: 'Score (%)',
+    photos: 'Fotos', damages: 'Avarias', stockouts: 'Rupturas',
+  },
+  produto: {
+    product_name: 'Produto', sku: 'SKU', promoters: 'Promotores', promoters_count: 'Qtd. Promotores',
+    pdvs: 'PDVs', routes: 'Rotas', executed: 'Executados',
+    stock_store: 'Estoque Loja', stock_stock: 'Estoque Depósito',
+    damages: 'Avarias', stockouts: 'Rupturas', expiries: 'Validade (registros)',
+    next_expiry_date: 'Validade + Próxima', next_expiry_qty_store: 'Qtd. Frente',
+    next_expiry_qty_stock: 'Qtd. Estoque', next_expiry_total: 'Total na Validade',
+  },
+  categoria: {
+    category_name: 'Categoria', total_products: 'Produtos', total_executions: 'Execuções',
+    executed: 'Executados', damages: 'Avarias', stockouts: 'Rupturas',
+    total_stock: 'Estoque Total', expiries: 'Validade (registros)',
+  },
+  avarias: {
+    visit_date: 'Data', pdv_name: 'PDV', brand_name: 'Marca', promoter_name: 'Promotor',
+    product_name: 'Produto', sku: 'SKU', type: 'Tipo', qty_store: 'Qtd. Loja',
+    qty_stock: 'Qtd. Depósito', total: 'Total', reason: 'Motivo',
+  },
+};
+
+const HIDDEN_KEYS = /(_id$|^id$|photo_url|image_url)/i;
+
+function buildExportRows(tab: string, rows: any[]): { headers: string[]; keys: string[]; data: any[][] } {
+  const labels = COLUMN_LABELS[tab] || {};
+  const present = new Set<string>();
+  rows.forEach(r => Object.keys(r || {}).forEach(k => present.add(k)));
+  const ordered = Object.keys(labels).filter(k => present.has(k));
+  const extras = [...present].filter(k => !labels[k] && !HIDDEN_KEYS.test(k));
+  const keys = ordered.length ? [...ordered, ...extras] : [...present].filter(k => !HIDDEN_KEYS.test(k));
+  const headers = keys.map(k => labels[k] || k);
+  const fmt = (k: string, v: any) => {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'object') return JSON.stringify(v);
+    if (/date/.test(k) && typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v)) {
+      return new Date(v).toLocaleDateString('pt-BR');
+    }
+    const n = typeof v === 'string' && v !== '' && !isNaN(Number(v)) ? Number(v) : v;
+    if (typeof n === 'number') return Number.isInteger(n) ? n : Number(n.toFixed(2));
+    return String(v);
+  };
+  const data = rows.map(r => keys.map(k => fmt(k, r[k])));
+  return { headers, keys, data };
+}
+
+// Exporta Excel (.xlsx) da aba atual com colunas formatadas
+async function exportCurrentTabExcel(tab: string, filters: any) {
+  try {
+    const rows = await fetchTabData(tab, filters);
+    if (!rows.length) { alert("Sem dados para exportar neste período/aba."); return; }
+    const XLSX = await import('xlsx');
+    const { headers, data } = buildExportRows(tab, rows);
+    const aoa = [
+      [`Relatório - ${tabLabel(tab)}`],
+      [`Período: ${filters.date_from || '-'} a ${filters.date_to || '-'}`],
+      [],
+      headers,
+      ...data,
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    (ws as any)['!cols'] = headers.map((h, i) => ({
+      wch: Math.min(45, Math.max(12, h.length + 2, ...data.map(r => String(r[i] ?? '').length + 2))),
+    }));
+    (ws as any)['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3 + data.length, c: headers.length - 1 } }) };
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, tabLabel(tab).slice(0, 30));
+    XLSX.writeFile(wb, `relatorio_${tab}_${filters.date_from || ''}_${filters.date_to || ''}.xlsx`);
+  } catch (e: any) {
+    alert("Erro ao exportar Excel: " + (e?.message || e));
+  }
+}
+
 // Exporta CSV da aba atual
 async function exportCurrentTabCSV(tab: string, filters: any) {
   try {
     const rows = await fetchTabData(tab, filters);
     if (!rows.length) { alert("Sem dados para exportar neste período/aba."); return; }
-    const headers = Object.keys(rows[0]);
+    const { headers, data } = buildExportRows(tab, rows);
     const escape = (v: any) => {
       if (v === null || v === undefined) return "";
-      const s = String(typeof v === "object" ? JSON.stringify(v) : v);
+      const s = String(v);
       return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
-    const csv = [headers.join(","), ...rows.map(r => headers.map(h => escape(r[h])).join(","))].join("\n");
+    const csv = [headers.map(escape).join(";"), ...data.map(r => r.map(escape).join(";"))].join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
