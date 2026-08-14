@@ -111,13 +111,30 @@ export async function query(text, params) {
     return res;
   } catch (error) {
     const durationMs = Date.now() - startedAt;
-    logError('db.query_failed', error, {
+    // Códigos "benignos" de schema idempotente: objeto já existe / já foi criado.
+    // Eles são esperados quando duas requisições rodam os ensure* em paralelo.
+    const BENIGN_SCHEMA_CODES = new Set([
+      '42P07', // duplicate_table / duplicate index
+      '42P06', // duplicate_schema
+      '42701', // duplicate_column
+      '42710', // duplicate_object (constraint, tipo)
+      '42P16', // invalid_table_definition (ex.: PK já existe)
+      '23505', // unique_violation em seed idempotente
+    ]);
+    const meta = {
       duration_ms: durationMs,
       sql: summarizeSql(text),
       param_count: Array.isArray(params) ? params.length : 0,
       param_types: paramTypes(params),
-    });
+      code: error?.code,
+    };
+    if (BENIGN_SCHEMA_CODES.has(error?.code)) {
+      logWarn('db.schema_object_exists', meta);
+    } else {
+      logError('db.query_failed', error, meta);
+    }
     throw error;
   }
 }
+
 
