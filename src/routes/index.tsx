@@ -8,13 +8,13 @@ export default function Index() {
       <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-lg">
         <p className="text-blue-700 font-medium">Arquitetura Merchandising: Clientes da Organização (Marcas)</p>
         <p className="text-sm text-blue-600 mt-1">
-          No sistema Ayratech Merchan, as **Marcas** representam os clientes da sua organização. 
-          Para que uma marca acesse o sistema e veja suas próprias execuções, siga estes passos:
+          No sistema Ayratech Merchan, as **Marcas** são os clientes da sua organização (ex: Nestlé, Coca-Cola). 
+          Cada marca visualiza apenas os PDVs, produtos e promotores vinculados a ela.
         </p>
         <ul className="text-xs text-blue-600 mt-2 list-disc ml-4 space-y-1">
-          <li><strong>Perfil de Acesso:</strong> Crie um usuário para o representante da marca em <i>Administração {' > '} Organizações {' > '} Membros</i>.</li>
-          <li><strong>Vínculo:</strong> O acesso ao dashboard da marca é filtrado automaticamente pelo <i>brand_id</i> vinculado ao usuário ou através do portal de parceiros.</li>
-          <li><strong>PDVs:</strong> Certifique-se de que a Marca está vinculada aos PDVs em <i>Merchandising {' > '} Marcas {' > '} PDVs</i> para que as rotas apareçam.</li>
+          <li><strong>Dashboard da Marca:</strong> Quando um usuário está vinculado a uma marca, o dashboard filtra automaticamente os dados para exibir apenas as execuções, fotos e roteiros dessa marca específica.</li>
+          <li><strong>Gestão de Clientes:</strong> Gerencie seus clientes em <i>Merchandising {' > '} Marcas</i>. Vincule as marcas aos PDVs para que os promotores saibam o que executar em cada loja.</li>
+          <li><strong>Acesso Externo:</strong> Para dar acesso ao seu cliente, crie um usuário em <i>Administração {' > '} Organizações</i> e utilize o Portal de Parceiros.</li>
         </ul>
       </div>
 
@@ -37,7 +37,7 @@ export default function Index() {
           <div className="flex gap-3 items-start animate-in fade-in slide-in-from-left-2 duration-300">
             <span className="text-slate-600 shrink-0 min-w-[85px]">[CONCEPT]</span>
             <span className="text-blue-400 shrink-0 font-bold uppercase text-[10px] mt-0.5 min-w-[45px]">BRAND</span>
-            <span className="text-slate-300 break-all">Brands = Organization Clients. They see dashboards filtered by their ID.</span>
+            <span className="text-slate-300 break-all">Marcas = Clientes da Organização. Dashboards são filtrados pelo vínculo do usuário.</span>
           </div>
           <div className="flex gap-3 items-start animate-in fade-in slide-in-from-left-2 duration-500">
             <span className="text-slate-600 shrink-0 min-w-[85px]">[ACTION]</span>
