@@ -678,10 +678,10 @@ function CategoryExtraPhotosPanel({
             <div className="text-[10px] font-semibold uppercase text-muted-foreground mb-1">📷 Antes ({totalBefore})</div>
             <div className="grid grid-cols-4 gap-1.5">
               {beforePhotos.map((p: any, i: number) => (
-                <LocalImage key={p.id || `b-${p.photo_url}`} src={p.photo_url} alt={`Antes ${i+1}`} className="w-full h-16 rounded border object-cover" />
+                <LocalImage key={p.id || `b-${p.photo_url}`} src={p.photo_url} alt={`Antes ${i+1}`} className="w-full h-16 rounded border object-cover cursor-pointer hover:opacity-80" onClick={() => setViewIdx(findViewIdx(p.photo_url))} />
               ))}
               {optimisticBefore.map((u, i) => (
-                <LocalImage key={`ob-${u}`} src={u} alt={`Antes nova ${i+1}`} className="w-full h-16 rounded border border-primary/40 object-cover ring-1 ring-primary/30" />
+                <LocalImage key={`ob-${u}`} src={u} alt={`Antes nova ${i+1}`} className="w-full h-16 rounded border border-primary/40 object-cover ring-1 ring-primary/30 cursor-pointer hover:opacity-80" onClick={() => setViewIdx(findViewIdx(u))} />
               ))}
             </div>
           </div>
