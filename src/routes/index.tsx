@@ -39,7 +39,7 @@ export default function Index() {
           <p className="text-green-400">[AUTH] Login inteligente com redirecionamento automático para MerchDashboard validado.</p>
           <p className="text-slate-400">[DOC] Documentação detalhada sobre como dar acesso às marcas adicionada em Merchandising {" > "} Marcas e na Central de Ajuda.</p>
           <p className="text-blue-400">[CHECKLIST] Trava de obrigatoriedade ao salvar produto individual removida (validação final mantida no fechamento da categoria).</p>
-          <p className="text-red-400">[ERROR] [API 500] GET /api/merch-analytics/report/promoter - Erro identificado no backend (getOrgId indefinido). Corrigindo...</p>
+          <p className="text-green-400">[BACKEND] Corrigido erro 500 em relatórios de merchandising (função getOrgId inexistente substituída por getOrgInfo).</p>
 
         </div>
       </div>
