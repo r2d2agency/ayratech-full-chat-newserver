@@ -36,7 +36,7 @@ export function useBrands(filters?: { status?: string; search?: string }) {
   const qs = params.toString();
   return useQuery({
     queryKey: ['merch-brands', qs],
-    queryFn: () => api<any[]>(`/api/merchandising/brands${qs ? `?${qs}` : ''}`),
+    queryFn: () => api<Brand[]>(`/api/merchandising/brands${qs ? `?${qs}` : ''}`),
   });
 }
 
