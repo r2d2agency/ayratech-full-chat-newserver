@@ -360,6 +360,7 @@ function normalizeEmployeePayload(body = {}) {
 
 // Helper: get user org_id
 async function getUserOrgId(userId) {
+  if (!userId) return null;
   const r = await query(
     `SELECT organization_id FROM organization_members WHERE user_id = $1 LIMIT 1`,
     [userId]

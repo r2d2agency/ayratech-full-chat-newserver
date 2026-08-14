@@ -14,9 +14,14 @@ export const authenticate = (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.userId = decoded.userId;
     req.userEmail = decoded.email;
+    req.orgId = decoded.organizationId; // Ensure orgId is available from token
 
     // enrich structured logs
-    setRequestContext({ user_id: decoded.userId, user_email: decoded.email });
+    setRequestContext({ 
+      user_id: decoded.userId, 
+      user_email: decoded.email,
+      organization_id: decoded.organizationId 
+    });
 
     next();
   } catch (error) {
