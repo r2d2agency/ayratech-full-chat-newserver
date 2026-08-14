@@ -1,1 +1,1 @@
-export const SystemStatus = `As tabelas de rastreamento (employee_live_locations) não existiam no banco de dados. Adicionei as migrações necessárias no backend para criá-las automaticamente.`;
+export const SystemStatus = `Corrigi a lógica de validação de horário (Escala) no backend. O sistema agora prioriza corretamente a Escala Diária (collaborator_daily_assignments) e a Escala Recorrente (rh_employee_schedules) antes de usar a Jornada Fixa, garantindo que o ponto respeite o que foi configurado para o colaborador.`;
