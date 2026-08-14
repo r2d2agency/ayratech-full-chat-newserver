@@ -256,6 +256,9 @@ function SidebarContentComponent({ isExpanded, isSuperadmin, onNavigate }: Sideb
   // Filter sections and items based on modules enabled, role, AND permission template
   const filteredSections = navSections
     .filter(section => {
+      // If user is restricted to a brand (Client), only Merchandising section is potentially visible
+      if (user?.brand_id && section.title !== "Merchandising") return false;
+
       // Check module access
       if (section.moduleKey && !modulesEnabled[section.moduleKey] && !isSuperadmin) return false;
       // If user has a permission template, don't filter by adminOnly for sections
@@ -267,6 +270,12 @@ function SidebarContentComponent({ isExpanded, isSuperadmin, onNavigate }: Sideb
     .map(section => ({
       ...section,
       items: section.items.filter(item => {
+        // If user is restricted to a brand (Client), only specific items in Merchandising are visible
+        if (user?.brand_id) {
+          const allowedItems = ["Dashboard Merch", "Book de Fotos", "Rotas & Agenda", "Produtos", "Execução Campo"];
+          if (!allowedItems.includes(item.name)) return false;
+        }
+
         // Check module access
         if (item.moduleKey && !modulesEnabled[item.moduleKey] && !isSuperadmin) return false;
         // Check superadmin-only item (always requires superadmin)
@@ -274,9 +283,6 @@ function SidebarContentComponent({ isExpanded, isSuperadmin, onNavigate }: Sideb
         
         // If user has a permission template, use it instead of role-based checks
         if (hasTemplate && item.pageKey) {
-          // Template explicitly controls access - if key exists, use its value.
-          // If the key is not present in the template (new/unmapped page), fall back to role-based checks
-          // so newly-added pages are not accidentally hidden from everyone.
           if (item.pageKey in (pagePermissions || {})) {
             return pagePermissions[item.pageKey] === true;
           }
