@@ -473,13 +473,6 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
             }
           }
         }
-          const items = recurring.rows[0].items; // Array of { day, entry, exit, ... }
-          const todaySchedule = Array.isArray(items) ? items.find(i => i.day === dayOfWeek) : null;
-          if (todaySchedule && todaySchedule.entry && todaySchedule.exit) {
-            scheduleStart = todaySchedule.entry;
-            scheduleEnd = todaySchedule.exit;
-          }
-        }
       }
     } catch (e) { /* ignore table/column missing */ }
 
