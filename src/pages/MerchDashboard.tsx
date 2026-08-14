@@ -181,36 +181,38 @@ export default function MerchDashboard() {
             </div>
 
             {/* Weekly Brands Quick Access */}
-            <Card className="bg-primary/5 border-primary/10 overflow-hidden">
-              <CardHeader className="p-4 pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-primary" />
-                  Marcas com Execução na Semana
-                </CardTitle>
-                <CardDescription className="text-[10px]">Clique na marca para ver o prontuário completo</CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                  {brandActivity.filter((b: any) => b.total_routes > 0).map((b: any) => (
-                    <Button 
-                      key={b.brand_id} 
-                      variant="outline" 
-                      className="h-auto py-2 px-4 flex-shrink-0 bg-background hover:border-primary hover:bg-primary/5 group transition-all"
-                      onClick={() => setSelectedBrandRecord({ id: b.brand_id, name: b.brand_name })}
-                    >
-                      <div className="text-left">
-                        <p className="text-xs font-bold group-hover:text-primary">{b.brand_name}</p>
-                        <p className="text-[10px] text-muted-foreground">{b.total_routes} rotas / {b.pdvs_served} pdvs</p>
-                      </div>
-                      <ChevronRight className="h-3 w-3 ml-2 text-muted-foreground group-hover:text-primary" />
-                    </Button>
-                  ))}
-                  {brandActivity.filter((b: any) => b.total_routes > 0).length === 0 && (
-                    <p className="text-xs text-muted-foreground py-2 italic">Nenhuma atividade registrada nesta semana.</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            {!user?.brand_id && (
+              <Card className="bg-primary/5 border-primary/10 overflow-hidden">
+                <CardHeader className="p-4 pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-primary" />
+                    Marcas com Execução na Semana
+                  </CardTitle>
+                  <CardDescription className="text-[10px]">Clique na marca para ver o prontuário completo</CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    {brandActivity.filter((b: any) => b.total_routes > 0).map((b: any) => (
+                      <Button 
+                        key={b.brand_id} 
+                        variant="outline" 
+                        className="h-auto py-2 px-4 flex-shrink-0 bg-background hover:border-primary hover:bg-primary/5 group transition-all"
+                        onClick={() => setSelectedBrandRecord({ id: b.brand_id, name: b.brand_name })}
+                      >
+                        <div className="text-left">
+                          <p className="text-xs font-bold group-hover:text-primary">{b.brand_name}</p>
+                          <p className="text-[10px] text-muted-foreground">{b.total_routes} rotas / {b.pdvs_served} pdvs</p>
+                        </div>
+                        <ChevronRight className="h-3 w-3 ml-2 text-muted-foreground group-hover:text-primary" />
+                      </Button>
+                    ))}
+                    {brandActivity.filter((b: any) => b.total_routes > 0).length === 0 && (
+                      <p className="text-xs text-muted-foreground py-2 italic">Nenhuma atividade registrada nesta semana.</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
         {/* Main Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
