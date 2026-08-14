@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { resolveMediaUrl } from "@/lib/media";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -297,7 +297,7 @@ function ExportDialog({ open, onOpenChange, tab, filters }: { open: boolean; onO
   const [columns, setColumns] = useState<{ key: string; label: string }[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
 
-  useMemo(() => {
+  useEffect(() => {
     if (!open) return;
     setLoading(true);
     fetchTabData(tab, filters)
