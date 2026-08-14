@@ -625,7 +625,57 @@ router.put('/employees/:id', async (req, res) => {
       details: err?.detail || err?.hint || '',
       code: err?.code,
       constraint: err?.constraint
-    });
+});
+  }
+});
+
+// Sync employee work journey with a specific scale
+router.post('/employees/:id/sync-schedule', async (req, res) => {
+  try {
+    const { schedule_id } = req.body;
+    if (!schedule_id) return res.status(400).json({ error: 'ID da escala é obrigatório' });
+
+    const schedRes = await query(`SELECT * FROM rh_schedules WHERE id = $1`, [schedule_id]);
+    const sched = schedRes.rows[0];
+    if (!sched) return res.status(404).json({ error: 'Escala não encontrada' });
+
+    // Map schedule_type to work_schedule days
+    const days = { seg: false, ter: false, qua: false, qui: false, sex: false, sab: false, dom: false };
+    const type = String(sched.schedule_type || '').toLowerCase();
+
+    if (type.includes('5x2')) {
+      days.seg = days.ter = days.qua = days.qui = days.sex = true;
+    } else if (type.includes('6x1')) {
+      days.seg = days.ter = days.qua = days.qui = days.sex = days.sab = true;
+    } else {
+      // Default to 5x2 if unknown
+      days.seg = days.ter = days.qua = days.qui = days.sex = true;
+    }
+
+    const workSchedule = {
+      days,
+      entry: (sched.entry_time || '08:00').slice(0, 5),
+      exit: (sched.exit_time || '17:00').slice(0, 5),
+      lunch_start: (sched.break_start || '12:00').slice(0, 5),
+      lunch_end: (sched.break_end || '13:00').slice(0, 5),
+    };
+
+    const result = await query(
+      `UPDATE employees SET work_schedule = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+      [JSON.stringify(workSchedule), req.params.id]
+    );
+
+    if (result.rows[0]) {
+      await auditLog(result.rows[0].organization_id, 'employee', req.params.id, 'update', 
+        [{ field: 'work_schedule', oldVal: 'sync_request', newVal: JSON.stringify(workSchedule) }], 
+        req.userId
+      );
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    logError('rh.employees.sync-schedule', err);
+    res.status(500).json({ error: 'Erro ao sincronizar jornada' });
   }
 });
 
