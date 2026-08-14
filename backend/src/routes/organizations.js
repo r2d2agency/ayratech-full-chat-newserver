@@ -384,7 +384,7 @@ router.get('/:id([0-9a-fA-F-]{36})/members', async (req, res) => {
 router.post('/:id([0-9a-fA-F-]{36})/members', async (req, res) => {
   try {
     const { id } = req.params;
-    const { email, name, password, role, connection_ids } = req.body;
+    const { email, name, password, role, connection_ids, brand_id } = req.body;
 
     // Check if user is admin/owner
     const memberCheck = await query(
@@ -434,13 +434,27 @@ router.post('/:id([0-9a-fA-F-]{36})/members', async (req, res) => {
     }
 
     // Add to organization
-    const result = await query(
-      `INSERT INTO organization_members (organization_id, user_id, role)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (organization_id, user_id) DO UPDATE SET role = $3
-       RETURNING *`,
-      [id, userId, role || 'agent']
-    );
+    let result;
+    try {
+      result = await query(
+        `INSERT INTO organization_members (organization_id, user_id, role, brand_id)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (organization_id, user_id) DO UPDATE SET role = $3, brand_id = $4
+         RETURNING *`,
+        [id, userId, role || 'agent', brand_id || null]
+      );
+    } catch (e) {
+      if (/brand_id/i.test(e.message)) {
+        await query(`ALTER TABLE organization_members ADD COLUMN IF NOT EXISTS brand_id UUID REFERENCES merch_brands(id) ON DELETE SET NULL`);
+        result = await query(
+          `INSERT INTO organization_members (organization_id, user_id, role, brand_id)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (organization_id, user_id) DO UPDATE SET role = $3, brand_id = $4
+           RETURNING *`,
+          [id, userId, role || 'agent', brand_id || null]
+        );
+      } else throw e;
+    }
 
     // Assign to connections if provided
     if (connection_ids && Array.isArray(connection_ids) && connection_ids.length > 0) {
@@ -482,7 +496,7 @@ router.post('/:id([0-9a-fA-F-]{36})/members', async (req, res) => {
 router.patch('/:id/members/:userId', async (req, res) => {
   try {
     const { id, userId } = req.params;
-    const { role, connection_ids, department_ids, is_active } = req.body;
+    const { role, connection_ids, department_ids, is_active, brand_id } = req.body;
 
     // Check if user is admin/owner
     const memberCheck = await query(
@@ -526,6 +540,22 @@ router.patch('/:id/members/:userId', async (req, res) => {
         await query(
           `UPDATE organization_members SET is_active = $1 WHERE organization_id = $2 AND user_id = $3`,
           [is_active, id, userId]
+        );
+      }
+    }
+
+    // Update brand_id if provided
+    if (brand_id !== undefined) {
+      try {
+        await query(
+          `UPDATE organization_members SET brand_id = $1 WHERE organization_id = $2 AND user_id = $3`,
+          [brand_id || null, id, userId]
+        );
+      } catch (e) {
+        await query(`ALTER TABLE organization_members ADD COLUMN IF NOT EXISTS brand_id UUID REFERENCES merch_brands(id) ON DELETE SET NULL`);
+        await query(
+          `UPDATE organization_members SET brand_id = $1 WHERE organization_id = $2 AND user_id = $3`,
+          [brand_id || null, id, userId]
         );
       }
     }

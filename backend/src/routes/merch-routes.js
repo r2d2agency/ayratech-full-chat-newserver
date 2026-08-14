@@ -12,6 +12,11 @@ router.use((req, res, next) => {
   return authenticate(req, res, next);
 });
 
+async function getOrgInfo(userId) {
+  const r = await query('SELECT organization_id, brand_id FROM organization_members WHERE user_id=$1 LIMIT 1', [userId]);
+  return r.rows[0];
+}
+
 async function hasColumn(tableName, columnName) {
   const result = await query(
     `SELECT 1 FROM information_schema.columns WHERE table_name=$1 AND column_name=$2 LIMIT 1`,
@@ -363,11 +368,13 @@ async function getMissingMandatoryStockCountsForRoute(route) {
 // List routes with filters
 router.get('/routes', async (req, res) => {
   try {
-    const orgRes = await query('SELECT organization_id FROM organization_members WHERE user_id=$1 LIMIT 1', [req.userId]);
-    if (!orgRes.rows.length) return res.status(403).json({ error: 'Sem organização' });
-    const orgId = orgRes.rows[0].organization_id;
+    const orgInfo = await getOrgInfo(req.userId);
+    if (!orgInfo?.organization_id) return res.status(403).json({ error: 'Sem organização' });
+    const orgId = orgInfo.organization_id;
 
-    const { promoter_id, brand_id, pdv_id, status, date_from, date_to, supervisor_id } = req.query;
+    let { promoter_id, brand_id, pdv_id, status, date_from, date_to, supervisor_id } = req.query;
+    // Force brand filter if user is linked to a specific brand
+    if (orgInfo.brand_id) brand_id = orgInfo.brand_id;
     
     // Safety check for photos table
     let checkinCol = 'checkin_photo_url';

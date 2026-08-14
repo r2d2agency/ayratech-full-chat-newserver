@@ -53,6 +53,7 @@ interface OrganizationMember {
   permission_template_id?: string;
   template_name?: string;
   template_color?: string;
+  brand_id?: string;
   created_at: string;
 }
 
@@ -119,6 +120,7 @@ export default function Organizacoes() {
   const [newMemberRole, setNewMemberRole] = useState<string>('agent');
   const [newMemberConnectionIds, setNewMemberConnectionIds] = useState<string[]>([]);
   const [newMemberDepartmentIds, setNewMemberDepartmentIds] = useState<string[]>([]);
+  const [newMemberBrandId, setNewMemberBrandId] = useState<string>('none');
 
   // Edit member dialog
   const [editMemberDialogOpen, setEditMemberDialogOpen] = useState(false);
@@ -126,6 +128,7 @@ export default function Organizacoes() {
   const [editMemberRole, setEditMemberRole] = useState<string>('agent');
   const [editMemberConnectionIds, setEditMemberConnectionIds] = useState<string[]>([]);
   const [editMemberDepartmentIds, setEditMemberDepartmentIds] = useState<string[]>([]);
+  const [editMemberBrandId, setEditMemberBrandId] = useState<string>('none');
 
   // Edit password dialog
   const [editPasswordDialogOpen, setEditPasswordDialogOpen] = useState(false);
@@ -202,8 +205,19 @@ export default function Organizacoes() {
       loadDepartments(selectedOrg.id);
       loadModules(selectedOrg.id);
       loadTemplates(selectedOrg.id);
+      loadBrands(selectedOrg.id);
     }
   }, [selectedOrg]);
+
+  const [brands, setBrands] = useState<any[]>([]);
+  const loadBrands = async (orgId: string) => {
+    try {
+      const res = await api<any[]>(`/api/merchandising/brands?organization_id=${orgId}`);
+      setBrands(res || []);
+    } catch (error) {
+      console.error('Error loading brands:', error);
+    }
+  };
 
   const loadOrganizations = async () => {
     setLoadingOrgs(true);
@@ -508,6 +522,7 @@ export default function Organizacoes() {
     setNewMemberRole('agent');
     setNewMemberConnectionIds([]);
     setNewMemberDepartmentIds([]);
+    setNewMemberBrandId('none');
   };
 
   const handleOpenEditMember = (member: OrganizationMember) => {
@@ -516,15 +531,17 @@ export default function Organizacoes() {
     setEditMemberConnectionIds(member.assigned_connections?.map(c => c.id) || []);
     setEditMemberDepartmentIds(member.assigned_departments?.map(d => d.id) || []);
     setEditMemberTemplateId(member.permission_template_id || '');
+    setEditMemberBrandId(member.brand_id || 'none');
     setEditMemberDialogOpen(true);
   };
 
   const handleUpdateMember = async () => {
     if (!selectedOrg || !editingMember) return;
 
-    const updateData: { role?: string; connection_ids?: string[]; department_ids?: string[] } = {
+    const updateData: { role?: string; connection_ids?: string[]; department_ids?: string[]; brand_id?: string } = {
       connection_ids: editMemberConnectionIds,
       department_ids: editMemberDepartmentIds,
+      brand_id: editMemberBrandId !== 'none' ? editMemberBrandId : undefined
     };
     
     // Only include role if it's different and member is not owner
@@ -955,6 +972,31 @@ export default function Organizacoes() {
                                       </div>
                                     </div>
                                   )}
+
+                                  {brands.length > 0 && (
+                                    <div className="space-y-2">
+                                      <Label className="flex items-center gap-2">
+                                        <Building2 className="h-4 w-4" />
+                                        Marca Vinculada (Cliente)
+                                      </Label>
+                                      <p className="text-xs text-muted-foreground mb-2">
+                                        Vincule este usuário a uma marca para filtrar o dashboard automaticamente.
+                                      </p>
+                                      <Select value={newMemberBrandId} onValueChange={setNewMemberBrandId}>
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Nenhuma (Usuário Interno)" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="none">Nenhuma (Usuário Interno)</SelectItem>
+                                          {brands.map((brand) => (
+                                            <SelectItem key={brand.id} value={brand.id}>
+                                              {brand.name}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  )}
                                 </div>
                                 <DialogFooter>
                                   <Button variant="outline" onClick={resetCreateUserDialog}>
@@ -1026,6 +1068,13 @@ export default function Organizacoes() {
                                         <RoleIcon className="h-3 w-3 mr-1" />
                                         {roleLabels[member.role].label}
                                       </Badge>
+                                      {member.brand_id && (
+                                        <div className="mt-1">
+                                          <Badge variant="outline" className="text-[10px] py-0 border-primary text-primary">
+                                            {brands.find(b => b.id === member.brand_id)?.name || 'Cliente Marca'}
+                                          </Badge>
+                                        </div>
+                                      )}
                                     </TableCell>
                                     <TableCell>
                                       {member.template_name ? (
@@ -1685,6 +1734,32 @@ export default function Organizacoes() {
                       <SelectItem value="agent">Agente - Acesso básico</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+              )}
+
+              {/* Brand Association */}
+              {brands.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Marca Vinculada (Cliente)
+                  </Label>
+                  <Select value={editMemberBrandId} onValueChange={setEditMemberBrandId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Nenhuma (Usuário Interno)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhuma (Usuário Interno)</SelectItem>
+                      {brands.map((brand) => (
+                        <SelectItem key={brand.id} value={brand.id}>
+                          {brand.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Define se o usuário é um cliente externo de uma marca específica
+                  </p>
                 </div>
               )}
 

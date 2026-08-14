@@ -56,6 +56,7 @@ interface AddMemberParams {
   password?: string;
   connection_ids?: string[];
   department_ids?: string[];
+  brand_id?: string;
 }
 
 interface UpdateMemberParams {
@@ -63,6 +64,7 @@ interface UpdateMemberParams {
   connection_ids?: string[];
   department_ids?: string[];
   is_active?: boolean;
+  brand_id?: string;
 }
 
 interface AddMemberResult {

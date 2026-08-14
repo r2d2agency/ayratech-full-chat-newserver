@@ -35,14 +35,14 @@ export default function Index() {
         </div>
         <div className="space-y-1.5 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
           <div className="flex gap-3 items-start animate-in fade-in slide-in-from-left-2 duration-300">
-            <span className="text-slate-600 shrink-0 min-w-[85px]">[CONCEPT]</span>
-            <span className="text-blue-400 shrink-0 font-bold uppercase text-[10px] mt-0.5 min-w-[45px]">BRAND</span>
-            <span className="text-slate-300 break-all">Marcas = Clientes da Organização. Dashboards são filtrados pelo vínculo do usuário.</span>
+            <span className="text-slate-600 shrink-0 min-w-[85px]">[SYSTEM]</span>
+            <span className="text-blue-400 shrink-0 font-bold uppercase text-[10px] mt-0.5 min-w-[45px]">FILTER</span>
+            <span className="text-slate-300 break-all">Security: Brand ID auto-filter implemented in /dashboard, /report/pdv, /report/brand and /routes.</span>
           </div>
           <div className="flex gap-3 items-start animate-in fade-in slide-in-from-left-2 duration-500">
-            <span className="text-slate-600 shrink-0 min-w-[85px]">[ACTION]</span>
-            <span className="text-green-400 shrink-0 font-bold uppercase text-[10px] mt-0.5 min-w-[45px]">ACCESS</span>
-            <span className="text-slate-300 break-all">Manage brand representatives via "Network Portal" or filtered standard dashboard.</span>
+            <span className="text-slate-600 shrink-0 min-w-[85px]">[READY]</span>
+            <span className="text-green-400 shrink-0 font-bold uppercase text-[10px] mt-0.5 min-w-[45px]">SUCCESS</span>
+            <span className="text-slate-300 break-all">Users linked to a Brand now see restricted data automatically. Backend & UI synced.</span>
           </div>
         </div>
       </div>
