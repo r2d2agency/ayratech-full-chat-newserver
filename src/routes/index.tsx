@@ -12,8 +12,8 @@ export default function Index() {
           Cada marca visualiza apenas os PDVs, produtos e promotores vinculados a ela.
         </p>
         <ul className="text-xs text-blue-600 mt-2 list-disc ml-4 space-y-1">
-          <li><strong>Dashboard da Marca:</strong> Quando um usuário está vinculado a uma marca, o dashboard filtra automaticamente os dados para exibir apenas as execuções, fotos e roteiros dessa marca específica.</li>
-          <li><strong>Gestão de Clientes:</strong> Gerencie seus clientes em <i>Merchandising {' > '} Marcas</i>. Vincule as marcas aos PDVs para que os promotores saibam o que executar em cada loja.</li>
+          <li><strong>Links Personalizados:</strong> O cliente acessa pelo login padrão, mas se o usuário estiver vinculado a uma marca, ele verá apenas o portal personalizado.</li>
+          <li><strong>Vários Usuários por Marca:</strong> Você pode criar múltiplos usuários vinculados à mesma marca em <i>Administração {' > '} Organizações</i>.</li>
           <li><strong>Acesso Externo:</strong> Para dar acesso ao seu cliente, crie um usuário em <i>Administração {' > '} Organizações</i>. No formulário de criação/edição do membro, selecione a marca no campo <strong>Vincular a Marca (Portal do Cliente)</strong>.</li>
         </ul>
       </div>
