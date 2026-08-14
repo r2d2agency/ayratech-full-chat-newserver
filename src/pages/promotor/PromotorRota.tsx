@@ -699,10 +699,10 @@ function CategoryExtraPhotosPanel({
             <div className="text-[10px] font-semibold uppercase text-green-700 mb-1">✅ Depois ({totalAfter})</div>
             <div className="grid grid-cols-4 gap-1.5">
               {afterPhotos.map((p: any, i: number) => (
-                <LocalImage key={p.id || `a-${p.photo_url}`} src={p.photo_url} alt={`Depois ${i+1}`} className="w-full h-16 rounded border border-green-500/40 object-cover" />
+                <LocalImage key={p.id || `a-${p.photo_url}`} src={p.photo_url} alt={`Depois ${i+1}`} className="w-full h-16 rounded border border-green-500/40 object-cover cursor-pointer hover:opacity-80" onClick={() => setViewIdx(findViewIdx(p.photo_url))} />
               ))}
               {optimisticAfter.map((u, i) => (
-                <LocalImage key={`oa-${u}`} src={u} alt={`Depois nova ${i+1}`} className="w-full h-16 rounded border border-green-500/60 object-cover ring-1 ring-green-500/40" />
+                <LocalImage key={`oa-${u}`} src={u} alt={`Depois nova ${i+1}`} className="w-full h-16 rounded border border-green-500/60 object-cover ring-1 ring-green-500/40 cursor-pointer hover:opacity-80" onClick={() => setViewIdx(findViewIdx(u))} />
               ))}
             </div>
           </div>
