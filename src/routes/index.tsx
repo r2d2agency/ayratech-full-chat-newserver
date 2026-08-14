@@ -1,10 +1,11 @@
 /**
  * SISTEMA AYRATECH - STATUS E LOGS
  * 
- * ATUALIZAÇÃO RECENTE: Registro de Ponto com Biometria
- * 1. Corrigido endpoint de sincronização offline do ponto no PromotorHome.
- * 2. Mantida validação de 15 minutos de tolerância.
- * 3. Sincronizada lógica de bloqueio de botão no app com a validação do backend.
+ * ATUALIZAÇÃO RECENTE: Registro de Ponto Offline & Biometria
+ * 1. O sistema de ponto foi otimizado para funcionar offline, carregando a função de validação antecipadamente.
+ * 2. Corrigido endpoint de sincronização offline do ponto no PromotorHome.
+ * 3. Mantida validação de 15 minutos de tolerância.
+ * 4. Sincronizada lógica de bloqueio de botão no app com a validação do backend.
  * 
  * ATIVAÇÃO DE BIOMETRIA NA EMPRESA:
  * Para ativar a obrigatoriedade facial global:
