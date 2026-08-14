@@ -1705,6 +1705,32 @@ export default function Organizacoes() {
                 </div>
               )}
 
+              {/* Brand Association */}
+              {brands.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Marca Vinculada (Cliente)
+                  </Label>
+                  <Select value={editMemberBrandId} onValueChange={setEditMemberBrandId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Nenhuma (Usuário Interno)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhuma (Usuário Interno)</SelectItem>
+                      {brands.map((brand) => (
+                        <SelectItem key={brand.id} value={brand.id}>
+                          {brand.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Define se o usuário é um cliente externo de uma marca específica
+                  </p>
+                </div>
+              )}
+
               {/* Permission Template */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
