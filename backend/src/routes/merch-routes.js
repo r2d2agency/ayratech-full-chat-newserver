@@ -2385,7 +2385,12 @@ async function ensurePdvVisitTables() {
   } catch (e) { /* ignore if already exists */ }
 }
 
+let execCategoryTablesReady = null;
 async function ensureExecutionCategoryTables() {
+  // Executa o DDL uma única vez por processo: chamadas paralelas (várias fotos
+  // sendo enviadas ao mesmo tempo) causavam corrida na criação do índice (42P07).
+  if (execCategoryTablesReady) return execCategoryTablesReady;
+  execCategoryTablesReady = (async () => {
   try {
     await query(`CREATE TABLE IF NOT EXISTS merch_execution_categories (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
