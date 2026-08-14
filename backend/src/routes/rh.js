@@ -360,6 +360,7 @@ function normalizeEmployeePayload(body = {}) {
 
 // Helper: get user org_id
 async function getUserOrgId(userId) {
+  if (!userId) return null;
   const r = await query(
     `SELECT organization_id FROM organization_members WHERE user_id = $1 LIMIT 1`,
     [userId]
@@ -2462,6 +2463,10 @@ router.post('/client-logs', async (req, res) => {
 router.get('/connected-devices', async (req, res) => {
   try {
     const orgId = req.orgId || await getUserOrgId(req.userId);
+    if (!orgId) {
+      return res.status(403).json({ error: 'Organização não identificada para este usuário' });
+    }
+
     const result = await query(
       `SELECT 
         e.full_name as employee_name, 
@@ -2469,12 +2474,12 @@ router.get('/connected-devices', async (req, res) => {
         e.photo_url,
         caa.last_device as device_info,
         caa.last_app_version as app_version,
-        caa.last_login_at as last_seen,
+        caa.last_login as last_seen,
         caa.last_ip as ip_address
        FROM collaborator_app_access caa
        JOIN employees e ON e.id = caa.employee_id
        WHERE e.organization_id = $1
-       ORDER BY caa.last_login_at DESC`,
+       ORDER BY caa.last_login DESC`,
       [orgId]
     );
     res.json(result.rows);
