@@ -178,6 +178,13 @@ const Login = () => {
             >
               Política de Privacidade
             </Link>
+            <span className="text-muted-foreground">|</span>
+            <Link 
+              to="/merch/dashboard" 
+              className="text-muted-foreground hover:text-primary underline"
+            >
+              Portal do Cliente (Marca)
+            </Link>
           </div>
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} {branding.company_name || 'Ayratech'}. Todos os direitos reservados.
