@@ -6,6 +6,9 @@ import { CRMAlerts } from "./CRMAlerts";
 import { ConnectionStatusIndicator } from "./ConnectionStatusIndicator";
 import { GroupSecretaryPopup } from "./GroupSecretaryPopup";
 import { PWAUpdateBanner } from "./PWAUpdateBanner";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { ShieldCheck, LogOut } from "lucide-react";
 
 interface MainLayoutProps {
   children: ReactNode;
