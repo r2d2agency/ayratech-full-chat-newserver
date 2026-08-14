@@ -648,6 +648,20 @@ function CategoryExtraPhotosPanel({
   const totalBefore = beforePhotos.length + optimisticBefore.length;
   const totalAfter = afterPhotos.length + optimisticAfter.length;
 
+  // Lista unificada de todas as fotos visualizáveis (Antes + Depois, incluindo
+  // as primárias de desbloqueio/conclusão e as otimistas). Usada para o lightbox
+  // com navegação anterior/próximo, permitindo ao promotor conferir o que há
+  // em ANTES e DEPOIS.
+  const allViewable: any[] = [
+    ...(beforePrimary ? [beforePrimary] : []),
+    ...beforePhotos,
+    ...optimisticBefore.map((u) => ({ photo_url: u, photo_type: 'category_before' })),
+    ...(afterPrimary ? [afterPrimary] : []),
+    ...afterPhotos,
+    ...optimisticAfter.map((u) => ({ photo_url: u, photo_type: 'category_after' })),
+  ];
+  const findViewIdx = (url: string) => allViewable.findIndex((p) => p.photo_url === url);
+
   return (
     <div className="mt-2 p-3 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 space-y-3">
       <div className="space-y-2">
