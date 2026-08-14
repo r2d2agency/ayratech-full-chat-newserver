@@ -688,9 +688,9 @@ function CategoryExtraPhotosPanel({
         )}
         {afterPrimary && (
           <div>
-            <div className="text-[10px] font-semibold uppercase text-green-700 mb-1">🏁 Foto Final da Categoria</div>
+            <div className="text-[10px] font-semibold uppercase text-green-700 mb-1">🏁 Foto Final da Categoria (Depois)</div>
             <div className="grid grid-cols-4 gap-1.5">
-              <LocalImage src={afterPrimary.photo_url} alt="Foto final da categoria" className="w-full h-16 rounded border-2 border-green-500/60 object-cover" />
+              <LocalImage src={afterPrimary.photo_url} alt="Foto final da categoria" className="w-full h-16 rounded border-2 border-green-500/60 object-cover cursor-pointer hover:opacity-80" onClick={() => setViewIdx(findViewIdx(afterPrimary.photo_url))} />
             </div>
           </div>
         )}
