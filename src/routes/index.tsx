@@ -29,7 +29,7 @@ export default function Index() {
           <div className="flex gap-3 items-start animate-in fade-in slide-in-from-left-2 duration-300">
             <span className="text-slate-600 shrink-0 min-w-[85px]">[03:31:42]</span>
             <span className="text-blue-400 shrink-0 font-bold uppercase text-[10px] mt-0.5 min-w-[45px]">INFO</span>
-            <span className="text-slate-300 break-all">Fixed table name in backend/src/routes/rh.js (rh_schedules -> work_schedules)</span>
+            <span className="text-slate-300 break-all">Fixed table name in backend/src/routes/rh.js (rh_schedules {"->"} work_schedules)</span>
           </div>
           <div className="flex gap-3 items-start animate-in fade-in slide-in-from-left-2 duration-500">
             <span className="text-slate-600 shrink-0 min-w-[85px]">[03:31:40]</span>
