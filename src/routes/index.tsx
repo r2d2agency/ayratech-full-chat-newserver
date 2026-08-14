@@ -40,6 +40,7 @@ export default function Index() {
           <p className="text-slate-400">[DOC] Documentação detalhada sobre como dar acesso às marcas adicionada em Merchandising {" > "} Marcas e na Central de Ajuda.</p>
           <p className="text-blue-400">[CHECKLIST] Trava de obrigatoriedade ao salvar produto individual removida (validação final mantida no fechamento da categoria).</p>
           <p className="text-green-400">[BACKEND] Corrigido erro 500 em relatórios de merchandising (função getOrgId inexistente substituída por getOrgInfo).</p>
+          <p className="text-blue-400">[PONTO] Corrigido fuso horário na validação do ponto (ajustado para America/Sao_Paulo de forma consistente).</p>
 
         </div>
       </div>

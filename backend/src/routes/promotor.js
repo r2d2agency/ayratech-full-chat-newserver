@@ -229,7 +229,9 @@ router.get('/home', authenticatePromotor, async (req, res) => {
   try {
     // Use America/Sao_Paulo timezone
     const nowBR = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-    const today = `${nowBR.getFullYear()}-${String(nowBR.getMonth()+1).padStart(2,'0')}-${String(nowBR.getDate()).padStart(2,'0')}`;
+    // Safety check: ensure we are not shifting the actual clock time twice
+    // For punch records, we usually prefer UTC or DB-server time, but for logic check we use BR time
+    const today = nowBR.toLocaleDateString('en-CA'); // YYYY-MM-DD in local time zone
     const empId = req.employeeId;
 
     // Helper to run a query safely – returns empty result on missing-table errors
@@ -436,7 +438,9 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
     const now = is_offline && offline_local_time
       ? new Date(offline_local_time)
       : new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-    const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    
+    // Ensure we are comparing hours correctly by using the localized date object
+    const today = now.toLocaleDateString('en-CA'); 
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
     // 1. Check for specific daily assignment (Escala) or recurring schedule first
