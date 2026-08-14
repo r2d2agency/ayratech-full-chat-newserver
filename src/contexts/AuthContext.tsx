@@ -28,6 +28,7 @@ interface User {
   name: string;
   role?: string;
   organization_id?: string;
+  brand_id?: string;
   modules_enabled?: ModulesEnabled;
   has_connections?: boolean;
   page_permissions?: PagePermissions;
