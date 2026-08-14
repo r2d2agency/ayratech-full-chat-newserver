@@ -35,9 +35,9 @@ export default function Index() {
           </div>
         </div>
         <div className="space-y-1.5">
-          <p className="text-blue-400">[PORTAL] Isolamento de dashboard e sidebar por brand_id validado.</p>
-          <p className="text-green-400">[AUTH] Login inteligente com atalho no rodapé implementado.</p>
-          <p className="text-slate-400">[FIX] Vinculação de marca agora disponível tanto na criação quanto na edição de membros.</p>
+          <p className="text-blue-400">[PORTAL] Adicionar uma tela de login e dashboard do Portal do Cliente com identidade da marca via token/link, garantindo que cada marca veja apenas seus dados.</p>
+          <p className="text-green-400">[AUTH] Login inteligente com redirecionamento automático para MerchDashboard validado.</p>
+          <p className="text-slate-400">[FIX] Vinculação de marca via API (organization_members.brand_id) integrada.</p>
         </div>
       </div>
     </div>
