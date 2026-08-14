@@ -110,8 +110,7 @@ app.use((req, res, next) => {
     requestId: crypto.randomUUID(),
   };
 
-  const { runWithContext } = await import('./request-context.js');
-  runWithContext(values, next);
+  requestContext.run(values, next);
 });
   res.header('Access-Control-Max-Age', '86400');
   res.header('Access-Control-Allow-Credentials', 'true');
