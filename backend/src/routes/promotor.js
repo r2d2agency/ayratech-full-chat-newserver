@@ -327,7 +327,7 @@ router.get('/home', authenticatePromotor, async (req, res) => {
       }
     }
 
-    // 3. Fallback to general work schedule (Jornada)
+    // 3. Fallback to general work schedule (Jornada) - ONLY if no Scale (Escala) exists
     if (!scheduleStart) {
       const wsRaw = employee.rows[0]?.work_schedule || '08:00-17:00';
       try {
@@ -349,6 +349,8 @@ router.get('/home', authenticatePromotor, async (req, res) => {
           scheduleEnd = parts[1].trim(); 
         }
       }
+    } else {
+      console.log(`[Promotor Home] Using schedule from SCALE: ${scheduleStart}-${scheduleEnd}`);
     }
 
     // Final safety defaults
@@ -476,7 +478,7 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
       }
     } catch (e) { /* ignore table/column missing */ }
 
-    // 2. Fallback to general work schedule (Jornada) if no specific assignment
+    // 2. Fallback to general work schedule (Jornada) - ONLY if no specific assignment or recurring schedule
     let schedStartStr = '08:00', schedEndStr = '17:00';
     if (!scheduleStart) {
       const wsRaw = empRes.rows[0]?.work_schedule || '08:00-17:00';
@@ -487,6 +489,8 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
       } catch { const parts = String(wsRaw).split('-'); if (parts.length >= 2) { schedStartStr = parts[0].trim(); schedEndStr = parts[1].trim(); } }
       scheduleStart = schedStartStr;
       scheduleEnd = schedEndStr;
+    } else {
+      console.log(`[Promotor Punch] Using schedule from SCALE: ${scheduleStart}-${scheduleEnd}`);
     }
 
     const parseToMin = (str) => {
