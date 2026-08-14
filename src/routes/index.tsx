@@ -37,12 +37,12 @@ export default function Index() {
           <div className="flex gap-3 items-start animate-in fade-in slide-in-from-left-2 duration-300">
             <span className="text-slate-600 shrink-0 min-w-[85px]">[SYSTEM]</span>
             <span className="text-blue-400 shrink-0 font-bold uppercase text-[10px] mt-0.5 min-w-[45px]">FILTER</span>
-            <span className="text-slate-300 break-all">Security: Brand ID auto-filter implemented in /dashboard, /report/pdv, /report/brand and /routes.</span>
+            <span className="text-slate-300 break-all">Portal do Cliente: Implementado isolamento total e controle de visibilidade por marca. MerchDashboard e Sidebar agora respeitam travas de acesso.</span>
           </div>
           <div className="flex gap-3 items-start animate-in fade-in slide-in-from-left-2 duration-500">
             <span className="text-slate-600 shrink-0 min-w-[85px]">[READY]</span>
             <span className="text-green-400 shrink-0 font-bold uppercase text-[10px] mt-0.5 min-w-[45px]">SUCCESS</span>
-            <span className="text-slate-300 break-all">Users linked to a Brand now see restricted data automatically. Backend & UI synced.</span>
+            <span className="text-slate-300 break-all">MerchMarcas atualizado com painel de permissões. Segurança brand_id forçada no backend.</span>
           </div>
         </div>
       </div>
