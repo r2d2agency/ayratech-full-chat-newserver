@@ -288,8 +288,8 @@ router.get('/home', authenticatePromotor, async (req, res) => {
     } catch { /* table may not exist */ }
 
     // Check schedule status (prioritize daily assignment or recurring schedule)
-    let scheduleStart = '08:00';
-    let scheduleEnd = '17:00';
+    let scheduleStart = null;
+    let scheduleEnd = null;
     
     // 1. Check daily assignment
     if (assignment.rows[0]?.start_time && assignment.rows[0]?.end_time) {
@@ -313,35 +313,40 @@ router.get('/home', authenticatePromotor, async (req, res) => {
           if (todaySchedule && todaySchedule.entry && todaySchedule.exit) {
             scheduleStart = todaySchedule.entry;
             scheduleEnd = todaySchedule.exit;
-          } else {
-            // 3. Fallback to general work schedule (Jornada)
-            const wsRaw = employee.rows[0]?.work_schedule || '08:00-17:00';
-            const parsed = typeof wsRaw === 'object' ? wsRaw : (typeof wsRaw === 'string' && wsRaw.trim().startsWith('{') ? JSON.parse(wsRaw) : null);
-            if (parsed && parsed.entry) {
-              scheduleStart = parsed.entry;
-              scheduleEnd = parsed.exit || '17:00';
-            } else {
-              const parts = String(wsRaw).split('-');
-              if (parts.length >= 2) { scheduleStart = parts[0].trim(); scheduleEnd = parts[1].trim(); }
-            }
           }
+        }
+      } catch (e) {
+        logError('promotor.home.recurring', e);
+      }
+    }
+
+    // 3. Fallback to general work schedule (Jornada)
+    if (!scheduleStart) {
+      const wsRaw = employee.rows[0]?.work_schedule || '08:00-17:00';
+      try {
+        const parsed = typeof wsRaw === 'object' ? wsRaw : (typeof wsRaw === 'string' && wsRaw.trim().startsWith('{') ? JSON.parse(wsRaw) : null);
+        if (parsed && parsed.entry) {
+          scheduleStart = parsed.entry;
+          scheduleEnd = parsed.exit || '17:00';
         } else {
-          // 3. Fallback to general work schedule (Jornada)
-          const wsRaw = employee.rows[0]?.work_schedule || '08:00-17:00';
-          const parsed = typeof wsRaw === 'object' ? wsRaw : (typeof wsRaw === 'string' && wsRaw.trim().startsWith('{') ? JSON.parse(wsRaw) : null);
-          if (parsed && parsed.entry) {
-            scheduleStart = parsed.entry;
-            scheduleEnd = parsed.exit || '17:00';
-          } else {
-            const parts = String(wsRaw).split('-');
-            if (parts.length >= 2) { scheduleStart = parts[0].trim(); scheduleEnd = parts[1].trim(); }
+          const parts = String(wsRaw).split('-');
+          if (parts.length >= 2) { 
+            scheduleStart = parts[0].trim(); 
+            scheduleEnd = parts[1].trim(); 
           }
         }
       } catch {
-        const parts = String(employee.rows[0]?.work_schedule || '08:00-17:00').split('-');
-        if (parts.length >= 2) { scheduleStart = parts[0].trim(); scheduleEnd = parts[1].trim(); }
+        const parts = String(wsRaw).split('-');
+        if (parts.length >= 2) { 
+          scheduleStart = parts[0].trim(); 
+          scheduleEnd = parts[1].trim(); 
+        }
       }
     }
+
+    // Final safety defaults
+    if (!scheduleStart) scheduleStart = '08:00';
+    if (!scheduleEnd) scheduleEnd = '17:00';
 
     const currentMin = nowBR.getHours() * 60 + nowBR.getMinutes();
     const startMin = scheduleStart.split(':').reduce((h, m) => parseInt(h) * 60 + parseInt(m), 0) || 480;
