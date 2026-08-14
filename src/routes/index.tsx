@@ -1,9 +1,9 @@
 /**
  * SISTEMA AYRATECH - STATUS E LOGS
  * 
- * ATUALIZAÇÃO RECENTE: Validação de Horário do Ponto
- * 1. Ajustada tolerância de entrada para 15 minutos (antes 30).
- * 2. Corrigida falha no cálculo de minutos quando o formato da escala/jornada variava.
+ * ATUALIZAÇÃO RECENTE: Registro de Ponto com Biometria
+ * 1. Corrigido endpoint de sincronização offline do ponto no PromotorHome.
+ * 2. Mantida validação de 15 minutos de tolerância.
  * 3. Sincronizada lógica de bloqueio de botão no app com a validação do backend.
  * 
  * ATIVAÇÃO DE BIOMETRIA NA EMPRESA:
