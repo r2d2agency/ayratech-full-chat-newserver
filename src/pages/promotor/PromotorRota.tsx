@@ -593,8 +593,11 @@ function CategoryExtraPhotosPanel({
   const beforePhotos = beforePhotosRaw.filter((p) => p !== beforePrimary);
   const afterPhotos = afterPhotosRaw.filter((p) => p !== afterPrimary);
 
-  // Regra: só pode adicionar mais ANTES se ainda NÃO começou fotos DEPOIS
-  const canAddBefore = !hasAnyAfter;
+  // Regra: pode adicionar fotos ANTES se ainda não iniciou as fotos DEPOIS,
+  // OU se ainda não existe NENHUMA foto ANTES registrada (fluxo de recuperação —
+  // evita o promotor ficar preso: foto do depois já tirada mas sem a do antes,
+  // sem conseguir adicioná-la).
+  const canAddBefore = !hasAnyAfter || !hasAnyBefore;
   // Adicionar mais DEPOIS: sempre permitido
   const canAddAfter = true;
 
