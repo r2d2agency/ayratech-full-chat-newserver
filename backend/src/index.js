@@ -94,10 +94,24 @@ let databaseInitError = null;
 // Add CORS headers to EVERY response (must be absolute first)
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  // Permitir origens conhecidas ou qualquer uma se for desenvolvimento
   res.header('Access-Control-Allow-Origin', origin || '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Request-Id, X-Idempotency-Key');
+  res.header('Access-Control-Allow-Credentials', 'true');
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+
+  const values = {
+    ip: req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+    method: req.method,
+    url: req.originalUrl,
+    requestId: crypto.randomUUID(),
+  };
+
+  requestContext.run(values, next);
+});
   res.header('Access-Control-Max-Age', '86400');
   res.header('Access-Control-Allow-Credentials', 'true');
   
