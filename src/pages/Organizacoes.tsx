@@ -53,6 +53,7 @@ interface OrganizationMember {
   permission_template_id?: string;
   template_name?: string;
   template_color?: string;
+  brand_id?: string;
   created_at: string;
 }
 
@@ -119,6 +120,7 @@ export default function Organizacoes() {
   const [newMemberRole, setNewMemberRole] = useState<string>('agent');
   const [newMemberConnectionIds, setNewMemberConnectionIds] = useState<string[]>([]);
   const [newMemberDepartmentIds, setNewMemberDepartmentIds] = useState<string[]>([]);
+  const [newMemberBrandId, setNewMemberBrandId] = useState<string>('none');
 
   // Edit member dialog
   const [editMemberDialogOpen, setEditMemberDialogOpen] = useState(false);
@@ -126,6 +128,7 @@ export default function Organizacoes() {
   const [editMemberRole, setEditMemberRole] = useState<string>('agent');
   const [editMemberConnectionIds, setEditMemberConnectionIds] = useState<string[]>([]);
   const [editMemberDepartmentIds, setEditMemberDepartmentIds] = useState<string[]>([]);
+  const [editMemberBrandId, setEditMemberBrandId] = useState<string>('none');
 
   // Edit password dialog
   const [editPasswordDialogOpen, setEditPasswordDialogOpen] = useState(false);
@@ -202,8 +205,19 @@ export default function Organizacoes() {
       loadDepartments(selectedOrg.id);
       loadModules(selectedOrg.id);
       loadTemplates(selectedOrg.id);
+      loadBrands(selectedOrg.id);
     }
   }, [selectedOrg]);
+
+  const [brands, setBrands] = useState<any[]>([]);
+  const loadBrands = async (orgId: string) => {
+    try {
+      const res = await api<any[]>(`/api/merchandising/brands?organization_id=${orgId}`);
+      setBrands(res || []);
+    } catch (error) {
+      console.error('Error loading brands:', error);
+    }
+  };
 
   const loadOrganizations = async () => {
     setLoadingOrgs(true);

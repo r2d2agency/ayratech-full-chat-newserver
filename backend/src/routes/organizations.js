@@ -384,7 +384,7 @@ router.get('/:id([0-9a-fA-F-]{36})/members', async (req, res) => {
 router.post('/:id([0-9a-fA-F-]{36})/members', async (req, res) => {
   try {
     const { id } = req.params;
-    const { email, name, password, role, connection_ids } = req.body;
+    const { email, name, password, role, connection_ids, brand_id } = req.body;
 
     // Check if user is admin/owner
     const memberCheck = await query(
@@ -435,11 +435,11 @@ router.post('/:id([0-9a-fA-F-]{36})/members', async (req, res) => {
 
     // Add to organization
     const result = await query(
-      `INSERT INTO organization_members (organization_id, user_id, role)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (organization_id, user_id) DO UPDATE SET role = $3
+      `INSERT INTO organization_members (organization_id, user_id, role, brand_id)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (organization_id, user_id) DO UPDATE SET role = $3, brand_id = $4
        RETURNING *`,
-      [id, userId, role || 'agent']
+      [id, userId, role || 'agent', brand_id || null]
     );
 
     // Assign to connections if provided
@@ -482,7 +482,7 @@ router.post('/:id([0-9a-fA-F-]{36})/members', async (req, res) => {
 router.patch('/:id/members/:userId', async (req, res) => {
   try {
     const { id, userId } = req.params;
-    const { role, connection_ids, department_ids, is_active } = req.body;
+    const { role, connection_ids, department_ids, is_active, brand_id } = req.body;
 
     // Check if user is admin/owner
     const memberCheck = await query(
