@@ -751,6 +751,17 @@ function CategoryExtraPhotosPanel({
         </div>
 
       )}
+
+      {/* Visualização ampliada: clique em qualquer foto para conferir ANTES/DEPOIS */}
+      {viewIdx !== null && allViewable[viewIdx] && (
+        <PhotoLightbox
+          photo={{ ...allViewable[viewIdx], category_name: categoryName, pdv_name: pdvName, brand_name: brandName, promoter_name: promotorName }}
+          onClose={() => setViewIdx(null)}
+          onPrev={viewIdx > 0 ? () => setViewIdx((i) => (i! - 1)) : undefined}
+          onNext={viewIdx < allViewable.length - 1 ? () => setViewIdx((i) => (i! + 1)) : undefined}
+          typeLabels={{ category_before: 'Foto Antes', category_after: 'Foto Depois' }}
+        />
+      )}
     </div>
   );
 }
