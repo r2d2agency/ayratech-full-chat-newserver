@@ -25,7 +25,7 @@ import {
 import {
   BarChart3, Store, Building2, Package, User, Layers, Route, AlertTriangle,
   TrendingUp, TrendingDown, Camera, DollarSign, ShoppingCart, Clock, Target,
-  Download, Sparkles, Filter, Calendar, FileText, CheckCircle2, XCircle, CalendarClock,
+  Download, FileSpreadsheet, Sparkles, Filter, Calendar, FileText, CheckCircle2, XCircle, CalendarClock,
 } from "lucide-react";
 import { AiAnalysisChat } from "@/components/merch/AiAnalysisChat";
 import { format, subDays, startOfWeek, startOfMonth } from "date-fns";
@@ -689,6 +689,7 @@ function ProdutoTab({ filters }: { filters: any }) {
             <TableHeader>
               <TableRow>
                 <TableHead>Produto</TableHead>
+                <TableHead>Promotores</TableHead>
                 <TableHead className="text-center">PDVs</TableHead>
                 <TableHead className="text-center">Rotas</TableHead>
                 <TableHead className="text-center">Executados</TableHead>
@@ -716,6 +717,14 @@ function ProdutoTab({ filters }: { filters: any }) {
                       </div>
                     </div>
                   </TableCell>
+                  <TableCell className="max-w-[220px]">
+                    {r.promoters
+                      ? <span className="text-xs" title={r.promoters}>
+                          {r.promoters}
+                          {parseInt(r.promoters_count) > 1 && <span className="text-muted-foreground"> ({r.promoters_count})</span>}
+                        </span>
+                      : <span className="text-muted-foreground">—</span>}
+                  </TableCell>
                   <TableCell className="text-center">{r.pdvs}</TableCell>
                   <TableCell className="text-center">{r.routes}</TableCell>
                   <TableCell className="text-center">{r.executed}</TableCell>
@@ -736,7 +745,7 @@ function ProdutoTab({ filters }: { filters: any }) {
                   <TableCell className="text-center font-medium">{r.next_expiry_total ?? 0}</TableCell>
                 </TableRow>
               ))}
-              {rows.length === 0 && <TableRow><TableCell colSpan={13} className="text-center py-8 text-muted-foreground">Sem dados</TableCell></TableRow>}
+              {rows.length === 0 && <TableRow><TableCell colSpan={14} className="text-center py-8 text-muted-foreground">Sem dados</TableCell></TableRow>}
 
             </TableBody>
           </Table>
