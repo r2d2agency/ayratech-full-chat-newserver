@@ -303,11 +303,25 @@ router.get('/home', authenticatePromotor, async (req, res) => {
         const recurring = await safeQuery(
           `SELECT s.items FROM rh_employee_schedules es
            JOIN rh_schedules s ON s.id = es.schedule_id
-           WHERE es.employee_id = $1 AND es.active = true LIMIT 1`,
+           WHERE es.employee_id = $1 AND es.active = true
+           ORDER BY es.created_at DESC`,
           [empId]
         );
         
-        if (recurring.rows[0]?.items) {
+        if (recurring.rows && recurring.rows.length > 0) {
+          // Find the first schedule that has items for today
+          for (const row of recurring.rows) {
+            if (row.items) {
+              const items = row.items;
+              const todaySchedule = Array.isArray(items) ? items.find(i => i.day === dayOfWeek) : null;
+              if (todaySchedule && todaySchedule.entry && todaySchedule.exit) {
+                scheduleStart = todaySchedule.entry;
+                scheduleEnd = todaySchedule.exit;
+                break;
+              }
+            }
+          }
+        }
           const items = recurring.rows[0].items;
           const todaySchedule = Array.isArray(items) ? items.find(i => i.day === dayOfWeek) : null;
           if (todaySchedule && todaySchedule.entry && todaySchedule.exit) {
@@ -448,11 +462,24 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
         const recurring = await query(
           `SELECT s.items FROM rh_employee_schedules es
            JOIN rh_schedules s ON s.id = es.schedule_id
-           WHERE es.employee_id = $1 AND es.active = true LIMIT 1`,
+           WHERE es.employee_id = $1 AND es.active = true
+           ORDER BY es.created_at DESC`,
           [req.employeeId]
         );
         
-        if (recurring.rows[0]?.items) {
+        if (recurring.rows && recurring.rows.length > 0) {
+          for (const row of recurring.rows) {
+            if (row.items) {
+              const items = row.items;
+              const todaySchedule = Array.isArray(items) ? items.find(i => i.day === dayOfWeek) : null;
+              if (todaySchedule && todaySchedule.entry && todaySchedule.exit) {
+                scheduleStart = todaySchedule.entry;
+                scheduleEnd = todaySchedule.exit;
+                break;
+              }
+            }
+          }
+        }
           const items = recurring.rows[0].items; // Array of { day, entry, exit, ... }
           const todaySchedule = Array.isArray(items) ? items.find(i => i.day === dayOfWeek) : null;
           if (todaySchedule && todaySchedule.entry && todaySchedule.exit) {
