@@ -1,1 +1,1 @@
-export const SystemStatus = "no menu aparece ponto 2x e o rhlogs nao aparece como informado.";
+export const SystemStatus = "s pagina logs e erros existe mas nao mostra os erros nem os disposivos aonde que esta a lista de dispositvos logados ?";
