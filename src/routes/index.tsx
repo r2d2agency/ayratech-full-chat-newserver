@@ -44,6 +44,7 @@ export default function Index() {
           <p className="text-green-400">[RELATORIOS] Filtros de Marca, PDV e Promotor agora são pesquisáveis (digitar para buscar em vez de rolar a lista).</p>
           <p className="text-blue-400">[EXPORT] Novo botão "Exportar Excel" (.xlsx) com colunas nomeadas em português, largura automática e filtro no cabeçalho — CSV e PDF usam as mesmas colunas.</p>
           <p className="text-green-400">[RELATORIOS] Guia Produto agora lista os promotores que executaram cada produto (com contagem), incluído também nas exportações.</p>
+          <p className="text-blue-400">[PDF] Exportações agora ocultam IDs internos (só o nome do produto), com cabeçalhos, datas (dd/mm/aaaa), números e status em português.</p>
 
         </div>
       </div>
