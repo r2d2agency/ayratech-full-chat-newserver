@@ -339,8 +339,9 @@ router.get('/report/brand', async (req, res) => {
 // ===== Report by Promoter =====
 router.get('/report/promoter', async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
-    if (!orgId) return res.status(403).json({ error: 'Sem organização' });
+    const orgInfo = await getOrgInfo(req.userId);
+    if (!orgInfo?.organization_id) return res.status(403).json({ error: 'Sem organização' });
+    const orgId = orgInfo.organization_id;
     const { date_from, date_to, promoter_id } = req.query;
     const params = [orgId];
     let idx = 2;
@@ -396,8 +397,9 @@ router.get('/report/promoter', async (req, res) => {
 // ===== Report by Product =====
 router.get('/report/product', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
-    if (!orgId) return res.status(403).json({ error: 'Sem organização' });
+    const orgInfo = await getOrgInfo(req.userId);
+    if (!orgInfo?.organization_id) return res.status(403).json({ error: 'Sem organização' });
+    const orgId = orgInfo.organization_id;
     const { product_id } = req.query;
 
     const routeParams = [orgId];
@@ -990,8 +992,9 @@ async function gatherAiContext(orgId, filters = {}) {
 
 router.post('/ai-chat', async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
-    if (!orgId) return res.status(403).json({ error: 'Sem organização' });
+    const orgInfo = await getOrgInfo(req.userId);
+    if (!orgInfo?.organization_id) return res.status(403).json({ error: 'Sem organização' });
+    const orgId = orgInfo.organization_id;
 
     const { messages = [], filters = {} } = req.body || {};
     const apiKey = process.env.LOVABLE_API_KEY;

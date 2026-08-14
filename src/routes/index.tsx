@@ -38,7 +38,8 @@ export default function Index() {
           <p className="text-blue-400">[PORTAL] Adicionar uma tela de login e dashboard do Portal do Cliente com identidade da marca via token/link, garantindo que cada marca veja apenas seus dados.</p>
           <p className="text-green-400">[AUTH] Login inteligente com redirecionamento automático para MerchDashboard validado.</p>
           <p className="text-slate-400">[DOC] Documentação detalhada sobre como dar acesso às marcas adicionada em Merchandising {" > "} Marcas e na Central de Ajuda.</p>
-          <p className="text-blue-400">[CHECKLIST] so mudou as categorias foto ante e depois.. queo tambem do produto ele nao deixa eu salvar se o produto nao tiver foto antes e depois ? a regra é so na categoria certo. pode confirmar.</p>
+          <p className="text-blue-400">[CHECKLIST] Trava de obrigatoriedade ao salvar produto individual removida (validação final mantida no fechamento da categoria).</p>
+          <p className="text-green-400">[BACKEND] Corrigido erro 500 em relatórios de merchandising (função getOrgId inexistente substituída por getOrgInfo).</p>
 
         </div>
       </div>
