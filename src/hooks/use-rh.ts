@@ -42,6 +42,18 @@ export function useUpdateEmployee() {
   });
 }
 
+export function useSyncEmployeeSchedule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, schedule_id }: { id: string; schedule_id: string }) =>
+      api<any>(`/api/rh/employees/${id}/sync-schedule`, { method: 'POST', body: { schedule_id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['rh-employees'] });
+      qc.invalidateQueries({ queryKey: ['rh-employee'] });
+    },
+  });
+}
+
 export function useFacialAlerts() {
   return useQuery({
     queryKey: ['rh-facial-alerts'],

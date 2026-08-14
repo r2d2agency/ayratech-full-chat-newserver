@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { useEmployees, useCreateEmployee, useUpdateEmployee, useDeleteEmployee, useRhDepartments, useBranches, useCreateBranch, useDeleteBranch, useCreateRhDepartment, useDeleteRhDepartment, useRhPositions, useCreateRhPosition, useDeleteRhPosition, useWorkerProfiles, useCreateWorkerProfile, useDeleteWorkerProfile, useRhDocuments, useCreateRhDocument, useDeleteRhDocument } from "@/hooks/use-rh";
+import { useEmployees, useCreateEmployee, useUpdateEmployee, useDeleteEmployee, useRhDepartments, useBranches, useCreateBranch, useDeleteBranch, useCreateRhDepartment, useDeleteRhDepartment, useRhPositions, useCreateRhPosition, useDeleteRhPosition, useWorkerProfiles, useCreateWorkerProfile, useDeleteWorkerProfile, useRhDocuments, useCreateRhDocument, useDeleteRhDocument, useSyncEmployeeSchedule } from "@/hooks/use-rh";
 import { useSchedules, useEmployeeSchedule, useAssignSchedule } from "@/hooks/use-rh-schedules";
 import { usePDVs, useAppAccess, useGrantAppAccess, useBlockAppAccess, useResetAppPassword } from "@/hooks/use-promotor";
 import { Button } from "@/components/ui/button";
@@ -190,6 +190,7 @@ export default function RHColaboradores() {
   const createMut = useCreateEmployee();
   const updateMut = useUpdateEmployee();
   const deleteMut = useDeleteEmployee();
+  const syncScheduleMut = useSyncEmployeeSchedule();
   const createDeptMut = useCreateRhDepartment();
   const deleteDeptMut = useDeleteRhDepartment();
   const createPosMut = useCreateRhPosition();
@@ -726,15 +727,30 @@ export default function RHColaboradores() {
                       type="button"
                       size="sm"
                       disabled={!editId || !scheduleId || scheduleId === "__none__" || scheduleId === currentSchedule?.schedule_id || assignScheduleMut.isPending}
-                      onClick={() => {
+                      onClick={async () => {
                         if (!editId) return;
-                        assignScheduleMut.mutate(
-                          { employee_id: editId, schedule_id: scheduleId },
-                          { onSuccess: () => toast({ title: "Escala vinculada" }) }
-                        );
+                        try {
+                          // Step 1: Link the schedule
+                          await assignScheduleMut.mutateAsync({ employee_id: editId, schedule_id: scheduleId });
+                          
+                          // Step 2: Sync work journey (Jornada) with the scale
+                          const updatedEmployee = await syncScheduleMut.mutateAsync({ id: editId, schedule_id: scheduleId });
+                          
+                          // Step 3: Update local form state
+                          if (updatedEmployee && updatedEmployee.work_schedule) {
+                            setForm((p: any) => ({
+                              ...p,
+                              work_schedule: parseSchedule(updatedEmployee.work_schedule)
+                            }));
+                          }
+                          
+                          toast({ title: "Escala vinculada e jornada sincronizada!" });
+                        } catch (err) {
+                          toast({ title: "Erro ao vincular e sincronizar", variant: "destructive" });
+                        }
                       }}
                     >
-                      Vincular
+                      Vincular e Sincronizar
                     </Button>
                   </div>
                   {currentSchedule && (
