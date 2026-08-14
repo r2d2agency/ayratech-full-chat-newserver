@@ -6,9 +6,9 @@ import { logInfo, logError } from '../logger.js';
 const router = express.Router();
 router.use(authenticate);
 
-async function getOrgId(userId) {
-  const r = await query('SELECT organization_id FROM organization_members WHERE user_id=$1 LIMIT 1', [userId]);
-  return r.rows[0]?.organization_id;
+async function getOrgInfo(userId) {
+  const r = await query('SELECT organization_id, brand_id FROM organization_members WHERE user_id=$1 LIMIT 1', [userId]);
+  return r.rows[0];
 }
 
 async function ensureTables() {
@@ -80,10 +80,13 @@ async function tableExists(tableName) {
 router.get('/dashboard', async (req, res) => {
   try {
     await ensureTables();
-    const orgId = await getOrgId(req.userId);
-    if (!orgId) return res.status(403).json({ error: 'Sem organização' });
+    const orgInfo = await getOrgInfo(req.userId);
+    if (!orgInfo?.organization_id) return res.status(403).json({ error: 'Sem organização' });
+    const orgId = orgInfo.organization_id;
 
-    const { date_from, date_to, brand_id, pdv_id, promoter_id } = req.query;
+    let { date_from, date_to, brand_id, pdv_id, promoter_id } = req.query;
+    // Force brand filter if user is linked to a specific brand
+    if (orgInfo.brand_id) brand_id = orgInfo.brand_id;
     const params = [orgId];
     let idx = 2;
     let dateFilter = '';
@@ -220,9 +223,11 @@ router.get('/dashboard', async (req, res) => {
 // ===== Report by PDV =====
 router.get('/report/pdv', async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
-    if (!orgId) return res.status(403).json({ error: 'Sem organização' });
-    const { date_from, date_to, pdv_id, brand_id, promoter_id } = req.query;
+    const orgInfo = await getOrgInfo(req.userId);
+    if (!orgInfo?.organization_id) return res.status(403).json({ error: 'Sem organização' });
+    const orgId = orgInfo.organization_id;
+    let { date_from, date_to, pdv_id, brand_id, promoter_id } = req.query;
+    if (orgInfo.brand_id) brand_id = orgInfo.brand_id;
     const params = [orgId];
     let idx = 2;
     let filters = '';
@@ -282,9 +287,11 @@ router.get('/report/pdv', async (req, res) => {
 // ===== Report by Brand =====
 router.get('/report/brand', async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
-    if (!orgId) return res.status(403).json({ error: 'Sem organização' });
-    const { date_from, date_to, brand_id } = req.query;
+    const orgInfo = await getOrgInfo(req.userId);
+    if (!orgInfo?.organization_id) return res.status(403).json({ error: 'Sem organização' });
+    const orgId = orgInfo.organization_id;
+    let { date_from, date_to, brand_id } = req.query;
+    if (orgInfo.brand_id) brand_id = orgInfo.brand_id;
     const params = [orgId];
     let idx = 2;
     let filters = '';
