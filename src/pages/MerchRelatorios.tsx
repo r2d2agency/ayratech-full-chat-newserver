@@ -118,7 +118,37 @@ const COLUMN_LABELS: Record<string, Record<string, string>> = {
   },
 };
 
-const HIDDEN_KEYS = /(_id$|^id$|photo_url|image_url)/i;
+// Rótulos genéricos (usados em abas sem mapa próprio e para colunas extras)
+const GENERIC_LABELS: Record<string, string> = {
+  visit_date: 'Data', date: 'Data', day: 'Dia', created_at: 'Criado em', updated_at: 'Atualizado em',
+  pdv_name: 'PDV', network_name: 'Rede', brand_name: 'Marca', promoter_name: 'Promotor',
+  product_name: 'Produto', category_name: 'Categoria', sku: 'SKU', status: 'Situação', type: 'Tipo',
+  reason: 'Motivo', notes: 'Observações', city: 'Cidade', state: 'UF',
+  total: 'Total', qty: 'Quantidade', quantity: 'Quantidade', qty_store: 'Qtd. Loja', qty_stock: 'Qtd. Depósito',
+  routes: 'Rotas', total_routes: 'Rotas', completed_routes: 'Rotas Concluídas', pending_routes: 'Rotas Pendentes',
+  partial_routes: 'Rotas Parciais', products: 'Produtos', total_products: 'Produtos',
+  executed: 'Executados', executed_products: 'Produtos Executados', damages: 'Avarias', stockouts: 'Rupturas',
+  expiries: 'Validade (registros)', photos: 'Fotos', pdvs: 'PDVs', pdvs_served: 'PDVs Atendidos',
+  pdvs_visited: 'PDVs Visitados', brands: 'Marcas', brands_served: 'Marcas Atendidas',
+  promoters: 'Promotores', promoters_count: 'Qtd. Promotores', active_promoters: 'Promotores Ativos',
+  score: 'Score (%)', operational_score: 'Score Operacional', avg_visit_min: 'Duração Média (min)',
+  avg_visit_duration_min: 'Duração Média (min)', stock_store: 'Estoque Loja', stock_stock: 'Estoque Depósito',
+  total_stock: 'Estoque Total', total_executions: 'Execuções', completed: 'Concluídos', pending: 'Pendentes',
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  completed: 'Concluída', pending: 'Pendente', scheduled: 'Agendada', confirmed: 'Confirmada',
+  partial: 'Parcial', cancelled: 'Cancelada', canceled: 'Cancelada', in_progress: 'Em andamento',
+  damage: 'Avaria', rupture: 'Ruptura', stockout: 'Ruptura', expiry: 'Validade',
+  true: 'Sim', false: 'Não',
+};
+
+const HIDDEN_KEYS = /(_id$|^id$|photo_url|image_url|_url$|metadata)/i;
+
+// Converte snake_case desconhecido em rótulo legível
+function humanizeKey(key: string): string {
+  return GENERIC_LABELS[key] || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
 
 function buildExportRows(tab: string, rows: any[]): { headers: string[]; keys: string[]; data: any[][] } {
   const labels = COLUMN_LABELS[tab] || {};
@@ -127,14 +157,19 @@ function buildExportRows(tab: string, rows: any[]): { headers: string[]; keys: s
   const ordered = Object.keys(labels).filter(k => present.has(k));
   const extras = [...present].filter(k => !labels[k] && !HIDDEN_KEYS.test(k));
   const keys = ordered.length ? [...ordered, ...extras] : [...present].filter(k => !HIDDEN_KEYS.test(k));
-  const headers = keys.map(k => labels[k] || k);
+  const headers = keys.map(k => labels[k] || humanizeKey(k));
   const fmt = (k: string, v: any) => {
     if (v === null || v === undefined) return '';
     if (typeof v === 'object') return JSON.stringify(v);
-    if (/date/.test(k) && typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v)) {
-      return new Date(v).toLocaleDateString('pt-BR');
+    if (typeof v === 'boolean') return v ? 'Sim' : 'Não';
+    if (typeof v === 'string') {
+      // Datas (ISO ou timestamp) no padrão brasileiro
+      if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return new Date(v + 'T12:00:00').toLocaleDateString('pt-BR');
+      if (/^\d{4}-\d{2}-\d{2}T/.test(v)) return new Date(v).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+      const st = STATUS_LABELS[v.toLowerCase()];
+      if (st && /status|type|situa|tipo/i.test(k)) return st;
     }
-    const n = typeof v === 'string' && v !== '' && !isNaN(Number(v)) ? Number(v) : v;
+    const n = typeof v === 'string' && v.trim() !== '' && !isNaN(Number(v)) ? Number(v) : v;
     if (typeof n === 'number') return Number.isInteger(n) ? n : Number(n.toFixed(2));
     return String(v);
   };
