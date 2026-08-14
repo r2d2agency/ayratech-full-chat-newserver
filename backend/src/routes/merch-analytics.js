@@ -433,7 +433,12 @@ router.get('/report/product', authenticate, async (req, res) => {
       row.damages = 0;
       row.stockouts = 0;
       row.expiries = 0;
+      row.next_expiry_date = null;
+      row.next_expiry_qty_store = 0;
+      row.next_expiry_qty_stock = 0;
+      row.next_expiry_total = 0;
     });
+
 
     const byProductId = new Map(rows.map((row) => [row.product_id, row]));
 
