@@ -41,6 +41,7 @@ export default function Index() {
           <p className="text-blue-400">[CHECKLIST] Trava de obrigatoriedade ao salvar produto individual removida (validação final mantida no fechamento da categoria).</p>
           <p className="text-green-400">[BACKEND] Corrigido erro 500 em relatórios de merchandising (função getOrgId inexistente substituída por getOrgInfo).</p>
           <p className="text-blue-400">[PONTO] Corrigido fuso horário na validação do ponto (ajustado para America/Sao_Paulo de forma consistente).</p>
+          <p className="text-green-400">[RELATORIOS] Filtros de Marca, PDV e Promotor agora são pesquisáveis (digitar para buscar em vez de rolar a lista).</p>
 
         </div>
       </div>
