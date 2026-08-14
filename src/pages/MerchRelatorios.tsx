@@ -554,7 +554,8 @@ function PromotorTab({ filters }: { filters: any }) {
                 <TableHead className="text-center">Avarias</TableHead>
                 <TableHead className="text-center">Rupturas</TableHead>
                 <TableHead className="text-center">Tempo Médio</TableHead>
-                <TableHead className="text-center">Score</TableHead>
+                <TableHead className="text-center" title="Score = (rotas concluídas ÷ total de rotas) x 100, no período filtrado">Score ⓘ</TableHead>
+
               </TableRow>
             </TableHeader>
             <TableBody>
