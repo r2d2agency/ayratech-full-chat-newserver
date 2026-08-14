@@ -352,17 +352,15 @@ router.get('/home', authenticatePromotor, async (req, res) => {
     if (!scheduleEnd) scheduleEnd = '17:00';
 
     const currentMin = nowBR.getHours() * 60 + nowBR.getMinutes();
-    const startMin = scheduleStart.split(':').reduce((h, m) => {
-      const parts = h.split(':');
-      if (parts.length > 1) return parseInt(parts[0]) * 60 + parseInt(parts[1]);
-      return parseInt(h) * 60 + (parseInt(m) || 0);
-    }, 0) || 480;
-    
-    const endMin = scheduleEnd.split(':').reduce((h, m) => {
-      const parts = h.split(':');
-      if (parts.length > 1) return parseInt(parts[0]) * 60 + parseInt(parts[1]);
-      return parseInt(h) * 60 + (parseInt(m) || 0);
-    }, 0) || 1020;
+    const parseToMin = (str) => {
+      if (!str || typeof str !== 'string') return 0;
+      const parts = str.split(':');
+      if (parts.length < 2) return 0;
+      return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    };
+
+    const startMin = parseToMin(scheduleStart) || 480;
+    const endMin = parseToMin(scheduleEnd) || 1020;
     
     const isWithinSchedule = currentMin >= (startMin - 15) && currentMin <= (endMin + 15);
 
@@ -478,17 +476,15 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
       scheduleEnd = schedEndStr;
     }
 
-    const scheduleStartMin = scheduleStart.split(':').reduce((h, m) => {
-      const parts = h.split(':');
-      if (parts.length > 1) return parseInt(parts[0]) * 60 + parseInt(parts[1]);
-      return parseInt(h) * 60 + (parseInt(m) || 0);
-    }, 0) || 480;
-    
-    const scheduleEndMin = scheduleEnd.split(':').reduce((h, m) => {
-      const parts = h.split(':');
-      if (parts.length > 1) return parseInt(parts[0]) * 60 + parseInt(parts[1]);
-      return parseInt(h) * 60 + (parseInt(m) || 0);
-    }, 0) || 1020;
+    const parseToMin = (str) => {
+      if (!str || typeof str !== 'string') return 0;
+      const parts = str.split(':');
+      if (parts.length < 2) return 0;
+      return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    };
+
+    const scheduleStartMin = parseToMin(scheduleStart) || 480;
+    const scheduleEndMin = parseToMin(scheduleEnd) || 1020;
 
     // Allow 15 min before start and 15 min after end as tolerance
     const toleranceBefore = 15;

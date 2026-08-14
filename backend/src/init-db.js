@@ -114,11 +114,31 @@ CREATE TABLE IF NOT EXISTS organizations (
     name VARCHAR(255) NOT NULL,
     slug VARCHAR(100) UNIQUE NOT NULL,
     logo_url TEXT,
-    plan_id UUID REFERENCES plans(id) ON DELETE SET NULL,
+    plan_id UUID,
     expires_at TIMESTAMP WITH TIME ZONE,
     asaas_customer_id VARCHAR(100),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Tabela de Escalas (Horários)
+CREATE TABLE IF NOT EXISTS rh_schedules (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    items JSONB NOT NULL DEFAULT '[]', -- Array de { day, entry, exit, ... }
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Tabela de Vínculo de Colaborador com Escala
+CREATE TABLE IF NOT EXISTS rh_employee_schedules (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID REFERENCES employees(id) ON DELETE CASCADE NOT NULL,
+    schedule_id UUID REFERENCES rh_schedules(id) ON DELETE CASCADE NOT NULL,
+    active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(employee_id, schedule_id)
 );
 
 -- Add plan columns if not exists (for existing databases)
