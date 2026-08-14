@@ -169,24 +169,29 @@ async function ensureMerchandisingInfra() {
     `DO $$ BEGIN ALTER TABLE merch_brands ADD COLUMN IF NOT EXISTS number VARCHAR(50); EXCEPTION WHEN others THEN NULL; END $$`,
     `DO $$ BEGIN ALTER TABLE merch_brands ADD COLUMN IF NOT EXISTS neighborhood VARCHAR(255); EXCEPTION WHEN others THEN NULL; END $$`,
     `DO $$ BEGIN ALTER TABLE merch_brands ADD COLUMN IF NOT EXISTS city VARCHAR(255); EXCEPTION WHEN others THEN NULL; END $$`,
-      `DO $$ BEGIN ALTER TABLE merch_brands ADD COLUMN IF NOT EXISTS zip VARCHAR(20); EXCEPTION WHEN others THEN NULL; END $$`,
-      `ALTER TABLE merch_products ALTER COLUMN category_id DROP NOT NULL`,
-      `ALTER TABLE merch_products ALTER COLUMN subcategory_id DROP NOT NULL`,
-      // Backfill: gera código interno automático para marcas sem código
-      `WITH ranked AS (
-         SELECT id, organization_id,
-           COALESCE((SELECT MAX(NULLIF(regexp_replace(b2.internal_code, '\\D', '', 'g'), '')::int)
-                     FROM merch_brands b2
-                     WHERE b2.organization_id = b.organization_id
-                       AND b2.internal_code ~ '^[0-9]+$'), 0)
-           + ROW_NUMBER() OVER (PARTITION BY organization_id ORDER BY created_at, id) AS n
-         FROM merch_brands b
-         WHERE internal_code IS NULL OR TRIM(internal_code) = ''
-       )
-       UPDATE merch_brands m
-       SET internal_code = LPAD(ranked.n::text, 4, '0'), updated_at = NOW()
-       FROM ranked WHERE m.id = ranked.id`,
-    ];
+    `DO $$ BEGIN ALTER TABLE merch_brands ADD COLUMN IF NOT EXISTS zip VARCHAR(20); EXCEPTION WHEN others THEN NULL; END $$`,
+    `DO $$ BEGIN ALTER TABLE merch_brands ADD COLUMN IF NOT EXISTS show_routes BOOLEAN DEFAULT true; EXCEPTION WHEN others THEN NULL; END $$`,
+    `DO $$ BEGIN ALTER TABLE merch_brands ADD COLUMN IF NOT EXISTS show_photos BOOLEAN DEFAULT true; EXCEPTION WHEN others THEN NULL; END $$`,
+    `DO $$ BEGIN ALTER TABLE merch_brands ADD COLUMN IF NOT EXISTS show_stock BOOLEAN DEFAULT true; EXCEPTION WHEN others THEN NULL; END $$`,
+    `DO $$ BEGIN ALTER TABLE merch_brands ADD COLUMN IF NOT EXISTS show_damages BOOLEAN DEFAULT true; EXCEPTION WHEN others THEN NULL; END $$`,
+    `DO $$ BEGIN ALTER TABLE merch_brands ADD COLUMN IF NOT EXISTS show_stockouts BOOLEAN DEFAULT true; EXCEPTION WHEN others THEN NULL; END $$`,
+    `ALTER TABLE merch_products ALTER COLUMN category_id DROP NOT NULL`,
+    `ALTER TABLE merch_products ALTER COLUMN subcategory_id DROP NOT NULL`,
+    // Backfill: gera código interno automático para marcas sem código
+    `WITH ranked AS (
+       SELECT id, organization_id,
+         COALESCE((SELECT MAX(NULLIF(regexp_replace(b2.internal_code, '\\D', '', 'g'), '')::int)
+                   FROM merch_brands b2
+                   WHERE b2.organization_id = b.organization_id
+                     AND b2.internal_code ~ '^[0-9]+$'), 0)
+         + ROW_NUMBER() OVER (PARTITION BY organization_id ORDER BY created_at, id) AS n
+       FROM merch_brands b
+       WHERE internal_code IS NULL OR TRIM(internal_code) = ''
+     )
+     UPDATE merch_brands m
+     SET internal_code = LPAD(ranked.n::text, 4, '0'), updated_at = NOW()
+     FROM ranked WHERE m.id = ranked.id`,
+  ];
   for (const sql of statements) {
     try { await query(sql); } catch (err) { logError('merch infra stmt', err, { sql: sql.slice(0, 80) }); }
   }
@@ -208,6 +213,15 @@ router.get('/brands', async (req, res) => {
     }
     sql += ' ORDER BY name';
     const r = await query(sql, params);
+
+    // If user is restricted to a brand, ensure they only see their own brand details
+    const member = await query('SELECT brand_id FROM organization_members WHERE user_id=$1 AND organization_id=$2', [req.userId, orgId]);
+    const restrictedBrandId = member.rows[0]?.brand_id;
+    
+    if (restrictedBrandId) {
+      return res.json(r.rows.filter(b => b.id === restrictedBrandId));
+    }
+
     res.json(r.rows);
   } catch (e) { logError('get brands', e); res.status(500).json({ error: e.message }); }
 });
@@ -226,12 +240,12 @@ router.post('/brands', async (req, res) => {
   try {
     await ensureMerchandisingInfra();
     const orgId = req.orgId;
-    const { name, internal_code, razao_social, cnpj, logo_url, description, segment, responsible, phone, email, status, notes, street, number, neighborhood, city, zip } = req.body;
+    const { name, internal_code, razao_social, cnpj, logo_url, description, segment, responsible, phone, email, status, notes, street, number, neighborhood, city, zip, show_routes, show_photos, show_stock, show_damages, show_stockouts } = req.body;
     const code = (internal_code && String(internal_code).trim()) || await nextBrandInternalCode(orgId);
     const r = await query(
-      `INSERT INTO merch_brands (organization_id, name, internal_code, razao_social, cnpj, logo_url, description, segment, responsible, phone, email, status, notes, street, number, neighborhood, city, zip)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
-      [orgId, name, code, razao_social, cnpj, logo_url, description, segment, responsible, phone, email, status || 'active', notes, street, number, neighborhood, city, zip]
+      `INSERT INTO merch_brands (organization_id, name, internal_code, razao_social, cnpj, logo_url, description, segment, responsible, phone, email, status, notes, street, number, neighborhood, city, zip, show_routes, show_photos, show_stock, show_damages, show_stockouts)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23) RETURNING *`,
+      [orgId, name, code, razao_social, cnpj, logo_url, description, segment, responsible, phone, email, status || 'active', notes, street, number, neighborhood, city, zip, show_routes ?? true, show_photos ?? true, show_stock ?? true, show_damages ?? true, show_stockouts ?? true]
     );
     res.json(r.rows[0]);
   } catch (e) { logError('create brand', e); res.status(500).json({ error: e.message }); }
@@ -239,10 +253,10 @@ router.post('/brands', async (req, res) => {
 
 router.put('/brands/:id', async (req, res) => {
   try {
-    const { name, internal_code, razao_social, cnpj, logo_url, description, segment, responsible, phone, email, status, notes, street, number, neighborhood, city, zip } = req.body;
+    const { name, internal_code, razao_social, cnpj, logo_url, description, segment, responsible, phone, email, status, notes, street, number, neighborhood, city, zip, show_routes, show_photos, show_stock, show_damages, show_stockouts } = req.body;
     const r = await query(
-      `UPDATE merch_brands SET name=$1, internal_code=COALESCE(NULLIF($2,''), internal_code), razao_social=$3, cnpj=$4, logo_url=$5, description=$6, segment=$7, responsible=$8, phone=$9, email=$10, status=$11, notes=$12, street=$13, number=$14, neighborhood=$15, city=$16, zip=$17, updated_at=NOW() WHERE id=$18 AND organization_id=$19 RETURNING *`,
-      [name, internal_code || '', razao_social, cnpj, logo_url, description, segment, responsible, phone, email, status, notes, street, number, neighborhood, city, zip, req.params.id, req.orgId]
+      `UPDATE merch_brands SET name=$1, internal_code=COALESCE(NULLIF($2,''), internal_code), razao_social=$3, cnpj=$4, logo_url=$5, description=$6, segment=$7, responsible=$8, phone=$9, email=$10, status=$11, notes=$12, street=$13, number=$14, neighborhood=$15, city=$16, zip=$17, show_routes=$18, show_photos=$19, show_stock=$20, show_damages=$21, show_stockouts=$22, updated_at=NOW() WHERE id=$23 AND organization_id=$24 RETURNING *`,
+      [name, internal_code || '', razao_social, cnpj, logo_url, description, segment, responsible, phone, email, status, notes, street, number, neighborhood, city, zip, show_routes ?? true, show_photos ?? true, show_stock ?? true, show_damages ?? true, show_stockouts ?? true, req.params.id, req.orgId]
     );
     res.json(r.rows[0]);
   } catch (e) { logError('update brand', e); res.status(500).json({ error: e.message }); }
