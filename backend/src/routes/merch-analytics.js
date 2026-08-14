@@ -401,6 +401,7 @@ router.get('/report/product', authenticate, async (req, res) => {
     if (!orgInfo?.organization_id) return res.status(403).json({ error: 'Sem organização' });
     const orgId = orgInfo.organization_id;
     const { product_id } = req.query;
+    const groupPdv = ['1', 'true', 'yes'].includes(String(req.query.group_pdv || '').toLowerCase());
 
     const routeParams = [orgId];
     const { filters: routeFilters } = buildRouteFiltersFromQuery(req.query, routeParams, 2);
@@ -412,8 +413,14 @@ router.get('/report/product', authenticate, async (req, res) => {
       productParams.push(product_id);
     }
 
+    const rowKey = (productId, pdvId) => (groupPdv ? `${productId}|${pdvId || ''}` : String(productId));
+
     const rows = (await query(`
       SELECT p.id as product_id, p.name as product_name, p.sku, p.image_url as photo_url,
+        ${groupPdv
+          ? `b.name as brand_name, pv.id as pdv_id, pv.name as pdv_name,`
+          : `COALESCE(STRING_AGG(DISTINCT b.name, ', ' ORDER BY b.name), '') as brand_name,
+             COALESCE(STRING_AGG(DISTINCT pv.name, ', ' ORDER BY pv.name), '') as pdv_name,`}
         COUNT(DISTINCT r.pdv_id) as pdvs,
         COUNT(DISTINCT r.id) as routes,
         COUNT(*) FILTER (WHERE rpe.status='completed') as executed,
@@ -425,10 +432,12 @@ router.get('/report/product', authenticate, async (req, res) => {
       JOIN merch_routes r ON r.id = rpe.route_id
       JOIN merch_products p ON p.id = rpe.product_id
       LEFT JOIN employees e ON e.id = r.promoter_id
+      LEFT JOIN merch_brands b ON b.id = r.brand_id
+      LEFT JOIN pdvs pv ON pv.id = r.pdv_id
       WHERE r.organization_id = $1 ${routeFilters} ${productFilter}
-      GROUP BY p.id, p.name, p.sku, p.image_url
-      ORDER BY routes DESC, p.name ASC
-      LIMIT 200
+      GROUP BY p.id, p.name, p.sku, p.image_url${groupPdv ? ', b.name, pv.id, pv.name' : ''}
+      ORDER BY ${groupPdv ? 'pv.name ASC, p.name ASC' : 'routes DESC, p.name ASC'}
+      LIMIT ${groupPdv ? 1000 : 200}
     `, productParams)).rows;
 
     rows.forEach((row) => {
@@ -443,7 +452,9 @@ router.get('/report/product', authenticate, async (req, res) => {
     });
 
 
-    const byProductId = new Map(rows.map((row) => [row.product_id, row]));
+    const extraSelect = groupPdv ? ', r.pdv_id' : '';
+    const extraGroup = groupPdv ? ', r.pdv_id' : '';
+    const byProductId = new Map(rows.map((row) => [rowKey(row.product_id, row.pdv_id), row]));
 
     if (rows.length > 0 && await tableExists('product_damages')) {
       try {
