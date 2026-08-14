@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useAuth } from "@/hooks/use-auth";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +41,19 @@ export default function MerchDashboard() {
   const [selectedBrandRecord, setSelectedBrandRecord] = useState<{ id: string, name: string } | null>(null);
   const [searchTerm, setSearchBrand] = useState('');
   const { data: brands = [] } = useBrands();
+  const { user } = useAuth();
+  
+  // Se o usuário está restrito a uma marca, força a seleção dela
+  useEffect(() => {
+    if (user?.brand_id) {
+      setSelectedBrand(user.brand_id);
+    }
+  }, [user?.brand_id]);
+
+  const brandPermissions = useMemo(() => {
+    if (!user?.brand_id) return null;
+    return brands.find(b => b.id === user.brand_id);
+  }, [user?.brand_id, brands]);
   
   const dateRange = useMemo(() => {
     const today = new Date();
@@ -199,13 +213,15 @@ export default function MerchDashboard() {
 
         {/* Main Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          <StatCard 
-            title="Rotas Agendadas" 
-            value={kpis.total_routes || 0} 
-            icon={Route} 
-            description={`${kpis.completed_routes || 0} concluídas`}
-            progress={(kpis.completed_routes / (kpis.total_routes || 1)) * 100}
-          />
+          {(!user?.brand_id || brandPermissions?.show_routes) && (
+            <StatCard 
+              title="Rotas Agendadas" 
+              value={kpis.total_routes || 0} 
+              icon={Route} 
+              description={`${kpis.completed_routes || 0} concluídas`}
+              progress={(kpis.completed_routes / (kpis.total_routes || 1)) * 100}
+            />
+          )}
           <StatCard 
             title="Promotores Ativos" 
             value={kpis.active_promoters || 0} 
@@ -218,19 +234,23 @@ export default function MerchDashboard() {
             icon={Store} 
             color="text-blue-500"
           />
-          <StatCard 
-            title="Marcas" 
-            value={kpis.brands_served || 0} 
-            icon={Building2} 
-            color="text-purple-500"
-          />
-          <StatCard 
-            title="Execução Produtos" 
-            value={`${derived.product_execution_rate || 0}%`} 
-            icon={Package} 
-            color="text-orange-500"
-            description={`${kpis.executed_products || 0} de ${kpis.total_products || 0}`}
-          />
+          {!user?.brand_id && (
+            <StatCard 
+              title="Marcas" 
+              value={kpis.brands_served || 0} 
+              icon={Building2} 
+              color="text-purple-500"
+            />
+          )}
+          {(!user?.brand_id || brandPermissions?.show_stock) && (
+            <StatCard 
+              title="Execução Produtos" 
+              value={`${derived.product_execution_rate || 0}%`} 
+              icon={Package} 
+              color="text-orange-500"
+              description={`${kpis.executed_products || 0} de ${kpis.total_products || 0}`}
+            />
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
