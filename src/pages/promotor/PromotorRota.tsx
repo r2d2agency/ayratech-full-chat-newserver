@@ -1495,7 +1495,7 @@ export default function PromotorRota() {
                 
                  const needsAfter = reqPhotos && (pMode === 'both' || pMode === 'after');
                  const hasAfterPhotoInRoute = (route?.photos || []).some((p: any) => (p.category_id || null) === (catId || null) && (!routeBrandId || (p.route_brand_id || null) === routeBrandId) && p.photo_type === 'category_after');
-                 // Mesma definição de "foto do depois concluída" usada no card da categoria (linha hasAfterPhoto):
+                 // Mesma definição de "foto do depois concluída" usada no card da categoria (hasAfterPhoto):
                  // category_after_photo OU completed (backend já aceitou a foto) OU foto na rota OU estado offline.
                  // Sem o fallback `completed`, uma categoria marcada como concluída no backend mas sem
                  // category_after_photo no status retornado ficava verde mas bloqueava a conclusão da rota.
