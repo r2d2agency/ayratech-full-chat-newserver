@@ -2473,7 +2473,6 @@ router.get('/connected-devices', async (req, res) => {
         e.email as employee_email,
         e.photo_url,
         caa.last_device as device_info,
-        caa.last_app_version as app_version,
         caa.last_login as last_seen,
         caa.last_ip as ip_address
        FROM collaborator_app_access caa
