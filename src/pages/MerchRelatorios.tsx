@@ -284,6 +284,9 @@ export default function MerchRelatorios() {
             <Button variant="outline" size="sm" onClick={() => window.location.href = '/merch/relatorios/programacao'}>
               <Calendar className="h-4 w-4 mr-1" />Programar envios / Personalizar PDF
             </Button>
+            <Button variant="outline" size="sm" onClick={() => exportCurrentTabExcel(tab, filters)}>
+              <FileSpreadsheet className="h-4 w-4 mr-1" />Exportar Excel
+            </Button>
             <Button variant="outline" size="sm" onClick={() => exportCurrentTabCSV(tab, filters)}>
               <Download className="h-4 w-4 mr-1" />Exportar CSV
             </Button>
