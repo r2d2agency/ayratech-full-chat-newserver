@@ -47,6 +47,21 @@ export function log(level, event, payload = {}) {
   console.log(safeJson(line));
 }
 
+// Special function to log from the frontend
+export function logFromClient(level, event, payload = {}) {
+  const line = {
+    ts: new Date().toISOString(),
+    level,
+    event,
+    source: 'client',
+    ...payload,
+  };
+
+  pushRuntimeLog(line);
+  // eslint-disable-next-line no-console
+  console.log(safeJson(line));
+}
+
 export function logInfo(event, payload) {
   log('info', event, payload);
 }

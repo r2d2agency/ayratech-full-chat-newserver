@@ -2439,6 +2439,26 @@ router.get('/runtime-logs', async (req, res) => {
   }
 });
 
+router.post('/client-logs', async (req, res) => {
+  try {
+    const { logFromClient } = await import('../logger.js');
+    const { level, event, payload } = req.body;
+    
+    // Enrich with request context
+    const enrichedPayload = {
+      ...payload,
+      ip: req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+      user_id: req.userId
+    };
+
+    logFromClient(level || 'info', event || 'client_event', enrichedPayload);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Client logs error:', err);
+    res.status(500).json({ error: 'Erro ao registrar log do cliente' });
+  }
+});
+
 router.get('/connected-devices', async (req, res) => {
   try {
     const orgId = req.orgId || await getUserOrgId(req.userId);
