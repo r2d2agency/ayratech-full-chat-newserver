@@ -186,7 +186,7 @@ async function exportCurrentTabExcel(tab: string, filters: any) {
     const { headers, data } = buildExportRows(tab, rows);
     const aoa = [
       [`Relatório - ${tabLabel(tab)}`],
-      [`Período: ${filters.date_from || '-'} a ${filters.date_to || '-'}`],
+      [`Período: ${filters.date_from ? new Date(filters.date_from + 'T12:00:00').toLocaleDateString('pt-BR') : '-'} a ${filters.date_to ? new Date(filters.date_to + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}`],
       [],
       headers,
       ...data,
@@ -248,12 +248,17 @@ async function exportCurrentTabPDF(tab: string, filters: any) {
     doc.text(`Relatório - ${tabLabel(tab)}`, 12, 12);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    const periodStr = `Período: ${filters.date_from || '-'} a ${filters.date_to || '-'} • Gerado em ${new Date().toLocaleString('pt-BR')}`;
+    const brDate = (d?: string) => (d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '-');
+    const periodStr = `Período: ${brDate(filters.date_from)} a ${brDate(filters.date_to)} • Gerado em ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`;
     doc.text(periodStr, 12, 19);
 
     // Table
     const { headers, data } = buildExportRows(tab, rows);
-    const body = data.map(r => r.map(v => (v === null || v === undefined ? '' : String(v))));
+    const body = data.map(r => r.map(v => {
+      if (v === null || v === undefined) return '';
+      if (typeof v === 'number') return v.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+      return String(v);
+    }));
 
     autoTable(doc, {
       startY: 30,
