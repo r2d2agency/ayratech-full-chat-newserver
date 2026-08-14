@@ -1,1 +1,1 @@
-export const SystemStatus = "s pagina logs e erros existe mas nao mostra os erros nem os disposivos aonde que esta a lista de dispositvos logados ?";
+export const SystemStatus = "so quero ver erros.";
