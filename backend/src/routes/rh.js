@@ -635,7 +635,7 @@ router.post('/employees/:id/sync-schedule', async (req, res) => {
     const { schedule_id } = req.body;
     if (!schedule_id) return res.status(400).json({ error: 'ID da escala é obrigatório' });
 
-    const schedRes = await query(`SELECT * FROM rh_schedules WHERE id = $1`, [schedule_id]);
+    const schedRes = await query(`SELECT * FROM work_schedules WHERE id = $1`, [schedule_id]);
     const sched = schedRes.rows[0];
     if (!sched) return res.status(404).json({ error: 'Escala não encontrada' });
 
