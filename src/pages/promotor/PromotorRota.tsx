@@ -566,6 +566,8 @@ function CategoryExtraPhotosPanel({
   const [mode, setMode] = useState<'before' | 'after' | null>(null);
   const [newPhotos, setNewPhotos] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
+  // Índice da foto em visualização ampliada (lightbox). null = fechado.
+  const [viewIdx, setViewIdx] = useState<number | null>(null);
 
   // Dedupe photos by photo_url (offline retries podem ter gerado duplicatas
   // no passado; aqui garantimos que a mesma URL nunca renderize duas vezes).
