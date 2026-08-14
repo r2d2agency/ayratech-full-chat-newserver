@@ -1,1 +1,1 @@
-export const SystemStatus = `O servidor backend caiu devido a um erro de sintaxe (SyntaxError). Já corrigi o código no arquivo backend/src/routes/promotor.js removendo um fechamento extra de chave que estava impedindo o servidor de iniciar.`;
+export const SystemStatus = `Corrigi um segundo erro de sintaxe (chaves extras) no endpoint de batida de ponto do backend que estava causando a queda do servidor.`;
