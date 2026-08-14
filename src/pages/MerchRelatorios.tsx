@@ -4,6 +4,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -234,33 +235,36 @@ export default function MerchRelatorios() {
             )}
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Marca</label>
-              <Select value={brandFilter || ALL_VALUE} onValueChange={v => setBrandFilter(v === ALL_VALUE ? '' : v)}>
-                <SelectTrigger className="w-40"><SelectValue placeholder="Todas" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL_VALUE}>Todas</SelectItem>
-                  {brands.map((b: any) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={brands.map((b: any) => ({ value: b.id, label: b.name }))}
+                value={brandFilter || ALL_VALUE}
+                onChange={v => setBrandFilter(v === ALL_VALUE ? '' : v)}
+                allLabel="Todas"
+                allValue={ALL_VALUE}
+                placeholder="Todas"
+              />
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">PDV</label>
-              <Select value={pdvFilter || ALL_VALUE} onValueChange={v => setPdvFilter(v === ALL_VALUE ? '' : v)}>
-                <SelectTrigger className="w-40"><SelectValue placeholder="Todos" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL_VALUE}>Todos</SelectItem>
-                  {pdvs.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={pdvs.map((p: any) => ({ value: p.id, label: p.name }))}
+                value={pdvFilter || ALL_VALUE}
+                onChange={v => setPdvFilter(v === ALL_VALUE ? '' : v)}
+                allLabel="Todos"
+                allValue={ALL_VALUE}
+                placeholder="Todos"
+              />
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Promotor</label>
-              <Select value={promoterFilter || ALL_VALUE} onValueChange={v => setPromoterFilter(v === ALL_VALUE ? '' : v)}>
-                <SelectTrigger className="w-40"><SelectValue placeholder="Todos" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL_VALUE}>Todos</SelectItem>
-                  {employees.filter((e: any) => e.active !== false).map((e: any) => <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={employees.filter((e: any) => e.active !== false).map((e: any) => ({ value: e.id, label: e.full_name }))}
+                value={promoterFilter || ALL_VALUE}
+                onChange={v => setPromoterFilter(v === ALL_VALUE ? '' : v)}
+                allLabel="Todos"
+                allValue={ALL_VALUE}
+                placeholder="Todos"
+              />
             </div>
           </div>
         </Card>
