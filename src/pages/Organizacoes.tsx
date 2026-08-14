@@ -502,7 +502,8 @@ export default function Organizacoes() {
       name: newMemberName,
       password: newMemberPassword,
       connection_ids: newMemberConnectionIds.length > 0 ? newMemberConnectionIds : undefined,
-      department_ids: newMemberDepartmentIds.length > 0 ? newMemberDepartmentIds : undefined
+      department_ids: newMemberDepartmentIds.length > 0 ? newMemberDepartmentIds : undefined,
+      brand_id: newMemberBrandId !== 'none' ? newMemberBrandId : undefined
     });
 
     if (result.success) {
