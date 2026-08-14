@@ -1,1 +1,1 @@
-export const SystemStatus = `Corrigi um segundo erro de sintaxe (chaves extras) no endpoint de batida de ponto do backend que estava causando a queda do servidor.`;
+export const SystemStatus = `As tabelas de rastreamento (employee_live_locations) não existiam no banco de dados. Adicionei as migrações necessárias no backend para criá-las automaticamente.`;

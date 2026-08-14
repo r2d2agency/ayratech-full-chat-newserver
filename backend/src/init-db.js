@@ -4647,58 +4647,40 @@ CREATE INDEX IF NOT EXISTS idx_visit_requests_agency ON visit_requests(agency_id
 CREATE INDEX IF NOT EXISTS idx_visit_requests_unit ON visit_requests(supermarket_unit_id);
 CREATE INDEX IF NOT EXISTS idx_visit_requests_status ON visit_requests(status);
 `;
+const step48LiveTracking = `
+-- LIVE TRACKING TABLES
+CREATE TABLE IF NOT EXISTS employee_live_locations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    latitude NUMERIC(10,7) NOT NULL,
+    longitude NUMERIC(10,7) NOT NULL,
+    accuracy_meters NUMERIC(10,2),
+    battery_level NUMERIC(5,2),
+    is_moving BOOLEAN DEFAULT false,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(employee_id)
+);
+
+CREATE TABLE IF NOT EXISTS employee_location_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    latitude NUMERIC(10,7) NOT NULL,
+    longitude NUMERIC(10,7) NOT NULL,
+    accuracy_meters NUMERIC(10,2),
+    battery_level NUMERIC(5,2),
+    is_moving BOOLEAN DEFAULT false,
+    recorded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_emp_loc_hist_emp_date ON employee_location_history(employee_id, recorded_at DESC);
+`;
+
 const migrationSteps = [
-  { name: 'Enums', sql: step1Enums, critical: true },
-  { name: 'Core Tables (users, plans)', sql: step2CoreTables, critical: true },
-  { name: 'Organizations', sql: step3Organizations, critical: true },
-  { name: 'User Relations', sql: step4UserRelations, critical: true },
-  { name: 'Connections', sql: step5Connections, critical: true },
-  { name: 'Contacts & Messages', sql: step6ContactsMessages, critical: false },
-  { name: 'Campaigns', sql: step7Campaigns, critical: false },
-  { name: 'Asaas Integration', sql: step8Asaas, critical: false },
-  { name: 'Chat System', sql: step9Chat, critical: false },
-  { name: 'System Settings', sql: step10Settings, critical: false },
-  { name: 'Indexes', sql: step11Indexes, critical: false },
-  { name: 'Attendance Status', sql: step12Attendance, critical: false },
-  { name: 'Departments / Queues', sql: step17Departments, critical: false },
-  { name: 'Departments Conversations Link', sql: step17bDepartmentConversations, critical: false },
-  { name: 'Chatbots System', sql: step13Chatbots, critical: false },
-  { name: 'Chatbot Permissions', sql: step14ChatbotPermissions, critical: false },
-  { name: 'Chatbot Team & Keywords', sql: step15ChatbotTeamKeywords, critical: false },
-  { name: 'Independent Flows', sql: step16IndependentFlows, critical: false },
-  { name: 'CRM System', sql: step18CRM, critical: false },
-  { name: 'CRM Config', sql: step19CRMConfig, critical: false },
-  { name: 'CRM Migrations', sql: step20CRMMigrations, critical: false },
-  { name: 'CRM Prospects', sql: step21Prospects, critical: false },
-  { name: 'CRM Automation', sql: step22CRMAutomation, critical: false },
-  { name: 'Email System', sql: step23Email, critical: false },
-  { name: 'Google Calendar', sql: step24GoogleCalendar, critical: false },
-  { name: 'AI Agents', sql: step25AIAgents, critical: false },
-  { name: 'External Forms', sql: step26ExternalForms, critical: false },
-  { name: 'Lead Distribution', sql: step27LeadDistribution, critical: false },
-  { name: 'Lead Scoring', sql: step28LeadScoring, critical: false },
-  { name: 'Conversation Summaries', sql: step29ConversationSummaries, critical: false },
-  { name: 'Nurturing Sequences', sql: step30NurturingSequences, critical: false },
-  { name: 'CTWA Analytics', sql: step31CTWAAnalytics, critical: false },
-  { name: 'Group Secretary', sql: step32GroupSecretary, critical: false },
-  { name: 'Ghost Audit Logs', sql: step33GhostAudit, critical: false },
-  { name: 'Ghost Saved Analyses', sql: step34GhostSavedAnalyses, critical: false },
-  { name: 'Group Funnels', sql: step35GroupFunnels, critical: false },
-  { name: 'Projects Module', sql: step36Projects, critical: false },
-  { name: 'Permission Templates', sql: step37PermissionTemplates, critical: false },
-  { name: 'Push Notifications', sql: step38PushNotifications, critical: false },
-  { name: 'Global AI Agents', sql: step39GlobalAgents, critical: false },
-  { name: 'Lead Webhooks', sql: step40LeadWebhooks, critical: false },
-  { name: 'Meta Message Templates', sql: step41MetaTemplates, critical: false },
-  { name: 'RH Module', sql: step42RH, critical: false },
-  { name: 'Promotor App (Fase 2)', sql: step43PromotorApp, critical: false },
-  { name: 'Merchandising Phase 4 (Routes)', sql: step44MerchPhase4, critical: false },
-  { name: 'Access Control (Fase 5)', sql: step45AccessControl, critical: false },
-  { name: 'Access Control Auth Modules (Fase 5)', sql: step45cAuthModules, critical: false },
-  { name: 'Promoter Conformity (Fase 5)', sql: step45dPromoterConformity, critical: false },
-  { name: 'Agency Billing', sql: step46AgencyBilling, critical: false },
+  ...
   { name: 'Agency Allowed Units', sql: step45bAgencyAllowedUnits, critical: false },
   { name: 'Visit Requests', sql: step47VisitRequests, critical: false },
+  { name: 'Live Tracking', sql: step48LiveTracking, critical: false },
 ];
 
 export async function initDatabase() {
