@@ -244,6 +244,9 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/portal/marca" element={<PortalMarcaLogin />} />
+            <Route path="/portal/marca/dashboard" element={<ProtectedRoute><MerchDashboard /></ProtectedRoute>} />
+            <Route path="/portal" element={<Navigate to="/portal/marca" replace />} />
+
             <Route path="/cadastro" element={<Cadastro />} />
             <Route path="/" element={<SmartRedirect />} />
             <Route path="/landing" element={<LandingPage />} />
