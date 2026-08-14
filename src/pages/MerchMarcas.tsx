@@ -16,8 +16,9 @@ import { useBrands, useCreateBrand, useUpdateBrand, useDeleteBrand, useBrandPdvs
 import { usePDVs } from "@/hooks/use-promotor";
 import { FileUploadInput } from "@/components/ui/file-upload-input";
 import { BrandImportDialog } from "@/components/merchandising/BrandImportDialog";
+import { BrandAccessDialog } from "@/components/merchandising/BrandAccessDialog";
 import { BrandPdvLinkImportDialog } from "@/components/merchandising/BrandPdvLinkImportDialog";
-import { Plus, Search, Pencil, Trash2, Building2, Store, ArrowRight, ArrowLeft, Upload, Download, Link2, LayoutDashboard } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Building2, Store, ArrowRight, ArrowLeft, Upload, Download, Link2, LayoutDashboard, KeyRound } from "lucide-react";
 import { getAuthToken } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -58,6 +59,7 @@ export default function MerchMarcas() {
   const [pdvSearch, setPdvSearch] = useState('');
   const [importOpen, setImportOpen] = useState(false);
   const [linkImportOpen, setLinkImportOpen] = useState(false);
+  const [accessBrand, setAccessBrand] = useState<any>(null);
 
   const { user } = useAuth();
   const isAdmin = user?.role === 'owner' || user?.role === 'admin';
@@ -301,6 +303,9 @@ export default function MerchMarcas() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-1 justify-end">
+                        <Button variant="outline" size="sm" className="h-7 text-xs" title="Liberar acesso ao Portal do Cliente" onClick={() => setAccessBrand(b)}>
+                          <KeyRound className="h-3 w-3 mr-1" /> Liberar acesso
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => openEdit(b)}><Pencil className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => handleDelete(b.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </div>
@@ -315,6 +320,8 @@ export default function MerchMarcas() {
           </CardContent>
         </Card>
       </div>
+
+      <BrandAccessDialog open={!!accessBrand} onOpenChange={(v) => !v && setAccessBrand(null)} brand={accessBrand} />
 
       {/* Brand Import Dialog */}
       <BrandImportDialog open={importOpen} onOpenChange={setImportOpen} />
