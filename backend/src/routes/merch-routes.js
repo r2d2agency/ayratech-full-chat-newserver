@@ -12,6 +12,11 @@ router.use((req, res, next) => {
   return authenticate(req, res, next);
 });
 
+async function getOrgInfo(userId) {
+  const r = await query('SELECT organization_id, brand_id FROM organization_members WHERE user_id=$1 LIMIT 1', [userId]);
+  return r.rows[0];
+}
+
 async function hasColumn(tableName, columnName) {
   const result = await query(
     `SELECT 1 FROM information_schema.columns WHERE table_name=$1 AND column_name=$2 LIMIT 1`,
