@@ -2479,13 +2479,17 @@ router.get('/connected-devices', async (req, res) => {
        FROM collaborator_app_access caa
        JOIN employees e ON e.id = caa.employee_id
        WHERE e.organization_id = $1
-       ORDER BY caa.last_login DESC`,
+       ORDER BY caa.last_login DESC NULLS LAST`,
       [orgId]
     );
     res.json(result.rows);
   } catch (err) {
     logError('rh.devices.list', err);
-    res.status(500).json({ error: 'Erro ao listar dispositivos' });
+    res.status(500).json({ 
+      error: 'Erro ao listar dispositivos',
+      details: err.message,
+      hint: 'Verifique se a coluna last_login existe na tabela collaborator_app_access'
+    });
   }
 });
 
