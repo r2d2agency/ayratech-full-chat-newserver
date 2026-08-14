@@ -350,8 +350,9 @@ router.get('/home', authenticatePromotor, async (req, res) => {
         }
       }
     } else {
-      console.log(`[Promotor Home] Using schedule from SCALE: ${scheduleStart}-${scheduleEnd}`);
+      logInfo('promotor.home.schedule', { type: 'SCALE', start: scheduleStart, end: scheduleEnd, empId });
     }
+
 
     // Final safety defaults
     if (!scheduleStart) scheduleStart = '08:00';

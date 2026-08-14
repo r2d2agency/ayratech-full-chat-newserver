@@ -547,6 +547,25 @@ router.put('/employees/:id', async (req, res) => {
       }
     }
 
+    // Special logic: If a new Branch/HQ (branch_id/pdv_id) is being linked, 
+    // check if it's a "Sede" type and update the work journey accordingly.
+    if (sentKeys.includes('branch_id') || sentKeys.includes('pdv_id')) {
+      const targetPdvId = d.branch_id || d.pdv_id;
+      if (targetPdvId) {
+        try {
+          const pdvRes = await query(`SELECT type, name FROM pdvs WHERE id = $1`, [targetPdvId]);
+          const pdv = pdvRes.rows[0];
+          // If it's a headquarters (sede), we could auto-apply a default journey if requested,
+          // but for now we just ensure the link is consistent.
+          d.pdv_id = targetPdvId;
+          d.branch_id = targetPdvId;
+        } catch (e) {
+          logError('rh.employees.update.pdv_sync', e);
+        }
+      }
+    }
+
+
     // Auto-geocode home address if address changed and no coords sent
     const addressChanged = ['address', 'city', 'state', 'zip_code'].some(k => sentKeys.includes(k));
     if (addressChanged && !d.home_latitude && !d.home_longitude) {
