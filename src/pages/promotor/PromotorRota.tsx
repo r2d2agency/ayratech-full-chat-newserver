@@ -1493,12 +1493,16 @@ export default function PromotorRota() {
                 const reqPhotos = (rbConfig || route as any)?.require_category_photos !== false;
                 const pMode = (rbConfig || route as any)?.category_photo_mode || 'both';
                 
-                const needsAfter = reqPhotos && (pMode === 'both' || pMode === 'after');
-                const hasAfterPhotoInRoute = (route?.photos || []).some((p: any) => (p.category_id || null) === (catId || null) && (!routeBrandId || (p.route_brand_id || null) === routeBrandId) && p.photo_type === 'category_after');
-                const hasAfter = !!catStatus?.category_after_photo || hasAfterPhotoInRoute || !!optimisticAfterPhoto[`${catId}_${routeBrandId || 'null'}`];
-                
-                // Uma categoria só exige foto do depois se todos os seus produtos foram executados
-                return allDone && needsAfter && !hasAfter;
+                 const needsAfter = reqPhotos && (pMode === 'both' || pMode === 'after');
+                 const hasAfterPhotoInRoute = (route?.photos || []).some((p: any) => (p.category_id || null) === (catId || null) && (!routeBrandId || (p.route_brand_id || null) === routeBrandId) && p.photo_type === 'category_after');
+                 // Mesma definição de "foto do depois concluída" usada no card da categoria (linha hasAfterPhoto):
+                 // category_after_photo OU completed (backend já aceitou a foto) OU foto na rota OU estado offline.
+                 // Sem o fallback `completed`, uma categoria marcada como concluída no backend mas sem
+                 // category_after_photo no status retornado ficava verde mas bloqueava a conclusão da rota.
+                 const hasAfter = !!catStatus?.category_after_photo || !!catStatus?.completed || hasAfterPhotoInRoute || !!optimisticAfterPhoto[`${catId}_${routeBrandId || 'null'}`];
+                 
+                 // Uma categoria só exige foto do depois se todos os seus produtos foram executados
+                 return allDone && needsAfter && !hasAfter;
               });
 
               const allBeforePhotosDone = globalMissingBeforePhotos.length === 0;
