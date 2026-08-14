@@ -1,1 +1,1 @@
-export const SystemStatus = `As tabelas de rastreamento em tempo real (employee_live_locations) não existiam no banco de dados. Já adicionei as migrações necessárias no backend para criar essas tabelas automaticamente.`;
+export const SystemStatus = `As tabelas de rastreamento (employee_live_locations) não existiam no banco de dados. Adicionei as migrações necessárias no backend para criá-las automaticamente.`;
