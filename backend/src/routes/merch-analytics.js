@@ -466,15 +466,15 @@ router.get('/report/product', authenticate, async (req, res) => {
         }
 
         const damageRows = (await query(`
-          SELECT pd.product_id, COALESCE(SUM(pd.qty_store + pd.qty_stock), 0) as damages
+          SELECT pd.product_id${extraSelect}, COALESCE(SUM(pd.qty_store + pd.qty_stock), 0) as damages
           FROM product_damages pd
           JOIN merch_routes r ON r.id = pd.route_id
           WHERE r.organization_id = $1 ${routeFilters} ${damageFilter}
-          GROUP BY pd.product_id
+          GROUP BY pd.product_id${extraGroup}
         `, damageParams)).rows;
 
         damageRows.forEach((row) => {
-          const product = byProductId.get(row.product_id);
+          const product = byProductId.get(rowKey(row.product_id, row.pdv_id));
           if (product) product.damages = parseInt(row.damages, 10) || 0;
         });
       } catch (error) {
@@ -492,15 +492,15 @@ router.get('/report/product', authenticate, async (req, res) => {
         }
 
         const ruptureRows = (await query(`
-          SELECT pr.product_id, COALESCE(SUM(pr.qty_store + pr.qty_stock), 0) as stockouts
+          SELECT pr.product_id${extraSelect}, COALESCE(SUM(pr.qty_store + pr.qty_stock), 0) as stockouts
           FROM product_ruptures pr
           JOIN merch_routes r ON r.id = pr.route_id
           WHERE r.organization_id = $1 ${routeFilters} ${ruptureFilter}
-          GROUP BY pr.product_id
+          GROUP BY pr.product_id${extraGroup}
         `, ruptureParams)).rows;
 
         ruptureRows.forEach((row) => {
-          const product = byProductId.get(row.product_id);
+          const product = byProductId.get(rowKey(row.product_id, row.pdv_id));
           if (product) product.stockouts = parseInt(row.stockouts, 10) || 0;
         });
       } catch (error) {
@@ -518,15 +518,15 @@ router.get('/report/product', authenticate, async (req, res) => {
         }
 
         const expiryRows = (await query(`
-          SELECT pve.product_id, COALESCE(SUM(pve.qty_store + pve.qty_stock), 0) as expiries
+          SELECT pve.product_id${extraSelect}, COALESCE(SUM(pve.qty_store + pve.qty_stock), 0) as expiries
           FROM product_validity_entries pve
           JOIN merch_routes r ON r.id = pve.route_id
           WHERE r.organization_id = $1 ${routeFilters} ${expiryFilter}
-          GROUP BY pve.product_id
+          GROUP BY pve.product_id${extraGroup}
         `, expiryParams)).rows;
 
         expiryRows.forEach((row) => {
-          const product = byProductId.get(row.product_id);
+          const product = byProductId.get(rowKey(row.product_id, row.pdv_id));
           if (product) product.expiries = parseInt(row.expiries, 10) || 0;
         });
       } catch (error) {
@@ -543,20 +543,20 @@ router.get('/report/product', authenticate, async (req, res) => {
         }
 
         const nearRows = (await query(`
-          SELECT DISTINCT ON (pve.product_id)
-            pve.product_id,
+          SELECT DISTINCT ON (pve.product_id${extraSelect})
+            pve.product_id${extraSelect},
             pve.expiry_date,
-            SUM(pve.qty_store) OVER (PARTITION BY pve.product_id, pve.expiry_date) as qty_store,
-            SUM(pve.qty_stock) OVER (PARTITION BY pve.product_id, pve.expiry_date) as qty_stock
+            SUM(pve.qty_store) OVER (PARTITION BY pve.product_id${extraSelect}, pve.expiry_date) as qty_store,
+            SUM(pve.qty_stock) OVER (PARTITION BY pve.product_id${extraSelect}, pve.expiry_date) as qty_stock
           FROM product_validity_entries pve
           JOIN merch_routes r ON r.id = pve.route_id
           WHERE r.organization_id = $1 ${routeFilters} ${nearFilter}
             AND pve.expiry_date IS NOT NULL
-          ORDER BY pve.product_id, pve.expiry_date ASC
+          ORDER BY pve.product_id${extraSelect}, pve.expiry_date ASC
         `, nearParams)).rows;
 
         nearRows.forEach((row) => {
-          const product = byProductId.get(row.product_id);
+          const product = byProductId.get(rowKey(row.product_id, row.pdv_id));
           if (!product) return;
           product.next_expiry_date = row.expiry_date;
           product.next_expiry_qty_store = parseInt(row.qty_store, 10) || 0;
