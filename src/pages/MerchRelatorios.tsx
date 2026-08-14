@@ -603,7 +603,12 @@ function ProdutoTab({ filters }: { filters: any }) {
                 <TableHead className="text-center">Estoque Depósito</TableHead>
                 <TableHead className="text-center">Avarias</TableHead>
                 <TableHead className="text-center">Rupturas</TableHead>
-                <TableHead className="text-center">Validade</TableHead>
+                <TableHead className="text-center">Validade (registros)</TableHead>
+                <TableHead className="text-center">Validade + Próxima</TableHead>
+                <TableHead className="text-center">Qtd. Frente</TableHead>
+                <TableHead className="text-center">Qtd. Estoque</TableHead>
+                <TableHead className="text-center">Total na Validade</TableHead>
+
               </TableRow>
             </TableHeader>
             <TableBody>
