@@ -667,9 +667,9 @@ function CategoryExtraPhotosPanel({
       <div className="space-y-2">
         {beforePrimary && (
           <div>
-            <div className="text-[10px] font-semibold uppercase text-primary mb-1">🏷️ Foto da Categoria</div>
+            <div className="text-[10px] font-semibold uppercase text-primary mb-1">🏷️ Foto da Categoria (Antes)</div>
             <div className="grid grid-cols-4 gap-1.5">
-              <LocalImage src={beforePrimary.photo_url} alt="Foto da categoria" className="w-full h-16 rounded border-2 border-primary/50 object-cover" />
+              <LocalImage src={beforePrimary.photo_url} alt="Foto da categoria" className="w-full h-16 rounded border-2 border-primary/50 object-cover cursor-pointer hover:opacity-80" onClick={() => setViewIdx(findViewIdx(beforePrimary.photo_url))} />
             </div>
           </div>
         )}
