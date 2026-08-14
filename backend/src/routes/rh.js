@@ -2434,13 +2434,14 @@ router.get('/runtime-logs', async (req, res) => {
     });
     res.json(logs);
   } catch (err) {
+    console.error('Runtime logs error:', err);
     res.status(500).json({ error: 'Erro ao buscar logs em tempo real' });
   }
 });
 
 router.get('/connected-devices', async (req, res) => {
   try {
-    const orgId = await getUserOrgId(req.userId);
+    const orgId = req.orgId || await getUserOrgId(req.userId);
     const result = await query(
       `SELECT 
         e.full_name as employee_name, 
