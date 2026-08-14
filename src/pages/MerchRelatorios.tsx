@@ -99,7 +99,7 @@ const COLUMN_LABELS: Record<string, Record<string, string>> = {
     photos: 'Fotos', damages: 'Avarias', stockouts: 'Rupturas',
   },
   produto: {
-    product_name: 'Produto', sku: 'SKU', promoters: 'Promotores', promoters_count: 'Qtd. Promotores',
+    brand_name: 'Marca', pdv_name: 'PDV', product_name: 'Produto', sku: 'SKU', promoters: 'Promotores', promoters_count: 'Qtd. Promotores',
     pdvs: 'PDVs', routes: 'Rotas', executed: 'Executados',
     stock_store: 'Estoque Loja', stock_stock: 'Estoque Depósito',
     damages: 'Avarias', stockouts: 'Rupturas', expiries: 'Validade (registros)',
@@ -150,13 +150,14 @@ function humanizeKey(key: string): string {
   return GENERIC_LABELS[key] || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
-function buildExportRows(tab: string, rows: any[]): { headers: string[]; keys: string[]; data: any[][] } {
+function buildExportRows(tab: string, rows: any[], only?: string[]): { headers: string[]; keys: string[]; data: any[][] } {
   const labels = COLUMN_LABELS[tab] || {};
   const present = new Set<string>();
   rows.forEach(r => Object.keys(r || {}).forEach(k => present.add(k)));
   const ordered = Object.keys(labels).filter(k => present.has(k));
   const extras = [...present].filter(k => !labels[k] && !HIDDEN_KEYS.test(k));
-  const keys = ordered.length ? [...ordered, ...extras] : [...present].filter(k => !HIDDEN_KEYS.test(k));
+  let keys = ordered.length ? [...ordered, ...extras] : [...present].filter(k => !HIDDEN_KEYS.test(k));
+  if (only && only.length) keys = keys.filter(k => only.includes(k));
   const headers = keys.map(k => labels[k] || humanizeKey(k));
   const fmt = (k: string, v: any) => {
     if (v === null || v === undefined) return '';
@@ -178,12 +179,12 @@ function buildExportRows(tab: string, rows: any[]): { headers: string[]; keys: s
 }
 
 // Exporta Excel (.xlsx) da aba atual com colunas formatadas
-async function exportCurrentTabExcel(tab: string, filters: any) {
+async function exportCurrentTabExcel(tab: string, filters: any, preRows?: any[], only?: string[]) {
   try {
-    const rows = await fetchTabData(tab, filters);
+    const rows = preRows ?? await fetchTabData(tab, filters);
     if (!rows.length) { alert("Sem dados para exportar neste período/aba."); return; }
     const XLSX = await import('xlsx');
-    const { headers, data } = buildExportRows(tab, rows);
+    const { headers, data } = buildExportRows(tab, rows, only);
     const aoa = [
       [`Relatório - ${tabLabel(tab)}`],
       [`Período: ${filters.date_from ? new Date(filters.date_from + 'T12:00:00').toLocaleDateString('pt-BR') : '-'} a ${filters.date_to ? new Date(filters.date_to + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}`],
@@ -205,11 +206,11 @@ async function exportCurrentTabExcel(tab: string, filters: any) {
 }
 
 // Exporta CSV da aba atual
-async function exportCurrentTabCSV(tab: string, filters: any) {
+async function exportCurrentTabCSV(tab: string, filters: any, preRows?: any[], only?: string[]) {
   try {
-    const rows = await fetchTabData(tab, filters);
+    const rows = preRows ?? await fetchTabData(tab, filters);
     if (!rows.length) { alert("Sem dados para exportar neste período/aba."); return; }
-    const { headers, data } = buildExportRows(tab, rows);
+    const { headers, data } = buildExportRows(tab, rows, only);
     const escape = (v: any) => {
       if (v === null || v === undefined) return "";
       const s = String(v);
@@ -227,9 +228,9 @@ async function exportCurrentTabCSV(tab: string, filters: any) {
 }
 
 // Exporta PDF da aba atual
-async function exportCurrentTabPDF(tab: string, filters: any) {
+async function exportCurrentTabPDF(tab: string, filters: any, preRows?: any[], only?: string[]) {
   try {
-    const rows = await fetchTabData(tab, filters);
+    const rows = preRows ?? await fetchTabData(tab, filters);
     if (!rows.length) { alert("Sem dados para exportar neste período/aba."); return; }
     const [{ default: jsPDF }, autoTableMod] = await Promise.all([
       import('jspdf'),
@@ -253,7 +254,7 @@ async function exportCurrentTabPDF(tab: string, filters: any) {
     doc.text(periodStr, 12, 19);
 
     // Table
-    const { headers, data } = buildExportRows(tab, rows);
+    const { headers, data } = buildExportRows(tab, rows, only);
     const body = data.map(r => r.map(v => {
       if (v === null || v === undefined) return '';
       if (typeof v === 'number') return v.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
