@@ -2421,4 +2421,46 @@ router.get('/facial-recognition/descriptor/:employeeId', async (req, res) => {
   }
 });
 
+
+// ─── Monitoring & Logs ───
+router.get('/runtime-logs', async (req, res) => {
+  try {
+    const { getRecentLogs } = await import('../logger.js');
+    const { level, limit, event_prefix } = req.query;
+    const logs = getRecentLogs({
+      level,
+      limit: parseInt(limit) || 100,
+      eventPrefixes: event_prefix ? [event_prefix] : []
+    });
+    res.json(logs);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar logs em tempo real' });
+  }
+});
+
+router.get('/connected-devices', async (req, res) => {
+  try {
+    const orgId = await getUserOrgId(req.userId);
+    const result = await query(
+      `SELECT 
+        e.full_name as employee_name, 
+        e.email as employee_email,
+        e.photo_url,
+        caa.last_device as device_info,
+        caa.last_app_version as app_version,
+        caa.last_login_at as last_seen,
+        caa.last_ip as ip_address
+       FROM collaborator_app_access caa
+       JOIN employees e ON e.id = caa.employee_id
+       WHERE e.organization_id = $1
+       ORDER BY caa.last_login_at DESC`,
+      [orgId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    logError('rh.devices.list', err);
+    res.status(500).json({ error: 'Erro ao listar dispositivos' });
+  }
+});
+
 export default router;

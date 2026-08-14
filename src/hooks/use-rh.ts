@@ -538,3 +538,25 @@ export function useRhMapData() {
     queryFn: () => api<any>('/api/rh/map-data'),
   });
 }
+
+// ===== MONITORING & LOGS =====
+export function useRhRuntimeLogs(filters: { level?: string; limit?: number; event_prefix?: string } = {}) {
+  const queryParams = new URLSearchParams();
+  if (filters.level && filters.level !== 'all') queryParams.append('level', filters.level);
+  if (filters.limit) queryParams.append('limit', filters.limit.toString());
+  if (filters.event_prefix) queryParams.append('event_prefix', filters.event_prefix);
+
+  return useQuery({
+    queryKey: ['rh-runtime-logs', filters],
+    queryFn: () => api<any[]>(`/api/rh/runtime-logs?${queryParams.toString()}`),
+    refetchInterval: 5000,
+  });
+}
+
+export function useRhConnectedDevices() {
+  return useQuery({
+    queryKey: ['rh-connected-devices'],
+    queryFn: () => api<any[]>('/api/rh/connected-devices'),
+    refetchInterval: 30000,
+  });
+}
