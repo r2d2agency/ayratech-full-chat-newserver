@@ -213,6 +213,65 @@ export type Database = {
         }
         Relationships: []
       }
+      rh_employee_schedules: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          employee_id: string
+          id: string
+          schedule_id: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          employee_id: string
+          id?: string
+          schedule_id: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          employee_id?: string
+          id?: string
+          schedule_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_employee_schedules_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "rh_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_schedules: {
+        Row: {
+          created_at: string | null
+          id: string
+          items: Json
+          name: string
+          organization_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          items?: Json
+          name: string
+          organization_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          items?: Json
+          name?: string
+          organization_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
