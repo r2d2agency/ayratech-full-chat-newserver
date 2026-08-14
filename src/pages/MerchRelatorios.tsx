@@ -217,14 +217,9 @@ async function exportCurrentTabPDF(tab: string, filters: any) {
     doc.text(periodStr, 12, 19);
 
     // Table
-    const headers = Object.keys(rows[0]);
-    const body = rows.map(r => headers.map(h => {
-      const v = (r as any)[h];
-      if (v === null || v === undefined) return '';
-      if (typeof v === 'object') return JSON.stringify(v);
-      if (typeof v === 'number') return Number.isInteger(v) ? String(v) : v.toFixed(2);
-      return String(v);
-    }));
+    const { headers, data } = buildExportRows(tab, rows);
+    const body = data.map(r => r.map(v => (v === null || v === undefined ? '' : String(v))));
+
     autoTable(doc, {
       startY: 30,
       head: [headers],
