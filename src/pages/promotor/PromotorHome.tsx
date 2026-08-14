@@ -503,7 +503,7 @@ export default function PromotorHome() {
 
       if (!isOnline) {
         await queueApiCall({
-          url: '/api/rh/ponto/punch',
+          url: '/api/promotor/punch',
           method: 'POST',
           body,
           headers: {
