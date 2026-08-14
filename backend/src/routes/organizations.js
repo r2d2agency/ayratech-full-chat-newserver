@@ -434,13 +434,27 @@ router.post('/:id([0-9a-fA-F-]{36})/members', async (req, res) => {
     }
 
     // Add to organization
-    const result = await query(
-      `INSERT INTO organization_members (organization_id, user_id, role, brand_id)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (organization_id, user_id) DO UPDATE SET role = $3, brand_id = $4
-       RETURNING *`,
-      [id, userId, role || 'agent', brand_id || null]
-    );
+    let result;
+    try {
+      result = await query(
+        `INSERT INTO organization_members (organization_id, user_id, role, brand_id)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (organization_id, user_id) DO UPDATE SET role = $3, brand_id = $4
+         RETURNING *`,
+        [id, userId, role || 'agent', brand_id || null]
+      );
+    } catch (e) {
+      if (/brand_id/i.test(e.message)) {
+        await query(`ALTER TABLE organization_members ADD COLUMN IF NOT EXISTS brand_id UUID REFERENCES merch_brands(id) ON DELETE SET NULL`);
+        result = await query(
+          `INSERT INTO organization_members (organization_id, user_id, role, brand_id)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (organization_id, user_id) DO UPDATE SET role = $3, brand_id = $4
+           RETURNING *`,
+          [id, userId, role || 'agent', brand_id || null]
+        );
+      } else throw e;
+    }
 
     // Assign to connections if provided
     if (connection_ids && Array.isArray(connection_ids) && connection_ids.length > 0) {
