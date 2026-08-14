@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CameraCapture, type PhotoQualityConfig } from "@/components/promotor/CameraCapture";
 import { FaceVerifyDialog } from "@/components/facial-recognition/FaceVerifyDialog";
 import { LocalImage } from "@/components/promotor/LocalImage";
+import { PhotoLightbox } from "@/components/merch/PhotoLightbox";
 import {
   usePromotorRouteDetail, usePromotorCheckin, usePromotorCheckout,
   usePromotorUpdateExecution, usePromotorReportDamage, usePromotorReportRupture,
