@@ -111,7 +111,7 @@ app.use((req, res, next) => {
     requestId: crypto.randomUUID(),
   };
 
-  requestContext.run(values, next);
+  requestContext.run(values, () => next());
 });
 
 // CORS configuration - belt and suspenders
