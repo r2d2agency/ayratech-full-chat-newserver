@@ -2,9 +2,9 @@
  * SISTEMA AYRATECH - STATUS E LOGS
  * 
  * ATUALIZAÇÃO RECENTE: Priorização de Escalas no Ponto
- * 1. O sistema agora prioriza Escalas (Diárias ou Recorrentes) sobre a Jornada fixa do cadastro.
- * 2. Precedência: Escala Diária (collaborator_daily_assignments) > Escala Recorrente (rh_schedules/rh_employee_schedules) > Jornada Fixa (employees.work_schedule).
- * 3. Validação robusta no backend (/punch) e exibição correta no app (/home).
+ * 1. Corrigida a lógica de precedência: Escala Diária > Escala Recorrente > Jornada Fixa.
+ * 2. O sistema agora ignora a Jornada Fixa se qualquer escala (diária ou recorrente) estiver ativa.
+ * 3. Validação sincronizada entre o Dashboard (/home) e o Registro de Ponto (/punch).
  * 
  * ATIVAÇÃO DE BIOMETRIA NA EMPRESA:
  * Para ativar a obrigatoriedade facial global:
