@@ -12,9 +12,9 @@ export default function Index() {
           Para que uma marca acesse o sistema e veja suas próprias execuções, siga estes passos:
         </p>
         <ul className="text-xs text-blue-600 mt-2 list-disc ml-4 space-y-1">
-          <li><strong>Perfil de Acesso:</strong> Crie um usuário para o representante da marca em <i>Administração > Organizações > Membros</i>.</li>
+          <li><strong>Perfil de Acesso:</strong> Crie um usuário para o representante da marca em <i>Administração {' > '} Organizações {' > '} Membros</i>.</li>
           <li><strong>Vínculo:</strong> O acesso ao dashboard da marca é filtrado automaticamente pelo <i>brand_id</i> vinculado ao usuário ou através do portal de parceiros.</li>
-          <li><strong>PDVs:</strong> Certifique-se de que a Marca está vinculada aos PDVs em <i>Merchandising > Marcas > PDVs</i> para que as rotas apareçam.</li>
+          <li><strong>PDVs:</strong> Certifique-se de que a Marca está vinculada aos PDVs em <i>Merchandising {' > '} Marcas {' > '} PDVs</i> para que as rotas apareçam.</li>
         </ul>
       </div>
 
