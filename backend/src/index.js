@@ -98,6 +98,7 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Request-Id, X-Idempotency-Key');
   res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400');
 
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
@@ -111,15 +112,6 @@ app.use((req, res, next) => {
   };
 
   requestContext.run(values, next);
-});
-  res.header('Access-Control-Max-Age', '86400');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  // Handle preflight immediately
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
 });
 
 // CORS configuration - belt and suspenders
