@@ -3,47 +3,41 @@ import React from 'react';
 export default function Index() {
   return (
     <div className="p-8 space-y-4">
-      <h1 className="text-2xl font-bold">System Status & Logs</h1>
+      <h1 className="text-2xl font-bold">Instruções: Portal do Cliente (Marcas)</h1>
       
       <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-lg">
-        <p className="text-blue-700 font-medium">Arquitetura Merchandising: Clientes da Organização (Marcas)</p>
-        <p className="text-sm text-blue-600 mt-1">
-          No sistema Ayratech Merchan, as **Marcas** são os clientes da sua organização (ex: Nestlé, Coca-Cola). 
-          Cada marca visualiza apenas os PDVs, produtos e promotores vinculados a ela.
+        <p className="text-blue-700 font-medium">Como Gerenciar Acessos das Marcas</p>
+        <p className="text-sm text-blue-600 mt-2">
+          Para que uma marca tenha seu próprio login e acesso restrito ao dashboard:
         </p>
-        <ul className="text-xs text-blue-600 mt-2 list-disc ml-4 space-y-1">
-          <li><strong>Links Personalizados:</strong> O cliente acessa pelo login padrão, mas se o usuário estiver vinculado a uma marca, ele verá apenas o portal personalizado.</li>
-          <li><strong>Vários Usuários por Marca:</strong> Você pode criar múltiplos usuários vinculados à mesma marca em <i>Administração {' > '} Organizações</i>.</li>
-          <li><strong>Acesso Externo:</strong> Para dar acesso ao seu cliente, crie um usuário em <i>Administração {' > '} Organizações</i>. No formulário de criação/edição do membro, selecione a marca no campo <strong>Vincular a Marca (Portal do Cliente)</strong>.</li>
-        </ul>
+        <ol className="text-xs text-blue-600 mt-2 list-decimal ml-4 space-y-2">
+          <li>
+            <strong>Crie/Edite a Marca:</strong> Vá em <i>Merchandising > Marcas</i>. Na edição da marca, use as checkboxes no final do formulário para definir o que ela pode ver (Fotos, Rotas, Estoque, etc).
+          </li>
+          <li>
+            <strong>Crie o Usuário:</strong> Vá em <i>Administração > Organizações</i>. Clique em <strong>Novo Usuário</strong> ou edite um existente.
+          </li>
+          <li>
+            <strong>Vincule a Marca:</strong> No campo <strong>Marca Vinculada (Cliente)</strong>, selecione a marca desejada.
+          </li>
+        </ol>
+        <p className="text-xs text-blue-600 mt-3 italic">
+          O sistema identifica o vínculo automaticamente no login e redireciona para o Portal do Cliente, escondendo o restante do menu.
+        </p>
       </div>
 
-      <div className="bg-slate-950 p-6 rounded-xl font-mono text-sm text-slate-300 border border-slate-800 shadow-2xl overflow-hidden relative group">
+      <div className="bg-slate-950 p-6 rounded-xl font-mono text-sm text-slate-300 border border-slate-800 shadow-2xl">
         <div className="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
-          <div className="flex items-center gap-2">
-            <div className="flex gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/40"></div>
-              <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/40"></div>
-              <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/40"></div>
-            </div>
-            <span className="text-slate-500 text-xs ml-2 uppercase tracking-widest">Merchan Architecture</span>
-          </div>
+          <span className="text-slate-500 text-xs uppercase tracking-widest">Update Log</span>
           <div className="text-xs text-slate-600 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-            GUIDE
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            ACTIVE
           </div>
         </div>
-        <div className="space-y-1.5 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
-          <div className="flex gap-3 items-start animate-in fade-in slide-in-from-left-2 duration-300">
-            <span className="text-slate-600 shrink-0 min-w-[85px]">[SYSTEM]</span>
-            <span className="text-blue-400 shrink-0 font-bold uppercase text-[10px] mt-0.5 min-w-[45px]">FILTER</span>
-            <span className="text-slate-300 break-all">Portal do Cliente: Implementado isolamento total e controle de visibilidade por marca. MerchDashboard e Sidebar agora respeitam travas de acesso. BUG FIX: Adicionado suporte para vincular marcas na criação de novos usuários e correção visual no modal de edição.</span>
-          </div>
-          <div className="flex gap-3 items-start animate-in fade-in slide-in-from-left-2 duration-500">
-            <span className="text-slate-600 shrink-0 min-w-[85px]">[READY]</span>
-            <span className="text-green-400 shrink-0 font-bold uppercase text-[10px] mt-0.5 min-w-[45px]">SUCCESS</span>
-            <span className="text-slate-300 break-all">MerchMarcas atualizado com painel de permissões. Segurança brand_id forçada no backend.</span>
-          </div>
+        <div className="space-y-1.5">
+          <p className="text-blue-400">[PORTAL] Isolamento de dashboard e sidebar por brand_id validado.</p>
+          <p className="text-green-400">[AUTH] Login inteligente com atalho no rodapé implementado.</p>
+          <p className="text-slate-400">[FIX] Vinculação de marca agora disponível tanto na criação quanto na edição de membros.</p>
         </div>
       </div>
     </div>
