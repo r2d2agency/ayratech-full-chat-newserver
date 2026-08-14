@@ -217,6 +217,21 @@ export default function RHLogs() {
                           Visto em: {dev.last_seen ? format(new Date(dev.last_seen), "dd/MM HH:mm", { locale: ptBR }) : '—'}
                         </span>
                       </div>
+                      <div className="pt-2 border-t border-border mt-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="w-full h-7 text-[10px] gap-1"
+                          onClick={() => {
+                            setLevelFilter("all");
+                            setSearch(dev.employee_email);
+                            const logsTab = document.querySelector('[value="logs"]') as HTMLButtonElement;
+                            logsTab?.click();
+                          }}
+                        >
+                          <Activity className="h-3 w-3" /> Ver Logs deste Aparelho
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 ))
