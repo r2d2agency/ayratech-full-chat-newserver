@@ -418,10 +418,13 @@ router.get('/report/product', authenticate, async (req, res) => {
         COUNT(DISTINCT r.id) as routes,
         COUNT(*) FILTER (WHERE rpe.status='completed') as executed,
         COALESCE(SUM(rpe.qty_store),0) as stock_store,
-        COALESCE(SUM(rpe.qty_stock),0) as stock_stock
+        COALESCE(SUM(rpe.qty_stock),0) as stock_stock,
+        COUNT(DISTINCT r.promoter_id) as promoters_count,
+        COALESCE(STRING_AGG(DISTINCT e.full_name, ', ' ORDER BY e.full_name), '') as promoters
       FROM route_product_executions rpe
       JOIN merch_routes r ON r.id = rpe.route_id
       JOIN merch_products p ON p.id = rpe.product_id
+      LEFT JOIN employees e ON e.id = r.promoter_id
       WHERE r.organization_id = $1 ${routeFilters} ${productFilter}
       GROUP BY p.id, p.name, p.sku, p.image_url
       ORDER BY routes DESC, p.name ASC
@@ -562,7 +565,8 @@ router.get('/report/product', authenticate, async (req, res) => {
 // ===== Report by Category =====
 router.get('/report/category', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgInfo = await getOrgInfo(req.userId);
+    const orgId = orgInfo?.organization_id;
     if (!orgId) return res.status(403).json({ error: 'Sem organização' });
     const { date_from, date_to } = req.query;
     const params = [orgId];
@@ -596,7 +600,8 @@ router.get('/report/category', authenticate, async (req, res) => {
 
 router.get('/report/stockouts', async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgInfo = await getOrgInfo(req.userId);
+    const orgId = orgInfo?.organization_id;
     if (!orgId) return res.status(403).json({ error: 'Sem organização' });
     
     const params = [orgId];
@@ -636,7 +641,8 @@ router.get('/report/stockouts', async (req, res) => {
 // ===== Charts: Route completion over time =====
 router.get('/charts/routes-timeline', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgInfo = await getOrgInfo(req.userId);
+    const orgId = orgInfo?.organization_id;
     if (!orgId) return res.status(403).json({ error: 'Sem organização' });
     const { date_from, date_to } = req.query;
     const params = [orgId];
@@ -664,7 +670,8 @@ router.get('/charts/routes-timeline', authenticate, async (req, res) => {
 router.get('/alerts', authenticate, async (req, res) => {
   try {
     await ensureTables();
-    const orgId = await getOrgId(req.userId);
+    const orgInfo = await getOrgInfo(req.userId);
+    const orgId = orgInfo?.organization_id;
     if (!orgId) return res.status(403).json({ error: 'Sem organização' });
     const rows = (await query(
       'SELECT * FROM merchan_ai_alerts WHERE organization_id = $1 ORDER BY created_at DESC LIMIT 50', [orgId]
@@ -676,7 +683,8 @@ router.get('/alerts', authenticate, async (req, res) => {
 // ===== Analytical Report (same content as PDF) =====
 router.get('/analytical', async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgInfo = await getOrgInfo(req.userId);
+    const orgId = orgInfo?.organization_id;
     if (!orgId) return res.status(403).json({ error: 'Sem organização' });
 
     const params = [orgId];
@@ -762,7 +770,8 @@ router.get('/analytical', async (req, res) => {
 // ===== Ranking: Top PDVs by issues =====
 router.get('/ranking/issues', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgInfo = await getOrgInfo(req.userId);
+    const orgId = orgInfo?.organization_id;
     if (!orgId) return res.status(403).json({ error: 'Sem organização' });
     const params = [orgId];
     const { filters } = buildRouteFiltersFromQuery(req.query, params, 2);
@@ -836,7 +845,8 @@ router.get('/ranking/issues', authenticate, async (req, res) => {
 // ===== Brand Record (Prontuário) =====
 router.get('/brand-record/:brandId', async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgInfo = await getOrgInfo(req.userId);
+    const orgId = orgInfo?.organization_id;
     if (!orgId) return res.status(403).json({ error: 'Sem organização' });
     const { brandId } = req.params;
     const { date_from, date_to } = req.query;
