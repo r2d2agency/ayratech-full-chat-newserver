@@ -55,16 +55,6 @@ export default function MerchDashboard() {
     return brands.find(b => b.id === user.brand_id);
   }, [user?.brand_id, brands]);
   
-  useEffect(() => {
-    if (user?.brand_id) {
-      setSelectedBrand(user.brand_id);
-    }
-  }, [user?.brand_id]);
-
-  const brandPermissions = useMemo(() => {
-    if (!user?.brand_id) return null;
-    return brands.find(b => b.id === user.brand_id);
-  }, [user?.brand_id, brands]);
 
   const dateRange = useMemo(() => {
     const today = new Date();
