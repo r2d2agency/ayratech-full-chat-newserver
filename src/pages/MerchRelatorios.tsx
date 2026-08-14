@@ -10,6 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useBrands } from "@/hooks/use-merchandising";
 import { useEmployees } from "@/hooks/use-rh";
 import { useQuery } from "@tanstack/react-query";
@@ -286,6 +290,85 @@ async function exportCurrentTabPDF(tab: string, filters: any, preRows?: any[], o
   }
 }
 
+// ===== Diálogo de exportação com personalização de colunas =====
+function ExportDialog({ open, onOpenChange, tab, filters }: { open: boolean; onOpenChange: (v: boolean) => void; tab: string; filters: any }) {
+  const [loading, setLoading] = useState(false);
+  const [rows, setRows] = useState<any[]>([]);
+  const [columns, setColumns] = useState<{ key: string; label: string }[]>([]);
+  const [selected, setSelected] = useState<string[]>([]);
+
+  useMemo(() => {
+    if (!open) return;
+    setLoading(true);
+    fetchTabData(tab, filters)
+      .then(data => {
+        const { headers, keys } = buildExportRows(tab, data);
+        const cols = keys.map((k, i) => ({ key: k, label: headers[i] }));
+        setRows(data);
+        setColumns(cols);
+        setSelected(cols.map(c => c.key));
+      })
+      .catch(() => { setRows([]); setColumns([]); setSelected([]); })
+      .finally(() => setLoading(false));
+  }, [open, tab, filters]);
+
+  const toggle = (key: string) =>
+    setSelected(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+
+  const run = async (fn: (t: string, f: any, r?: any[], only?: string[]) => Promise<void>) => {
+    await fn(tab, filters, rows, selected);
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Exportar — {tabLabel(tab)}</DialogTitle>
+          <DialogDescription>
+            Escolha as informações que devem aparecer no arquivo exportado.
+          </DialogDescription>
+        </DialogHeader>
+
+        {loading ? (
+          <p className="text-sm text-muted-foreground py-6 text-center">Carregando colunas...</p>
+        ) : columns.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-6 text-center">Sem dados para exportar neste período/aba.</p>
+        ) : (
+          <>
+            <div className="flex items-center gap-2 text-xs">
+              <Button variant="ghost" size="sm" onClick={() => setSelected(columns.map(c => c.key))}>Marcar todas</Button>
+              <Button variant="ghost" size="sm" onClick={() => setSelected([])}>Desmarcar todas</Button>
+              <span className="text-muted-foreground ml-auto">{selected.length}/{columns.length} colunas · {rows.length} linhas</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-[45vh] overflow-y-auto border rounded-md p-3">
+              {columns.map(c => (
+                <label key={c.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <Checkbox checked={selected.includes(c.key)} onCheckedChange={() => toggle(c.key)} />
+                  <span className="truncate" title={c.label}>{c.label}</span>
+                </label>
+              ))}
+            </div>
+          </>
+        )}
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="outline" disabled={!selected.length} onClick={() => run(exportCurrentTabCSV as any)}>
+            <Download className="h-4 w-4 mr-1" />CSV
+          </Button>
+          <Button variant="outline" disabled={!selected.length} onClick={() => run(exportCurrentTabPDF as any)}>
+            <FileText className="h-4 w-4 mr-1" />PDF
+          </Button>
+          <Button disabled={!selected.length} onClick={() => run(exportCurrentTabExcel as any)}>
+            <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function MerchRelatorios() {
   const [tab, setTab] = useState('dashboard');
   const [aiOpen, setAiOpen] = useState(false);
@@ -295,6 +378,8 @@ export default function MerchRelatorios() {
   const [brandFilter, setBrandFilter] = useState('');
   const [pdvFilter, setPdvFilter] = useState('');
   const [promoterFilter, setPromoterFilter] = useState('');
+  const [groupPdv, setGroupPdv] = useState(true);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const { data: brands = [] } = useBrands();
   const { data: employees = [] } = useEmployees();
@@ -311,7 +396,8 @@ export default function MerchRelatorios() {
     brand_id: brandFilter || undefined,
     pdv_id: pdvFilter || undefined,
     promoter_id: promoterFilter || undefined,
-  }), [dateRange, brandFilter, pdvFilter, promoterFilter]);
+    group_pdv: tab === 'produto' && groupPdv ? '1' : undefined,
+  }), [dateRange, brandFilter, pdvFilter, promoterFilter, tab, groupPdv]);
 
   return (
     <MainLayout>
@@ -325,14 +411,8 @@ export default function MerchRelatorios() {
             <Button variant="outline" size="sm" onClick={() => window.location.href = '/merch/relatorios/programacao'}>
               <Calendar className="h-4 w-4 mr-1" />Programar envios / Personalizar PDF
             </Button>
-            <Button variant="outline" size="sm" onClick={() => exportCurrentTabExcel(tab, filters)}>
-              <FileSpreadsheet className="h-4 w-4 mr-1" />Exportar Excel
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => exportCurrentTabCSV(tab, filters)}>
-              <Download className="h-4 w-4 mr-1" />Exportar CSV
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => exportCurrentTabPDF(tab, filters)}>
-              <FileText className="h-4 w-4 mr-1" />Exportar PDF
+            <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
+              <Download className="h-4 w-4 mr-1" />Exportar (personalizar colunas)
             </Button>
             <Button size="sm" className="bg-gradient-to-r from-primary to-primary/80" onClick={() => setAiOpen(true)}>
               <Sparkles className="h-4 w-4 mr-1" />Análise IA
@@ -416,11 +496,14 @@ export default function MerchRelatorios() {
           <TabsContent value="pdv"><PDVTab filters={filters} /></TabsContent>
           <TabsContent value="marca"><MarcaTab filters={filters} /></TabsContent>
           <TabsContent value="promotor"><PromotorTab filters={filters} /></TabsContent>
-          <TabsContent value="produto"><ProdutoTab filters={filters} /></TabsContent>
+          <TabsContent value="produto">
+            <ProdutoTab filters={filters} groupPdv={groupPdv} onGroupPdvChange={setGroupPdv} />
+          </TabsContent>
           <TabsContent value="categoria"><CategoriaTab filters={filters} /></TabsContent>
           <TabsContent value="avarias"><AvariasTab filters={filters} /></TabsContent>
         </Tabs>
       </div>
+      <ExportDialog open={exportOpen} onOpenChange={setExportOpen} tab={tab} filters={filters} />
       <AiAnalysisChat open={aiOpen} onOpenChange={setAiOpen} filters={filters} />
     </MainLayout>
   );
@@ -720,15 +803,21 @@ function PromotorTab({ filters }: { filters: any }) {
 }
 
 // ===== Produto Tab =====
-function ProdutoTab({ filters }: { filters: any }) {
+function ProdutoTab({ filters, groupPdv, onGroupPdvChange }: { filters: any; groupPdv: boolean; onGroupPdvChange: (v: boolean) => void }) {
   const { data: rows = [] } = useMerchReportProduct(filters);
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Switch id="group-pdv" checked={groupPdv} onCheckedChange={onGroupPdvChange} />
+        <Label htmlFor="group-pdv" className="text-sm">Separar listagem por PDV</Label>
+      </div>
       <Card>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Marca</TableHead>
+                {groupPdv && <TableHead>PDV</TableHead>}
                 <TableHead>Produto</TableHead>
                 <TableHead>Promotores</TableHead>
                 <TableHead className="text-center">PDVs</TableHead>
@@ -748,7 +837,9 @@ function ProdutoTab({ filters }: { filters: any }) {
             </TableHeader>
             <TableBody>
               {rows.map((r: any) => (
-                <TableRow key={r.product_id}>
+                <TableRow key={`${r.product_id}-${r.pdv_id || ''}`}>
+                  <TableCell className="text-sm">{r.brand_name || '—'}</TableCell>
+                  {groupPdv && <TableCell className="text-sm">{r.pdv_name || '—'}</TableCell>}
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {resolveMediaUrl(r.photo_url) ? <img src={resolveMediaUrl(r.photo_url)!} alt="" className="h-8 w-8 rounded object-cover" /> : <Package className="h-5 w-5 text-muted-foreground" />}
@@ -786,7 +877,7 @@ function ProdutoTab({ filters }: { filters: any }) {
                   <TableCell className="text-center font-medium">{r.next_expiry_total ?? 0}</TableCell>
                 </TableRow>
               ))}
-              {rows.length === 0 && <TableRow><TableCell colSpan={14} className="text-center py-8 text-muted-foreground">Sem dados</TableCell></TableRow>}
+              {rows.length === 0 && <TableRow><TableCell colSpan={groupPdv ? 16 : 15} className="text-center py-8 text-muted-foreground">Sem dados</TableCell></TableRow>}
 
             </TableBody>
           </Table>
