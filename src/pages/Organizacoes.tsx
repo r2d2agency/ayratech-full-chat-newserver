@@ -522,6 +522,7 @@ export default function Organizacoes() {
     setNewMemberRole('agent');
     setNewMemberConnectionIds([]);
     setNewMemberDepartmentIds([]);
+    setNewMemberBrandId('none');
   };
 
   const handleOpenEditMember = (member: OrganizationMember) => {
@@ -530,15 +531,17 @@ export default function Organizacoes() {
     setEditMemberConnectionIds(member.assigned_connections?.map(c => c.id) || []);
     setEditMemberDepartmentIds(member.assigned_departments?.map(d => d.id) || []);
     setEditMemberTemplateId(member.permission_template_id || '');
+    setEditMemberBrandId(member.brand_id || 'none');
     setEditMemberDialogOpen(true);
   };
 
   const handleUpdateMember = async () => {
     if (!selectedOrg || !editingMember) return;
 
-    const updateData: { role?: string; connection_ids?: string[]; department_ids?: string[] } = {
+    const updateData: { role?: string; connection_ids?: string[]; department_ids?: string[]; brand_id?: string } = {
       connection_ids: editMemberConnectionIds,
       department_ids: editMemberDepartmentIds,
+      brand_id: editMemberBrandId !== 'none' ? editMemberBrandId : undefined
     };
     
     // Only include role if it's different and member is not owner

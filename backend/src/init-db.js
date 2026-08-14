@@ -203,9 +203,14 @@ CREATE TABLE IF NOT EXISTS organization_members (
     organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE NOT NULL,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
     role app_role NOT NULL DEFAULT 'agent',
+    brand_id UUID REFERENCES merch_brands(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE (organization_id, user_id)
 );
+
+-- Index for brand-based filtering
+CREATE INDEX IF NOT EXISTS idx_org_members_brand ON organization_members(brand_id);
+
 
 -- User roles (legacy/global roles)
 CREATE TABLE IF NOT EXISTS user_roles (

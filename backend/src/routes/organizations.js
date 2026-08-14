@@ -530,6 +530,22 @@ router.patch('/:id/members/:userId', async (req, res) => {
       }
     }
 
+    // Update brand_id if provided
+    if (brand_id !== undefined) {
+      try {
+        await query(
+          `UPDATE organization_members SET brand_id = $1 WHERE organization_id = $2 AND user_id = $3`,
+          [brand_id || null, id, userId]
+        );
+      } catch (e) {
+        await query(`ALTER TABLE organization_members ADD COLUMN IF NOT EXISTS brand_id UUID REFERENCES merch_brands(id) ON DELETE SET NULL`);
+        await query(
+          `UPDATE organization_members SET brand_id = $1 WHERE organization_id = $2 AND user_id = $3`,
+          [brand_id || null, id, userId]
+        );
+      }
+    }
+
     // Update connection assignments if provided
     if (connection_ids !== undefined && Array.isArray(connection_ids)) {
       try {
