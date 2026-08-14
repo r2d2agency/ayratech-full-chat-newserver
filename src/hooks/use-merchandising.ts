@@ -1,6 +1,33 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 
+export interface Brand {
+  id: string;
+  name: string;
+  internal_code: string;
+  razao_social: string;
+  cnpj: string;
+  logo_url: string;
+  description: string;
+  segment: string;
+  responsible: string;
+  phone: string;
+  email: string;
+  street?: string;
+  number?: string;
+  neighborhood?: string;
+  city?: string;
+  zip?: string;
+  status: 'active' | 'inactive';
+  notes: string;
+  show_routes?: boolean;
+  show_photos?: boolean;
+  show_stock?: boolean;
+  show_damages?: boolean;
+  show_stockouts?: boolean;
+  created_at?: string;
+}
+
 // ===== BRANDS =====
 export function useBrands(filters?: { status?: string; search?: string }) {
   const params = new URLSearchParams();
