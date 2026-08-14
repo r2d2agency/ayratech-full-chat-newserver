@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CameraCapture, type PhotoQualityConfig } from "@/components/promotor/CameraCapture";
 import { FaceVerifyDialog } from "@/components/facial-recognition/FaceVerifyDialog";
 import { LocalImage } from "@/components/promotor/LocalImage";
+import { PhotoLightbox } from "@/components/merch/PhotoLightbox";
 import {
   usePromotorRouteDetail, usePromotorCheckin, usePromotorCheckout,
   usePromotorUpdateExecution, usePromotorReportDamage, usePromotorReportRupture,
@@ -565,6 +566,8 @@ function CategoryExtraPhotosPanel({
   const [mode, setMode] = useState<'before' | 'after' | null>(null);
   const [newPhotos, setNewPhotos] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
+  // Índice da foto em visualização ampliada (lightbox). null = fechado.
+  const [viewIdx, setViewIdx] = useState<number | null>(null);
 
   // Dedupe photos by photo_url (offline retries podem ter gerado duplicatas
   // no passado; aqui garantimos que a mesma URL nunca renderize duas vezes).
@@ -593,11 +596,8 @@ function CategoryExtraPhotosPanel({
   const beforePhotos = beforePhotosRaw.filter((p) => p !== beforePrimary);
   const afterPhotos = afterPhotosRaw.filter((p) => p !== afterPrimary);
 
-  // Regra: pode adicionar fotos ANTES se ainda não iniciou as fotos DEPOIS,
-  // OU se ainda não existe NENHUMA foto ANTES registrada (fluxo de recuperação —
-  // evita o promotor ficar preso: foto do depois já tirada mas sem a do antes,
-  // sem conseguir adicioná-la).
-  const canAddBefore = !hasAnyAfter || !hasAnyBefore;
+  // Regra: só pode adicionar mais ANTES se ainda NÃO começou fotos DEPOIS
+  const canAddBefore = !hasAnyAfter;
   // Adicionar mais DEPOIS: sempre permitido
   const canAddAfter = true;
 
@@ -648,14 +648,28 @@ function CategoryExtraPhotosPanel({
   const totalBefore = beforePhotos.length + optimisticBefore.length;
   const totalAfter = afterPhotos.length + optimisticAfter.length;
 
+  // Lista unificada de todas as fotos visualizáveis (Antes + Depois, incluindo
+  // as primárias de desbloqueio/conclusão e as otimistas). Usada para o lightbox
+  // com navegação anterior/próximo, permitindo ao promotor conferir o que há
+  // em ANTES e DEPOIS.
+  const allViewable: any[] = [
+    ...(beforePrimary ? [beforePrimary] : []),
+    ...beforePhotos,
+    ...optimisticBefore.map((u) => ({ photo_url: u, photo_type: 'category_before' })),
+    ...(afterPrimary ? [afterPrimary] : []),
+    ...afterPhotos,
+    ...optimisticAfter.map((u) => ({ photo_url: u, photo_type: 'category_after' })),
+  ];
+  const findViewIdx = (url: string) => allViewable.findIndex((p) => p.photo_url === url);
+
   return (
     <div className="mt-2 p-3 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 space-y-3">
       <div className="space-y-2">
         {beforePrimary && (
           <div>
-            <div className="text-[10px] font-semibold uppercase text-primary mb-1">🏷️ Foto da Categoria</div>
+            <div className="text-[10px] font-semibold uppercase text-primary mb-1">🏷️ Foto da Categoria (Antes)</div>
             <div className="grid grid-cols-4 gap-1.5">
-              <LocalImage src={beforePrimary.photo_url} alt="Foto da categoria" className="w-full h-16 rounded border-2 border-primary/50 object-cover" />
+              <LocalImage src={beforePrimary.photo_url} alt="Foto da categoria" className="w-full h-16 rounded border-2 border-primary/50 object-cover cursor-pointer hover:opacity-80" onClick={() => setViewIdx(findViewIdx(beforePrimary.photo_url))} />
             </div>
           </div>
         )}
@@ -664,19 +678,19 @@ function CategoryExtraPhotosPanel({
             <div className="text-[10px] font-semibold uppercase text-muted-foreground mb-1">📷 Antes ({totalBefore})</div>
             <div className="grid grid-cols-4 gap-1.5">
               {beforePhotos.map((p: any, i: number) => (
-                <LocalImage key={p.id || `b-${p.photo_url}`} src={p.photo_url} alt={`Antes ${i+1}`} className="w-full h-16 rounded border object-cover" />
+                <LocalImage key={p.id || `b-${p.photo_url}`} src={p.photo_url} alt={`Antes ${i+1}`} className="w-full h-16 rounded border object-cover cursor-pointer hover:opacity-80" onClick={() => setViewIdx(findViewIdx(p.photo_url))} />
               ))}
               {optimisticBefore.map((u, i) => (
-                <LocalImage key={`ob-${u}`} src={u} alt={`Antes nova ${i+1}`} className="w-full h-16 rounded border border-primary/40 object-cover ring-1 ring-primary/30" />
+                <LocalImage key={`ob-${u}`} src={u} alt={`Antes nova ${i+1}`} className="w-full h-16 rounded border border-primary/40 object-cover ring-1 ring-primary/30 cursor-pointer hover:opacity-80" onClick={() => setViewIdx(findViewIdx(u))} />
               ))}
             </div>
           </div>
         )}
         {afterPrimary && (
           <div>
-            <div className="text-[10px] font-semibold uppercase text-green-700 mb-1">🏁 Foto Final da Categoria</div>
+            <div className="text-[10px] font-semibold uppercase text-green-700 mb-1">🏁 Foto Final da Categoria (Depois)</div>
             <div className="grid grid-cols-4 gap-1.5">
-              <LocalImage src={afterPrimary.photo_url} alt="Foto final da categoria" className="w-full h-16 rounded border-2 border-green-500/60 object-cover" />
+              <LocalImage src={afterPrimary.photo_url} alt="Foto final da categoria" className="w-full h-16 rounded border-2 border-green-500/60 object-cover cursor-pointer hover:opacity-80" onClick={() => setViewIdx(findViewIdx(afterPrimary.photo_url))} />
             </div>
           </div>
         )}
@@ -685,10 +699,10 @@ function CategoryExtraPhotosPanel({
             <div className="text-[10px] font-semibold uppercase text-green-700 mb-1">✅ Depois ({totalAfter})</div>
             <div className="grid grid-cols-4 gap-1.5">
               {afterPhotos.map((p: any, i: number) => (
-                <LocalImage key={p.id || `a-${p.photo_url}`} src={p.photo_url} alt={`Depois ${i+1}`} className="w-full h-16 rounded border border-green-500/40 object-cover" />
+                <LocalImage key={p.id || `a-${p.photo_url}`} src={p.photo_url} alt={`Depois ${i+1}`} className="w-full h-16 rounded border border-green-500/40 object-cover cursor-pointer hover:opacity-80" onClick={() => setViewIdx(findViewIdx(p.photo_url))} />
               ))}
               {optimisticAfter.map((u, i) => (
-                <LocalImage key={`oa-${u}`} src={u} alt={`Depois nova ${i+1}`} className="w-full h-16 rounded border border-green-500/60 object-cover ring-1 ring-green-500/40" />
+                <LocalImage key={`oa-${u}`} src={u} alt={`Depois nova ${i+1}`} className="w-full h-16 rounded border border-green-500/60 object-cover ring-1 ring-green-500/40 cursor-pointer hover:opacity-80" onClick={() => setViewIdx(findViewIdx(u))} />
               ))}
             </div>
           </div>
@@ -736,6 +750,17 @@ function CategoryExtraPhotosPanel({
           />
         </div>
 
+      )}
+
+      {/* Visualização ampliada: clique em qualquer foto para conferir ANTES/DEPOIS */}
+      {viewIdx !== null && allViewable[viewIdx] && (
+        <PhotoLightbox
+          photo={{ ...allViewable[viewIdx], pdv_name: pdvName, brand_name: brandName, promoter_name: promotorName }}
+          onClose={() => setViewIdx(null)}
+          onPrev={viewIdx > 0 ? () => setViewIdx((i) => (i! - 1)) : undefined}
+          onNext={viewIdx < allViewable.length - 1 ? () => setViewIdx((i) => (i! + 1)) : undefined}
+          typeLabels={{ category_before: 'Foto Antes', category_after: 'Foto Depois' }}
+        />
       )}
     </div>
   );
