@@ -347,11 +347,24 @@ router.get('/home', authenticatePromotor, async (req, res) => {
     // Final safety defaults
     if (!scheduleStart) scheduleStart = '08:00';
     if (!scheduleEnd) scheduleEnd = '17:00';
+    // Final safety defaults
+    if (!scheduleStart) scheduleStart = '08:00';
+    if (!scheduleEnd) scheduleEnd = '17:00';
 
     const currentMin = nowBR.getHours() * 60 + nowBR.getMinutes();
-    const startMin = scheduleStart.split(':').reduce((h, m) => parseInt(h) * 60 + parseInt(m), 0) || 480;
-    const endMin = scheduleEnd.split(':').reduce((h, m) => parseInt(h) * 60 + parseInt(m), 0) || 1020;
-    const isWithinSchedule = currentMin >= (startMin - 30) && currentMin <= (endMin + 15);
+    const startMin = scheduleStart.split(':').reduce((h, m) => {
+      const parts = h.split(':');
+      if (parts.length > 1) return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+      return parseInt(h) * 60 + (parseInt(m) || 0);
+    }, 0) || 480;
+    
+    const endMin = scheduleEnd.split(':').reduce((h, m) => {
+      const parts = h.split(':');
+      if (parts.length > 1) return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+      return parseInt(h) * 60 + (parseInt(m) || 0);
+    }, 0) || 1020;
+    
+    const isWithinSchedule = currentMin >= (startMin - 15) && currentMin <= (endMin + 15);
 
     // Check overtime approval for today
     let overtimeRequest = null;
@@ -465,11 +478,20 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
       scheduleEnd = schedEndStr;
     }
 
-    const scheduleStartMin = scheduleStart.split(':').reduce((h, m) => parseInt(h) * 60 + parseInt(m), 0) || 480;
-    const scheduleEndMin = scheduleEnd.split(':').reduce((h, m) => parseInt(h) * 60 + parseInt(m), 0) || 1020;
+    const scheduleStartMin = scheduleStart.split(':').reduce((h, m) => {
+      const parts = h.split(':');
+      if (parts.length > 1) return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+      return parseInt(h) * 60 + (parseInt(m) || 0);
+    }, 0) || 480;
+    
+    const scheduleEndMin = scheduleEnd.split(':').reduce((h, m) => {
+      const parts = h.split(':');
+      if (parts.length > 1) return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+      return parseInt(h) * 60 + (parseInt(m) || 0);
+    }, 0) || 1020;
 
-    // Allow 30 min before start and 15 min after end as tolerance
-    const toleranceBefore = 30;
+    // Allow 15 min before start and 15 min after end as tolerance
+    const toleranceBefore = 15;
     const toleranceAfter = 15;
     const isWithinSchedule = currentMinutes >= (scheduleStartMin - toleranceBefore) && currentMinutes <= (scheduleEndMin + toleranceAfter);
 
