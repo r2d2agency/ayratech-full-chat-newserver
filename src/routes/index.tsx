@@ -45,6 +45,8 @@ export default function Index() {
           <p className="text-blue-400">[EXPORT] Novo botão "Exportar Excel" (.xlsx) com colunas nomeadas em português, largura automática e filtro no cabeçalho — CSV e PDF usam as mesmas colunas.</p>
           <p className="text-green-400">[RELATORIOS] Guia Produto agora lista os promotores que executaram cada produto (com contagem), incluído também nas exportações.</p>
           <p className="text-blue-400">[PDF] Exportações agora ocultam IDs internos (só o nome do produto), com cabeçalhos, datas (dd/mm/aaaa), números e status em português.</p>
+          <p className="text-green-400">[RELATORIOS] Guia Produto agora exibe a Marca e permite separar a listagem por PDV (uma linha por produto/PDV).</p>
+          <p className="text-blue-400">[EXPORT] Novo botão "Exportar (personalizar colunas)" — escolha exatamente quais informações vão para Excel, CSV ou PDF antes de gerar.</p>
 
         </div>
       </div>

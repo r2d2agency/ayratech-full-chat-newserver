@@ -401,6 +401,7 @@ router.get('/report/product', authenticate, async (req, res) => {
     if (!orgInfo?.organization_id) return res.status(403).json({ error: 'Sem organização' });
     const orgId = orgInfo.organization_id;
     const { product_id } = req.query;
+    const groupPdv = ['1', 'true', 'yes'].includes(String(req.query.group_pdv || '').toLowerCase());
 
     const routeParams = [orgId];
     const { filters: routeFilters } = buildRouteFiltersFromQuery(req.query, routeParams, 2);
@@ -412,8 +413,14 @@ router.get('/report/product', authenticate, async (req, res) => {
       productParams.push(product_id);
     }
 
+    const rowKey = (productId, pdvId) => (groupPdv ? `${productId}|${pdvId || ''}` : String(productId));
+
     const rows = (await query(`
       SELECT p.id as product_id, p.name as product_name, p.sku, p.image_url as photo_url,
+        ${groupPdv
+          ? `b.name as brand_name, pv.id as pdv_id, pv.name as pdv_name,`
+          : `COALESCE(STRING_AGG(DISTINCT b.name, ', ' ORDER BY b.name), '') as brand_name,
+             COALESCE(STRING_AGG(DISTINCT pv.name, ', ' ORDER BY pv.name), '') as pdv_name,`}
         COUNT(DISTINCT r.pdv_id) as pdvs,
         COUNT(DISTINCT r.id) as routes,
         COUNT(*) FILTER (WHERE rpe.status='completed') as executed,
@@ -425,10 +432,12 @@ router.get('/report/product', authenticate, async (req, res) => {
       JOIN merch_routes r ON r.id = rpe.route_id
       JOIN merch_products p ON p.id = rpe.product_id
       LEFT JOIN employees e ON e.id = r.promoter_id
+      LEFT JOIN merch_brands b ON b.id = r.brand_id
+      LEFT JOIN pdvs pv ON pv.id = r.pdv_id
       WHERE r.organization_id = $1 ${routeFilters} ${productFilter}
-      GROUP BY p.id, p.name, p.sku, p.image_url
-      ORDER BY routes DESC, p.name ASC
-      LIMIT 200
+      GROUP BY p.id, p.name, p.sku, p.image_url${groupPdv ? ', b.name, pv.id, pv.name' : ''}
+      ORDER BY ${groupPdv ? 'pv.name ASC, p.name ASC' : 'routes DESC, p.name ASC'}
+      LIMIT ${groupPdv ? 1000 : 200}
     `, productParams)).rows;
 
     rows.forEach((row) => {
@@ -443,7 +452,9 @@ router.get('/report/product', authenticate, async (req, res) => {
     });
 
 
-    const byProductId = new Map(rows.map((row) => [row.product_id, row]));
+    const extraSelect = groupPdv ? ', r.pdv_id' : '';
+    const extraGroup = groupPdv ? ', r.pdv_id' : '';
+    const byProductId = new Map(rows.map((row) => [rowKey(row.product_id, row.pdv_id), row]));
 
     if (rows.length > 0 && await tableExists('product_damages')) {
       try {
@@ -455,15 +466,15 @@ router.get('/report/product', authenticate, async (req, res) => {
         }
 
         const damageRows = (await query(`
-          SELECT pd.product_id, COALESCE(SUM(pd.qty_store + pd.qty_stock), 0) as damages
+          SELECT pd.product_id${extraSelect}, COALESCE(SUM(pd.qty_store + pd.qty_stock), 0) as damages
           FROM product_damages pd
           JOIN merch_routes r ON r.id = pd.route_id
           WHERE r.organization_id = $1 ${routeFilters} ${damageFilter}
-          GROUP BY pd.product_id
+          GROUP BY pd.product_id${extraGroup}
         `, damageParams)).rows;
 
         damageRows.forEach((row) => {
-          const product = byProductId.get(row.product_id);
+          const product = byProductId.get(rowKey(row.product_id, row.pdv_id));
           if (product) product.damages = parseInt(row.damages, 10) || 0;
         });
       } catch (error) {
@@ -481,15 +492,15 @@ router.get('/report/product', authenticate, async (req, res) => {
         }
 
         const ruptureRows = (await query(`
-          SELECT pr.product_id, COALESCE(SUM(pr.qty_store + pr.qty_stock), 0) as stockouts
+          SELECT pr.product_id${extraSelect}, COALESCE(SUM(pr.qty_store + pr.qty_stock), 0) as stockouts
           FROM product_ruptures pr
           JOIN merch_routes r ON r.id = pr.route_id
           WHERE r.organization_id = $1 ${routeFilters} ${ruptureFilter}
-          GROUP BY pr.product_id
+          GROUP BY pr.product_id${extraGroup}
         `, ruptureParams)).rows;
 
         ruptureRows.forEach((row) => {
-          const product = byProductId.get(row.product_id);
+          const product = byProductId.get(rowKey(row.product_id, row.pdv_id));
           if (product) product.stockouts = parseInt(row.stockouts, 10) || 0;
         });
       } catch (error) {
@@ -507,15 +518,15 @@ router.get('/report/product', authenticate, async (req, res) => {
         }
 
         const expiryRows = (await query(`
-          SELECT pve.product_id, COALESCE(SUM(pve.qty_store + pve.qty_stock), 0) as expiries
+          SELECT pve.product_id${extraSelect}, COALESCE(SUM(pve.qty_store + pve.qty_stock), 0) as expiries
           FROM product_validity_entries pve
           JOIN merch_routes r ON r.id = pve.route_id
           WHERE r.organization_id = $1 ${routeFilters} ${expiryFilter}
-          GROUP BY pve.product_id
+          GROUP BY pve.product_id${extraGroup}
         `, expiryParams)).rows;
 
         expiryRows.forEach((row) => {
-          const product = byProductId.get(row.product_id);
+          const product = byProductId.get(rowKey(row.product_id, row.pdv_id));
           if (product) product.expiries = parseInt(row.expiries, 10) || 0;
         });
       } catch (error) {
@@ -532,20 +543,20 @@ router.get('/report/product', authenticate, async (req, res) => {
         }
 
         const nearRows = (await query(`
-          SELECT DISTINCT ON (pve.product_id)
-            pve.product_id,
+          SELECT DISTINCT ON (pve.product_id${extraSelect})
+            pve.product_id${extraSelect},
             pve.expiry_date,
-            SUM(pve.qty_store) OVER (PARTITION BY pve.product_id, pve.expiry_date) as qty_store,
-            SUM(pve.qty_stock) OVER (PARTITION BY pve.product_id, pve.expiry_date) as qty_stock
+            SUM(pve.qty_store) OVER (PARTITION BY pve.product_id${extraSelect}, pve.expiry_date) as qty_store,
+            SUM(pve.qty_stock) OVER (PARTITION BY pve.product_id${extraSelect}, pve.expiry_date) as qty_stock
           FROM product_validity_entries pve
           JOIN merch_routes r ON r.id = pve.route_id
           WHERE r.organization_id = $1 ${routeFilters} ${nearFilter}
             AND pve.expiry_date IS NOT NULL
-          ORDER BY pve.product_id, pve.expiry_date ASC
+          ORDER BY pve.product_id${extraSelect}, pve.expiry_date ASC
         `, nearParams)).rows;
 
         nearRows.forEach((row) => {
-          const product = byProductId.get(row.product_id);
+          const product = byProductId.get(rowKey(row.product_id, row.pdv_id));
           if (!product) return;
           product.next_expiry_date = row.expiry_date;
           product.next_expiry_qty_store = parseInt(row.qty_store, 10) || 0;
