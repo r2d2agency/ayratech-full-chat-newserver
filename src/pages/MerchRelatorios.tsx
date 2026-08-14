@@ -554,7 +554,8 @@ function PromotorTab({ filters }: { filters: any }) {
                 <TableHead className="text-center">Avarias</TableHead>
                 <TableHead className="text-center">Rupturas</TableHead>
                 <TableHead className="text-center">Tempo Médio</TableHead>
-                <TableHead className="text-center">Score</TableHead>
+                <TableHead className="text-center" title="Score = (rotas concluídas ÷ total de rotas) x 100, no período filtrado">Score ⓘ</TableHead>
+
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -603,7 +604,12 @@ function ProdutoTab({ filters }: { filters: any }) {
                 <TableHead className="text-center">Estoque Depósito</TableHead>
                 <TableHead className="text-center">Avarias</TableHead>
                 <TableHead className="text-center">Rupturas</TableHead>
-                <TableHead className="text-center">Validade</TableHead>
+                <TableHead className="text-center">Validade (registros)</TableHead>
+                <TableHead className="text-center">Validade + Próxima</TableHead>
+                <TableHead className="text-center">Qtd. Frente</TableHead>
+                <TableHead className="text-center">Qtd. Estoque</TableHead>
+                <TableHead className="text-center">Total na Validade</TableHead>
+
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -626,9 +632,20 @@ function ProdutoTab({ filters }: { filters: any }) {
                   <TableCell className="text-center">{parseInt(r.damages) > 0 ? <Badge variant="destructive">{r.damages}</Badge> : '0'}</TableCell>
                   <TableCell className="text-center">{parseInt(r.stockouts) > 0 ? <Badge variant="destructive">{r.stockouts}</Badge> : '0'}</TableCell>
                   <TableCell className="text-center">{parseInt(r.expiries) > 0 ? <Badge variant="secondary">{r.expiries}</Badge> : '0'}</TableCell>
+                  <TableCell className="text-center">
+                    {r.next_expiry_date
+                      ? <Badge variant={new Date(r.next_expiry_date).getTime() - Date.now() < 30 * 86400000 ? 'destructive' : 'secondary'}>
+                          {new Date(r.next_expiry_date).toLocaleDateString('pt-BR')}
+                        </Badge>
+                      : <span className="text-muted-foreground">—</span>}
+                  </TableCell>
+                  <TableCell className="text-center">{r.next_expiry_qty_store ?? 0}</TableCell>
+                  <TableCell className="text-center">{r.next_expiry_qty_stock ?? 0}</TableCell>
+                  <TableCell className="text-center font-medium">{r.next_expiry_total ?? 0}</TableCell>
                 </TableRow>
               ))}
-              {rows.length === 0 && <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Sem dados</TableCell></TableRow>}
+              {rows.length === 0 && <TableRow><TableCell colSpan={13} className="text-center py-8 text-muted-foreground">Sem dados</TableCell></TableRow>}
+
             </TableBody>
           </Table>
         </CardContent>

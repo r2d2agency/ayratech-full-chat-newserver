@@ -433,7 +433,12 @@ router.get('/report/product', authenticate, async (req, res) => {
       row.damages = 0;
       row.stockouts = 0;
       row.expiries = 0;
+      row.next_expiry_date = null;
+      row.next_expiry_qty_store = 0;
+      row.next_expiry_qty_stock = 0;
+      row.next_expiry_total = 0;
     });
+
 
     const byProductId = new Map(rows.map((row) => [row.product_id, row]));
 
@@ -513,11 +518,46 @@ router.get('/report/product', authenticate, async (req, res) => {
       } catch (error) {
         logInfo('merch-analytics.report.product.expiry-fallback', { error: error.message });
       }
+
+      // Nearest expiry date per product (with quantities in that date)
+      try {
+        const nearParams = [...routeParams];
+        let nearFilter = '';
+        if (product_id) {
+          nearFilter = ` AND pve.product_id = $${nearParams.length + 1}`;
+          nearParams.push(product_id);
+        }
+
+        const nearRows = (await query(`
+          SELECT DISTINCT ON (pve.product_id)
+            pve.product_id,
+            pve.expiry_date,
+            SUM(pve.qty_store) OVER (PARTITION BY pve.product_id, pve.expiry_date) as qty_store,
+            SUM(pve.qty_stock) OVER (PARTITION BY pve.product_id, pve.expiry_date) as qty_stock
+          FROM product_validity_entries pve
+          JOIN merch_routes r ON r.id = pve.route_id
+          WHERE r.organization_id = $1 ${routeFilters} ${nearFilter}
+            AND pve.expiry_date IS NOT NULL
+          ORDER BY pve.product_id, pve.expiry_date ASC
+        `, nearParams)).rows;
+
+        nearRows.forEach((row) => {
+          const product = byProductId.get(row.product_id);
+          if (!product) return;
+          product.next_expiry_date = row.expiry_date;
+          product.next_expiry_qty_store = parseInt(row.qty_store, 10) || 0;
+          product.next_expiry_qty_stock = parseInt(row.qty_stock, 10) || 0;
+          product.next_expiry_total = product.next_expiry_qty_store + product.next_expiry_qty_stock;
+        });
+      } catch (error) {
+        logInfo('merch-analytics.report.product.next-expiry-fallback', { error: error.message });
+      }
     }
 
     res.json(rows);
   } catch (err) { logError('merch-analytics.report.product', err); res.status(500).json({ error: 'Erro' }); }
 });
+
 
 // ===== Report by Category =====
 router.get('/report/category', authenticate, async (req, res) => {
