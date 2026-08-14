@@ -46,11 +46,32 @@ export const logger = {
       // eslint-disable-next-line no-console
       (console as any)[consoleMethod](`[${level.toUpperCase()}] ${message}`, context);
 
-      // Logs remain available in the browser console. Remote persistence must
-      // go through the application's own API, never a browser database client.
-      void getUserEmail();
-      void getDeviceInfo();
-      void stack_trace;
+      const email = getUserEmail();
+      const device = getDeviceInfo();
+
+      // Remote persistence to our backend logs
+      const endpoint = '/api/rh/client-logs';
+      const body = {
+        level,
+        event: message.substring(0, 100),
+        payload: {
+          message,
+          user_email: email,
+          device,
+          context,
+          error: stack_trace ? { stack: stack_trace } : undefined
+        }
+      };
+
+      // Non-blocking fire and forget
+      fetch(`${import.meta.env.VITE_API_URL || ''}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('promotor_token') || ''}`
+        },
+        body: JSON.stringify(body)
+      }).catch(() => {});
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('Failed to process log:', err);
