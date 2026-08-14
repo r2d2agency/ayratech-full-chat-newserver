@@ -14,7 +14,7 @@ export default function Index() {
         <ul className="text-xs text-blue-600 mt-2 list-disc ml-4 space-y-1">
           <li><strong>Dashboard da Marca:</strong> Quando um usuário está vinculado a uma marca, o dashboard filtra automaticamente os dados para exibir apenas as execuções, fotos e roteiros dessa marca específica.</li>
           <li><strong>Gestão de Clientes:</strong> Gerencie seus clientes em <i>Merchandising {' > '} Marcas</i>. Vincule as marcas aos PDVs para que os promotores saibam o que executar em cada loja.</li>
-          <li><strong>Acesso Externo:</strong> Para dar acesso ao seu cliente, crie um usuário em <i>Administração {' > '} Organizações</i> e utilize o Portal de Parceiros.</li>
+          <li><strong>Acesso Externo:</strong> Para dar acesso ao seu cliente, crie um usuário em <i>Administração {' > '} Organizações</i>. No formulário de criação/edição do membro, selecione a marca no campo <strong>Vincular a Marca (Portal do Cliente)</strong>.</li>
         </ul>
       </div>
 
