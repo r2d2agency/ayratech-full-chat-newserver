@@ -1,6 +1,6 @@
 import pg from 'pg';
 import dotenv from 'dotenv';
-import { logError, logInfo } from './logger.js';
+import { logError, logInfo, logWarn } from './logger.js';
 
 dotenv.config();
 
