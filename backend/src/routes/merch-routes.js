@@ -2465,10 +2465,16 @@ async function ensureExecutionCategoryTables() {
     } catch (e) {
       logWarn('failed to create idx_exec_categories_route_cat_brand', { error: e?.message });
     }
-    await query(`CREATE INDEX IF NOT EXISTS idx_exec_categories_route ON merch_execution_categories(route_id)`);
+    try {
+      await query(`CREATE INDEX IF NOT EXISTS idx_exec_categories_route ON merch_execution_categories(route_id)`);
+    } catch (e) {
+      logWarn('failed to create idx_exec_categories_route', { error: e?.message });
+    }
   } catch (e) {
     logWarn('ensureExecutionCategoryTables.failed', { error: e?.message });
   }
+  })();
+  return execCategoryTablesReady;
 }
 // Run once on load
 ensurePdvVisitTables().catch(() => {});
