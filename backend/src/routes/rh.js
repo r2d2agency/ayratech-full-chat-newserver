@@ -488,8 +488,8 @@ router.post('/employees', async (req, res) => {
         bank_name, bank_agency, bank_account, bank_account_type, pix_key, pix_key_type,
         ctps_number, ctps_series, pis_pasep, voter_id, voter_zone, voter_section, skin_color,
         cnpj, company_name, status, photo_url, created_by,
-        salary_items, benefits, home_latitude, home_longitude, facial_required)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44,$45,$46,$47,$48,$49,$50,$51,$52,$53,$54,$55)
+        salary_items, benefits, home_latitude, home_longitude, facial_required, branch_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44,$45,$46,$47,$48,$49,$50,$51,$52,$53,$54,$55,$25)
 
        RETURNING *`,
       [orgId, d.full_name, d.social_name, d.cpf, d.rg, d.rg_issuer, d.birth_date, d.gender, d.marital_status, d.email, d.phone, d.phone2,
@@ -502,6 +502,20 @@ router.post('/employees', async (req, res) => {
         d.cnpj, d.company_name, d.status, d.photo_url, req.userId,
         JSON.stringify(d.salary_items), JSON.stringify(d.benefits), d.home_latitude, d.home_longitude, d.facial_required]
     );
+
+    // Auto-sync schedule if a branch/HQ is linked on creation
+    if (result.rows[0] && d.branch_id) {
+      try {
+        const branchRes = await query(`SELECT schedule_id FROM pdvs WHERE id = $1`, [d.branch_id]);
+        const branch = branchRes.rows[0];
+        if (branch?.schedule_id) {
+          await syncEmployeeScheduleWithId(result.rows[0].id, branch.schedule_id);
+        }
+      } catch (e) {
+        logError('rh.employees.create.auto_sync', e);
+      }
+    }
+
     await auditLog(orgId, 'employee', result.rows[0].id, 'create', [{ field: 'full_name', oldVal: null, newVal: d.full_name }], req.userId);
     res.json(result.rows[0]);
 
@@ -553,12 +567,17 @@ router.put('/employees/:id', async (req, res) => {
       const targetPdvId = d.branch_id || d.pdv_id;
       if (targetPdvId) {
         try {
-          const pdvRes = await query(`SELECT type, name FROM pdvs WHERE id = $1`, [targetPdvId]);
+          const pdvRes = await query(`SELECT type, name, schedule_id FROM pdvs WHERE id = $1`, [targetPdvId]);
           const pdv = pdvRes.rows[0];
           // If it's a headquarters (sede), we could auto-apply a default journey if requested,
           // but for now we just ensure the link is consistent.
           d.pdv_id = targetPdvId;
           d.branch_id = targetPdvId;
+
+          // Auto-sync schedule if the branch/HQ has one linked
+          if (pdv?.schedule_id) {
+            await syncEmployeeScheduleWithId(req.params.id, pdv.schedule_id);
+          }
         } catch (e) {
           logError('rh.employees.update.pdv_sync', e);
         }
@@ -629,50 +648,57 @@ router.put('/employees/:id', async (req, res) => {
   }
 });
 
+// Helper: Internal function to sync employee work journey with a specific scale ID
+async function syncEmployeeScheduleWithId(employeeId, scheduleId, userId = null) {
+  const schedRes = await query(`SELECT * FROM work_schedules WHERE id = $1`, [scheduleId]);
+  const sched = schedRes.rows[0];
+  if (!sched) return null;
+
+  // Map schedule_type to work_schedule days
+  const days = { seg: false, ter: false, qua: false, qui: false, sex: false, sab: false, dom: false };
+  const type = String(sched.schedule_type || '').toLowerCase();
+
+  if (type.includes('5x2')) {
+    days.seg = days.ter = days.qua = days.qui = days.sex = true;
+  } else if (type.includes('6x1')) {
+    days.seg = days.ter = days.qua = days.qui = days.sex = days.sab = true;
+  } else {
+    // Default to 5x2 if unknown
+    days.seg = days.ter = days.qua = days.qui = days.sex = true;
+  }
+
+  const workSchedule = {
+    days,
+    entry: (sched.entry_time || '08:00').slice(0, 5),
+    exit: (sched.exit_time || '17:00').slice(0, 5),
+    lunch_start: (sched.break_start || '12:00').slice(0, 5),
+    lunch_end: (sched.break_end || '13:00').slice(0, 5),
+  };
+
+  const result = await query(
+    `UPDATE employees SET work_schedule = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+    [JSON.stringify(workSchedule), employeeId]
+  );
+
+  if (result.rows[0] && userId) {
+    await auditLog(result.rows[0].organization_id, 'employee', employeeId, 'update', 
+      [{ field: 'work_schedule', oldVal: 'auto_sync', newVal: JSON.stringify(workSchedule) }], 
+      userId
+    );
+  }
+  return result.rows[0];
+}
+
 // Sync employee work journey with a specific scale
 router.post('/employees/:id/sync-schedule', async (req, res) => {
   try {
     const { schedule_id } = req.body;
     if (!schedule_id) return res.status(400).json({ error: 'ID da escala é obrigatório' });
 
-    const schedRes = await query(`SELECT * FROM work_schedules WHERE id = $1`, [schedule_id]);
-    const sched = schedRes.rows[0];
-    if (!sched) return res.status(404).json({ error: 'Escala não encontrada' });
+    const updated = await syncEmployeeScheduleWithId(req.params.id, schedule_id, req.userId);
+    if (!updated) return res.status(404).json({ error: 'Escala não encontrada' });
 
-    // Map schedule_type to work_schedule days
-    const days = { seg: false, ter: false, qua: false, qui: false, sex: false, sab: false, dom: false };
-    const type = String(sched.schedule_type || '').toLowerCase();
-
-    if (type.includes('5x2')) {
-      days.seg = days.ter = days.qua = days.qui = days.sex = true;
-    } else if (type.includes('6x1')) {
-      days.seg = days.ter = days.qua = days.qui = days.sex = days.sab = true;
-    } else {
-      // Default to 5x2 if unknown
-      days.seg = days.ter = days.qua = days.qui = days.sex = true;
-    }
-
-    const workSchedule = {
-      days,
-      entry: (sched.entry_time || '08:00').slice(0, 5),
-      exit: (sched.exit_time || '17:00').slice(0, 5),
-      lunch_start: (sched.break_start || '12:00').slice(0, 5),
-      lunch_end: (sched.break_end || '13:00').slice(0, 5),
-    };
-
-    const result = await query(
-      `UPDATE employees SET work_schedule = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
-      [JSON.stringify(workSchedule), req.params.id]
-    );
-
-    if (result.rows[0]) {
-      await auditLog(result.rows[0].organization_id, 'employee', req.params.id, 'update', 
-        [{ field: 'work_schedule', oldVal: 'sync_request', newVal: JSON.stringify(workSchedule) }], 
-        req.userId
-      );
-    }
-
-    res.json(result.rows[0]);
+    res.json(updated);
   } catch (err) {
     logError('rh.employees.sync-schedule', err);
     res.status(500).json({ error: 'Erro ao sincronizar jornada' });
