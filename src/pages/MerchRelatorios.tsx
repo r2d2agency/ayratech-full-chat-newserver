@@ -285,8 +285,12 @@ async function exportCurrentTabPDF(tab: string, filters: any, preRows?: any[], o
       doc.setPage(i);
       doc.setFontSize(7);
       doc.setTextColor(150, 150, 150);
+      if (user?.organization_footer) {
+        doc.text(user.organization_footer, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+      }
       doc.text(`Ayratech • Sistema de Gestão v1.0.0 • Página ${i}/${pageCount}`,
-        pageWidth / 2, doc.internal.pageSize.getHeight() - 6, { align: 'center' });
+        pageWidth / 2, doc.internal.pageSize.getHeight() - 5, { align: 'center' });
+
     }
     doc.save(`relatorio_${tab}_${filters.date_from || ''}_${filters.date_to || ''}.pdf`);
   } catch (e: any) {
@@ -296,6 +300,8 @@ async function exportCurrentTabPDF(tab: string, filters: any, preRows?: any[], o
 
 // ===== Diálogo de exportação com personalização de colunas =====
 function ExportDialog({ open, onOpenChange, tab, filters }: { open: boolean; onOpenChange: (v: boolean) => void; tab: string; filters: any }) {
+  const { user } = useAuth();
+
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<any[]>([]);
   const [columns, setColumns] = useState<{ key: string; label: string }[]>([]);
@@ -319,10 +325,11 @@ function ExportDialog({ open, onOpenChange, tab, filters }: { open: boolean; onO
   const toggle = (key: string) =>
     setSelected(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
 
-  const run = async (fn: (t: string, f: any, r?: any[], only?: string[]) => Promise<void>) => {
-    await fn(tab, filters, rows, selected);
+  const run = async (fn: (t: string, f: any, r?: any[], only?: string[], u?: any) => Promise<void>) => {
+    await fn(tab, filters, rows, selected, user);
     onOpenChange(false);
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
