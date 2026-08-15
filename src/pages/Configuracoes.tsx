@@ -27,9 +27,11 @@ import { ThemeCustomizer } from "@/components/admin/ThemeCustomizer";
 import { GoogleCalendarPanel } from "@/components/crm/GoogleCalendarPanel";
 import { api as apiCall } from "@/lib/api";
 import { PhotoQualityConfigPanel } from "@/components/admin/PhotoQualityConfigPanel";
+import { applyThemeColors } from "@/hooks/use-branding";
 
 const Configuracoes = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
+
   const { theme, setTheme } = useTheme();
   const {
     settings: notifSettings,
@@ -209,7 +211,9 @@ const Configuracoes = () => {
                           method: 'PATCH',
                           body: { footer_text: orgFooterText }
                         });
+                        await refreshUser();
                         toast.success("Rodapé atualizado!");
+
                       } finally {
                         setIsSavingFooter(false);
                       }
