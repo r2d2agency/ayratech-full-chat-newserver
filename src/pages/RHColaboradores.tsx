@@ -88,16 +88,46 @@ function parseSchedule(ws: any) {
 }
 
 function calcScheduleHours(sched: any) {
-  const [eh, em] = sched.entry.split(":").map(Number);
-  const [xh, xm] = sched.exit.split(":").map(Number);
-  const [lsh, lsm] = sched.lunch_start.split(":").map(Number);
-  const [leh, lem] = sched.lunch_end.split(":").map(Number);
-  const totalMin = (xh * 60 + xm) - (eh * 60 + em);
-  const lunchMin = (leh * 60 + lem) - (lsh * 60 + lsm);
-  const dailyHours = Math.max(0, totalMin - lunchMin) / 60;
-  const workDays = Object.values(sched.days).filter(Boolean).length;
-  const monthlyWorkDays = Math.round(workDays * 4.33);
-  return { dailyHours, workDays, monthlyWorkDays, monthlyHours: dailyHours * monthlyWorkDays };
+  const workDaysList = Object.entries(sched.days).filter(([_, v]) => v).map(([k]) => k);
+  const workDaysCount = workDaysList.length;
+  
+  let totalDailyHours = 0;
+  
+  if (sched.useIndividualDays && sched.dayConfig) {
+    workDaysList.forEach(day => {
+      const config = sched.dayConfig[day];
+      if (!config || !config.entry || !config.exit) return;
+      
+      const [eh, em] = config.entry.split(":").map(Number);
+      const [xh, xm] = config.exit.split(":").map(Number);
+      let totalMin = (xh * 60 + xm) - (eh * 60 + em);
+      
+      if (config.lunch_start && config.lunch_end) {
+        const [lsh, lsm] = config.lunch_start.split(":").map(Number);
+        const [leh, lem] = config.lunch_end.split(":").map(Number);
+        const lunchMin = (leh * 60 + lem) - (lsh * 60 + lsm);
+        totalMin -= Math.max(0, lunchMin);
+      }
+      
+      totalDailyHours += Math.max(0, totalMin) / 60;
+    });
+  } else {
+    const [eh, em] = (sched.entry || "08:00").split(":").map(Number);
+    const [xh, xm] = (sched.exit || "17:00").split(":").map(Number);
+    const [lsh, lsm] = (sched.lunch_start || "12:00").split(":").map(Number);
+    const [leh, lem] = (sched.lunch_end || "13:00").split(":").map(Number);
+    
+    const totalMin = (xh * 60 + xm) - (eh * 60 + em);
+    const lunchMin = (leh * 60 + lem) - (lsh * 60 + lsm);
+    const dailyHours = Math.max(0, totalMin - lunchMin) / 60;
+    totalDailyHours = dailyHours * workDaysCount;
+  }
+
+  const avgDailyHours = workDaysCount > 0 ? totalDailyHours / workDaysCount : 0;
+  const monthlyWorkDays = Math.round(workDaysCount * 4.33);
+  const monthlyHours = avgDailyHours * monthlyWorkDays;
+  
+  return { dailyHours: avgDailyHours, totalWeeklyHours: totalDailyHours, workDays: workDaysCount, monthlyWorkDays, monthlyHours };
 }
 
 const EMPTY_FORM = {
