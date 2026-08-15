@@ -189,7 +189,9 @@ EXCEPTION WHEN duplicate_column THEN null; END $$;
 DO $$ BEGIN
     ALTER TABLE organizations ADD COLUMN IF NOT EXISTS facial_clock_in_required BOOLEAN DEFAULT false;
     ALTER TABLE organizations ADD COLUMN IF NOT EXISTS facial_clock_in_notify_missing BOOLEAN DEFAULT false;
+    ALTER TABLE organizations ADD COLUMN IF NOT EXISTS footer_text TEXT;
 EXCEPTION WHEN duplicate_column THEN null; END $$;
+
 
 `;
 

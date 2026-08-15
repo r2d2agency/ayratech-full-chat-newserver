@@ -31,7 +31,16 @@ export function MainLayout({ children }: MainLayoutProps) {
           </Button>
         </header>
         <main className="p-3 xl:p-4">{children}</main>
+        <footer className="py-4 px-4 border-t text-center space-y-1">
+          {user?.organization_footer && (
+            <p className="text-xs text-muted-foreground font-medium">{user.organization_footer}</p>
+          )}
+          <p className="text-[10px] text-muted-foreground/60 italic">
+            Powered by Ayratech
+          </p>
+        </footer>
       </div>
+
     );
   }
 
@@ -54,7 +63,16 @@ export function MainLayout({ children }: MainLayoutProps) {
         style={{ paddingTop: 'max(3.5rem, calc(env(safe-area-inset-top, 0px) + 3.5rem))' }}>
         <div className="p-2 xl:p-3 2xl:p-4 w-full min-w-0 overflow-x-hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>{children}</div>
       </main>
+      <footer className="xl:ml-16 py-4 px-4 border-t text-center space-y-1 bg-background/50">
+        {user?.organization_footer && (
+          <p className="text-xs text-muted-foreground font-medium">{user.organization_footer}</p>
+        )}
+        <p className="text-[10px] text-muted-foreground/60 italic">
+          © {new Date().getFullYear()} Ayratech • Todos os direitos reservados
+        </p>
+      </footer>
       <GroupSecretaryPopup />
+
       <PWAUpdateBanner />
     </div>
   );
