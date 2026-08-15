@@ -567,12 +567,17 @@ router.put('/employees/:id', async (req, res) => {
       const targetPdvId = d.branch_id || d.pdv_id;
       if (targetPdvId) {
         try {
-          const pdvRes = await query(`SELECT type, name FROM pdvs WHERE id = $1`, [targetPdvId]);
+          const pdvRes = await query(`SELECT type, name, schedule_id FROM pdvs WHERE id = $1`, [targetPdvId]);
           const pdv = pdvRes.rows[0];
           // If it's a headquarters (sede), we could auto-apply a default journey if requested,
           // but for now we just ensure the link is consistent.
           d.pdv_id = targetPdvId;
           d.branch_id = targetPdvId;
+
+          // Auto-sync schedule if the branch/HQ has one linked
+          if (pdv?.schedule_id) {
+            await syncEmployeeScheduleWithId(req.params.id, pdv.schedule_id);
+          }
         } catch (e) {
           logError('rh.employees.update.pdv_sync', e);
         }
