@@ -1,5 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { resolveMediaUrl } from "@/lib/media";
+import { getBase64ImageFromURL } from "@/lib/pdf-utils";
+import { useAuth } from "@/contexts/AuthContext";
+
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -266,7 +269,8 @@ async function exportCurrentTabPDF(tab: string, filters: any, preRows?: any[], o
     }));
 
     autoTable(doc, {
-      startY: 30,
+      startY: 45,
+
       head: [headers],
       body,
       styles: { fontSize: 7, cellPadding: 1.5, overflow: 'linebreak' },
