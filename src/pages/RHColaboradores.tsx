@@ -814,6 +814,17 @@ export default function RHColaboradores() {
 
                     return (
                       <>
+                        {/* Individual Days Toggle */}
+                        <div className="flex items-center gap-2 mb-4">
+                          <Switch 
+                            checked={sched.useIndividualDays || false} 
+                            onCheckedChange={v => updateSched({ useIndividualDays: v })}
+                          />
+                          <Label className="text-xs cursor-pointer" onClick={() => updateSched({ useIndividualDays: !sched.useIndividualDays })}>
+                            Personalizar horários por dia da semana
+                          </Label>
+                        </div>
+
                         {/* Days of week toggles */}
                         <div className="flex flex-wrap gap-2">
                           {WEEKDAYS.map(wd => (
@@ -833,12 +844,41 @@ export default function RHColaboradores() {
                         </p>
 
                         {/* Time inputs */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                          <div><Label className="text-xs">Entrada</Label><Input type="time" value={sched.entry} onChange={e => updateSched({ entry: e.target.value })} /></div>
-                          <div><Label className="text-xs">Saída</Label><Input type="time" value={sched.exit} onChange={e => updateSched({ exit: e.target.value })} /></div>
-                          <div><Label className="text-xs">Início Almoço</Label><Input type="time" value={sched.lunch_start} onChange={e => updateSched({ lunch_start: e.target.value })} /></div>
-                          <div><Label className="text-xs">Fim Almoço</Label><Input type="time" value={sched.lunch_end} onChange={e => updateSched({ lunch_end: e.target.value })} /></div>
-                        </div>
+                        {!sched.useIndividualDays ? (
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div><Label className="text-xs">Entrada</Label><Input type="time" value={sched.entry} onChange={e => updateSched({ entry: e.target.value })} /></div>
+                            <div><Label className="text-xs">Saída</Label><Input type="time" value={sched.exit} onChange={e => updateSched({ exit: e.target.value })} /></div>
+                            <div><Label className="text-xs">Início Almoço</Label><Input type="time" value={sched.lunch_start} onChange={e => updateSched({ lunch_start: e.target.value })} /></div>
+                            <div><Label className="text-xs">Fim Almoço</Label><Input type="time" value={sched.lunch_end} onChange={e => updateSched({ lunch_end: e.target.value })} /></div>
+                          </div>
+                        ) : (
+                          <div className="space-y-3 border rounded-lg p-3 bg-background/50">
+                            {WEEKDAYS.map(wd => {
+                              const isActive = sched.days[wd.key];
+                              if (!isActive) return null;
+                              
+                              const config = (sched.dayConfig || {})[wd.key] || { entry: "08:00", exit: "17:00", lunch_start: "12:00", lunch_end: "13:00" };
+                              const setDayField = (field: string, val: string) => {
+                                updateSched({
+                                  dayConfig: {
+                                    ...(sched.dayConfig || {}),
+                                    [wd.key]: { ...config, [field]: val }
+                                  }
+                                });
+                              };
+
+                              return (
+                                <div key={wd.key} className="grid grid-cols-1 sm:grid-cols-[80px_1fr_1fr_1fr_1fr] gap-3 items-center border-b last:border-0 pb-2 mb-2 last:pb-0 last:mb-0">
+                                  <span className="font-bold text-sm">{wd.label}</span>
+                                  <div><Label className="text-[10px] uppercase text-muted-foreground">Entrada</Label><Input className="h-8 text-xs" type="time" value={config.entry} onChange={e => setDayField("entry", e.target.value)} /></div>
+                                  <div><Label className="text-[10px] uppercase text-muted-foreground">Saída</Label><Input className="h-8 text-xs" type="time" value={config.exit} onChange={e => setDayField("exit", e.target.value)} /></div>
+                                  <div><Label className="text-[10px] uppercase text-muted-foreground">Início Almoço</Label><Input className="h-8 text-xs" type="time" value={config.lunch_start} onChange={e => setDayField("lunch_start", e.target.value)} /></div>
+                                  <div><Label className="text-[10px] uppercase text-muted-foreground">Fim Almoço</Label><Input className="h-8 text-xs" type="time" value={config.lunch_end} onChange={e => setDayField("lunch_end", e.target.value)} /></div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
 
                         {/* Calculated stats */}
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 rounded-lg bg-background border">
