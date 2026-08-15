@@ -466,8 +466,45 @@ export default function PromotorHome() {
   }, []);
 
   const getNextPunchType = () => {
-    const types = ['entrada', 'saida_intervalo', 'retorno_intervalo', 'saida'];
-    return types[todayPunches.length] || 'extraordinaria';
+    // Definimos os tipos padrão
+    const standardTypes = ['entrada', 'saida_intervalo', 'retorno_intervalo', 'saida'];
+    
+    // Verificamos se o turno atual do colaborador tem intervalo
+    // Se não tiver, pulamos os tipos de intervalo e vamos direto para a saída
+    const ws = employee?.work_schedule;
+    let hasInterval = true;
+    
+    if (ws) {
+      try {
+        const parsed = typeof ws === 'object' ? ws : JSON.parse(ws);
+        const nowBR = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+        const dowMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
+        const dayOfWeek = dowMap[nowBR.getDay()];
+        
+        if (parsed.useIndividualDays && parsed.dayConfig && parsed.dayConfig[dayOfWeek]) {
+          const config = parsed.dayConfig[dayOfWeek];
+          if (!config.lunch_start || !config.lunch_end) {
+            hasInterval = false;
+          }
+        } else if (parsed.lunch_start === "" || !parsed.lunch_start) {
+          hasInterval = false;
+        }
+      } catch (e) {
+        // Fallback para string legada "HH:mm-HH:mm" que geralmente não tem intervalo explícito no JSON
+        if (typeof ws === 'string' && ws.includes('-') && !ws.includes('{')) {
+          hasInterval = false;
+        }
+      }
+    }
+
+    if (!hasInterval) {
+      // Se não tem intervalo: 1º entrada, 2º saída
+      if (todayPunches.length === 0) return 'entrada';
+      if (todayPunches.length === 1) return 'saida';
+      return 'extraordinaria';
+    }
+
+    return standardTypes[todayPunches.length] || 'extraordinaria';
   };
 
   const PUNCH_LABELS: Record<string, string> = {

@@ -58,7 +58,8 @@ export default function Index() {
           <p className="text-blue-400">[PDF] Exportações agora ocultam IDs internos (só o nome do produto), com cabeçalhos, datas (dd/mm/aaaa), números e status em português.</p>
           <p className="text-green-400">[RELATORIOS] Guia Produto agora exibe a Marca e permite separar a listagem por PDV (uma linha por produto/PDV).</p>
           <p className="text-blue-400">[EXPORT] Novo botão "Exportar (personalizar colunas)" — escolha exatamente quais informações vão para Excel, CSV ou PDF antes de gerar.</p>
-
+          <p className="text-green-400">[APP/RH] Ponto Inteligente: O aplicativo agora detecta automaticamente turnos sem intervalo (ex: Sábados 07-11h) e remove as opções de "Saída/Retorno Intervalo", permitindo registrar apenas Entrada e Saída.</p>
+          <p className="text-blue-400">[RH] Correção no cálculo de horas: intervalos vazios no cadastro de jornada individual não são mais subtraídos do total de horas trabalhadas.</p>
         </div>
       </div>
     </div>

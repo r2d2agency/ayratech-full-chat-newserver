@@ -102,7 +102,8 @@ function calcScheduleHours(sched: any) {
       const [xh, xm] = config.exit.split(":").map(Number);
       let totalMin = (xh * 60 + xm) - (eh * 60 + em);
       
-      if (config.lunch_start && config.lunch_end) {
+      // Se não houver intervalo configurado, não subtraímos nada
+      if (config.lunch_start && config.lunch_end && config.lunch_start !== "" && config.lunch_end !== "") {
         const [lsh, lsm] = config.lunch_start.split(":").map(Number);
         const [leh, lem] = config.lunch_end.split(":").map(Number);
         const lunchMin = (leh * 60 + lem) - (lsh * 60 + lsm);
@@ -118,7 +119,8 @@ function calcScheduleHours(sched: any) {
     const [leh, lem] = (sched.lunch_end || "13:00").split(":").map(Number);
     
     const totalMin = (xh * 60 + xm) - (eh * 60 + em);
-    const lunchMin = (leh * 60 + lem) - (lsh * 60 + lsm);
+    const hasLunch = sched.lunch_start && sched.lunch_end && sched.lunch_start !== "" && sched.lunch_end !== "";
+    const lunchMin = hasLunch ? (leh * 60 + lem) - (lsh * 60 + lsm) : 0;
     const dailyHours = Math.max(0, totalMin - lunchMin) / 60;
     totalDailyHours = dailyHours * workDaysCount;
   }
