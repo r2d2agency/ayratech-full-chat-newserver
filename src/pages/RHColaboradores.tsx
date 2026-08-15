@@ -62,10 +62,20 @@ const WEEKDAYS = [
 
 const DEFAULT_SCHEDULE = {
   days: { seg: true, ter: true, qua: true, qui: true, sex: true, sab: false, dom: false },
+  dayConfig: {
+    seg: { entry: "08:00", exit: "17:00", lunch_start: "12:00", lunch_end: "13:00" },
+    ter: { entry: "08:00", exit: "17:00", lunch_start: "12:00", lunch_end: "13:00" },
+    qua: { entry: "08:00", exit: "17:00", lunch_start: "12:00", lunch_end: "13:00" },
+    qui: { entry: "08:00", exit: "17:00", lunch_start: "12:00", lunch_end: "13:00" },
+    sex: { entry: "08:00", exit: "17:00", lunch_start: "12:00", lunch_end: "13:00" },
+    sab: { entry: "08:00", exit: "12:00", lunch_start: "", lunch_end: "" },
+    dom: { entry: "08:00", exit: "12:00", lunch_start: "", lunch_end: "" },
+  },
   entry: "08:00",
   exit: "17:00",
   lunch_start: "12:00",
   lunch_end: "13:00",
+  useIndividualDays: false,
 };
 
 function parseSchedule(ws: any) {
