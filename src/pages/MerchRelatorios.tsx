@@ -3,6 +3,7 @@ import { resolveMediaUrl } from "@/lib/media";
 import { getBase64ImageFromURL } from "@/lib/pdf-utils";
 import { useAuth } from "@/contexts/AuthContext";
 
+
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -235,7 +236,7 @@ async function exportCurrentTabCSV(tab: string, filters: any, preRows?: any[], o
 }
 
 // Exporta PDF da aba atual
-async function exportCurrentTabPDF(tab: string, filters: any, preRows?: any[], only?: string[]) {
+async function exportCurrentTabPDF(tab: string, filters: any, preRows?: any[], only?: string[], user?: any) {
   try {
     const rows = preRows ?? await fetchTabData(tab, filters);
     if (!rows.length) { alert("Sem dados para exportar neste período/aba."); return; }
@@ -247,18 +248,33 @@ async function exportCurrentTabPDF(tab: string, filters: any, preRows?: any[], o
     const doc = new jsPDF('l', 'mm', 'a4');
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    // Header
+    // Header Background
     doc.setFillColor(30, 30, 46);
-    doc.rect(0, 0, pageWidth, 24, 'F');
+    doc.rect(0, 0, pageWidth, 40, 'F');
+
+    // Logo Placeholder
+    if (user?.organization_id) {
+      try {
+        const orgRes = await api<{ logo_url: string }>(`/api/organizations/${user.organization_id}`);
+        if (orgRes.logo_url) {
+          const agencyLogo = await getBase64ImageFromURL(orgRes.logo_url);
+          doc.addImage(agencyLogo, 'PNG', 12, 5, 20, 20);
+        }
+      } catch (e) {
+        console.error("PDF logo error", e);
+      }
+    }
+
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text(`Relatório - ${tabLabel(tab)}`, 12, 12);
+    doc.text(`Relatório - ${tabLabel(tab)}`, 40, 15);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     const brDate = (d?: string) => (d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '-');
-    const periodStr = `Período: ${brDate(filters.date_from)} a ${brDate(filters.date_to)} • Gerado em ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`;
-    doc.text(periodStr, 12, 19);
+    const periodStr = `Período: ${brDate(filters.date_from)} a ${brDate(filters.date_to)} • Gerado em ${new Date().toLocaleString('pt-BR')}`;
+    doc.text(periodStr, 40, 22);
+
 
     // Table
     const { headers, data } = buildExportRows(tab, rows, only);
