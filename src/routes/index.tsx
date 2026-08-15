@@ -43,6 +43,8 @@ export default function Index() {
           </div>
         </div>
         <div className="space-y-1.5">
+          <p className="text-blue-400">[RH] Implementado ajuste de horários individual por dia da semana na Jornada de Trabalho (ex: Seg a Sex 07-17h, Sáb 07-11h).</p>
+          <p className="text-green-400">[BACKEND] Validação de ponto do promotor atualizada para respeitar configurações de horários diferenciados por dia.</p>
           <p className="text-blue-400">[PORTAL] Adicionar uma tela de login e dashboard do Portal do Cliente com identidade da marca via token/link, garantindo que cada marca veja apenas seus dados.</p>
           <p className="text-green-400">[AUTH] Login inteligente com redirecionamento automático para MerchDashboard validado.</p>
           <p className="text-slate-400">[DOC] Documentação detalhada sobre como dar acesso às marcas adicionada em Merchandising {" > "} Marcas e na Central de Ajuda.</p>

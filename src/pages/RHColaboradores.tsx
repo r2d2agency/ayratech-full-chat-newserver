@@ -62,10 +62,20 @@ const WEEKDAYS = [
 
 const DEFAULT_SCHEDULE = {
   days: { seg: true, ter: true, qua: true, qui: true, sex: true, sab: false, dom: false },
+  dayConfig: {
+    seg: { entry: "08:00", exit: "17:00", lunch_start: "12:00", lunch_end: "13:00" },
+    ter: { entry: "08:00", exit: "17:00", lunch_start: "12:00", lunch_end: "13:00" },
+    qua: { entry: "08:00", exit: "17:00", lunch_start: "12:00", lunch_end: "13:00" },
+    qui: { entry: "08:00", exit: "17:00", lunch_start: "12:00", lunch_end: "13:00" },
+    sex: { entry: "08:00", exit: "17:00", lunch_start: "12:00", lunch_end: "13:00" },
+    sab: { entry: "08:00", exit: "12:00", lunch_start: "", lunch_end: "" },
+    dom: { entry: "08:00", exit: "12:00", lunch_start: "", lunch_end: "" },
+  },
   entry: "08:00",
   exit: "17:00",
   lunch_start: "12:00",
   lunch_end: "13:00",
+  useIndividualDays: false,
 };
 
 function parseSchedule(ws: any) {
@@ -78,16 +88,46 @@ function parseSchedule(ws: any) {
 }
 
 function calcScheduleHours(sched: any) {
-  const [eh, em] = sched.entry.split(":").map(Number);
-  const [xh, xm] = sched.exit.split(":").map(Number);
-  const [lsh, lsm] = sched.lunch_start.split(":").map(Number);
-  const [leh, lem] = sched.lunch_end.split(":").map(Number);
-  const totalMin = (xh * 60 + xm) - (eh * 60 + em);
-  const lunchMin = (leh * 60 + lem) - (lsh * 60 + lsm);
-  const dailyHours = Math.max(0, totalMin - lunchMin) / 60;
-  const workDays = Object.values(sched.days).filter(Boolean).length;
-  const monthlyWorkDays = Math.round(workDays * 4.33);
-  return { dailyHours, workDays, monthlyWorkDays, monthlyHours: dailyHours * monthlyWorkDays };
+  const workDaysList = Object.entries(sched.days).filter(([_, v]) => v).map(([k]) => k);
+  const workDaysCount = workDaysList.length;
+  
+  let totalDailyHours = 0;
+  
+  if (sched.useIndividualDays && sched.dayConfig) {
+    workDaysList.forEach(day => {
+      const config = sched.dayConfig[day];
+      if (!config || !config.entry || !config.exit) return;
+      
+      const [eh, em] = config.entry.split(":").map(Number);
+      const [xh, xm] = config.exit.split(":").map(Number);
+      let totalMin = (xh * 60 + xm) - (eh * 60 + em);
+      
+      if (config.lunch_start && config.lunch_end) {
+        const [lsh, lsm] = config.lunch_start.split(":").map(Number);
+        const [leh, lem] = config.lunch_end.split(":").map(Number);
+        const lunchMin = (leh * 60 + lem) - (lsh * 60 + lsm);
+        totalMin -= Math.max(0, lunchMin);
+      }
+      
+      totalDailyHours += Math.max(0, totalMin) / 60;
+    });
+  } else {
+    const [eh, em] = (sched.entry || "08:00").split(":").map(Number);
+    const [xh, xm] = (sched.exit || "17:00").split(":").map(Number);
+    const [lsh, lsm] = (sched.lunch_start || "12:00").split(":").map(Number);
+    const [leh, lem] = (sched.lunch_end || "13:00").split(":").map(Number);
+    
+    const totalMin = (xh * 60 + xm) - (eh * 60 + em);
+    const lunchMin = (leh * 60 + lem) - (lsh * 60 + lsm);
+    const dailyHours = Math.max(0, totalMin - lunchMin) / 60;
+    totalDailyHours = dailyHours * workDaysCount;
+  }
+
+  const avgDailyHours = workDaysCount > 0 ? totalDailyHours / workDaysCount : 0;
+  const monthlyWorkDays = Math.round(workDaysCount * 4.33);
+  const monthlyHours = avgDailyHours * monthlyWorkDays;
+  
+  return { dailyHours: avgDailyHours, totalWeeklyHours: totalDailyHours, workDays: workDaysCount, monthlyWorkDays, monthlyHours };
 }
 
 const EMPTY_FORM = {
@@ -774,6 +814,17 @@ export default function RHColaboradores() {
 
                     return (
                       <>
+                        {/* Individual Days Toggle */}
+                        <div className="flex items-center gap-2 mb-4">
+                          <Switch 
+                            checked={sched.useIndividualDays || false} 
+                            onCheckedChange={v => updateSched({ useIndividualDays: v })}
+                          />
+                          <Label className="text-xs cursor-pointer" onClick={() => updateSched({ useIndividualDays: !sched.useIndividualDays })}>
+                            Personalizar horários por dia da semana
+                          </Label>
+                        </div>
+
                         {/* Days of week toggles */}
                         <div className="flex flex-wrap gap-2">
                           {WEEKDAYS.map(wd => (
@@ -793,12 +844,41 @@ export default function RHColaboradores() {
                         </p>
 
                         {/* Time inputs */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                          <div><Label className="text-xs">Entrada</Label><Input type="time" value={sched.entry} onChange={e => updateSched({ entry: e.target.value })} /></div>
-                          <div><Label className="text-xs">Saída</Label><Input type="time" value={sched.exit} onChange={e => updateSched({ exit: e.target.value })} /></div>
-                          <div><Label className="text-xs">Início Almoço</Label><Input type="time" value={sched.lunch_start} onChange={e => updateSched({ lunch_start: e.target.value })} /></div>
-                          <div><Label className="text-xs">Fim Almoço</Label><Input type="time" value={sched.lunch_end} onChange={e => updateSched({ lunch_end: e.target.value })} /></div>
-                        </div>
+                        {!sched.useIndividualDays ? (
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div><Label className="text-xs">Entrada</Label><Input type="time" value={sched.entry} onChange={e => updateSched({ entry: e.target.value })} /></div>
+                            <div><Label className="text-xs">Saída</Label><Input type="time" value={sched.exit} onChange={e => updateSched({ exit: e.target.value })} /></div>
+                            <div><Label className="text-xs">Início Almoço</Label><Input type="time" value={sched.lunch_start} onChange={e => updateSched({ lunch_start: e.target.value })} /></div>
+                            <div><Label className="text-xs">Fim Almoço</Label><Input type="time" value={sched.lunch_end} onChange={e => updateSched({ lunch_end: e.target.value })} /></div>
+                          </div>
+                        ) : (
+                          <div className="space-y-3 border rounded-lg p-3 bg-background/50">
+                            {WEEKDAYS.map(wd => {
+                              const isActive = sched.days[wd.key];
+                              if (!isActive) return null;
+                              
+                              const config = (sched.dayConfig || {})[wd.key] || { entry: "08:00", exit: "17:00", lunch_start: "12:00", lunch_end: "13:00" };
+                              const setDayField = (field: string, val: string) => {
+                                updateSched({
+                                  dayConfig: {
+                                    ...(sched.dayConfig || {}),
+                                    [wd.key]: { ...config, [field]: val }
+                                  }
+                                });
+                              };
+
+                              return (
+                                <div key={wd.key} className="grid grid-cols-1 sm:grid-cols-[80px_1fr_1fr_1fr_1fr] gap-3 items-center border-b last:border-0 pb-2 mb-2 last:pb-0 last:mb-0">
+                                  <span className="font-bold text-sm">{wd.label}</span>
+                                  <div><Label className="text-[10px] uppercase text-muted-foreground">Entrada</Label><Input className="h-8 text-xs" type="time" value={config.entry} onChange={e => setDayField("entry", e.target.value)} /></div>
+                                  <div><Label className="text-[10px] uppercase text-muted-foreground">Saída</Label><Input className="h-8 text-xs" type="time" value={config.exit} onChange={e => setDayField("exit", e.target.value)} /></div>
+                                  <div><Label className="text-[10px] uppercase text-muted-foreground">Início Almoço</Label><Input className="h-8 text-xs" type="time" value={config.lunch_start} onChange={e => setDayField("lunch_start", e.target.value)} /></div>
+                                  <div><Label className="text-[10px] uppercase text-muted-foreground">Fim Almoço</Label><Input className="h-8 text-xs" type="time" value={config.lunch_end} onChange={e => setDayField("lunch_end", e.target.value)} /></div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
 
                         {/* Calculated stats */}
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 rounded-lg bg-background border">

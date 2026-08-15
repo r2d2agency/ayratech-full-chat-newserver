@@ -334,10 +334,26 @@ router.get('/home', authenticatePromotor, async (req, res) => {
       const wsRaw = employee.rows[0]?.work_schedule || '08:00-17:00';
       try {
         const parsed = typeof wsRaw === 'object' ? wsRaw : (typeof wsRaw === 'string' && wsRaw.trim().startsWith('{') ? JSON.parse(wsRaw) : null);
-        if (parsed && parsed.entry) {
-          scheduleStart = parsed.entry;
-          scheduleEnd = parsed.exit || '17:00';
-        } else {
+        
+        if (parsed) {
+          const dowMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
+          const dayOfWeek = dowMap[nowBR.getDay()];
+          
+          if (parsed.useIndividualDays && parsed.dayConfig && parsed.dayConfig[dayOfWeek]) {
+            const config = parsed.dayConfig[dayOfWeek];
+            if (config.entry && config.exit) {
+              scheduleStart = config.entry;
+              scheduleEnd = config.exit;
+            }
+          }
+          
+          if (!scheduleStart && parsed.entry) {
+            scheduleStart = parsed.entry;
+            scheduleEnd = parsed.exit || '17:00';
+          }
+        }
+        
+        if (!scheduleStart) {
           const parts = String(wsRaw).split('-');
           if (parts.length >= 2) { 
             scheduleStart = parts[0].trim(); 
