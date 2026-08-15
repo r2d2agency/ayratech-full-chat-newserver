@@ -30,7 +30,9 @@ interface User {
   organization_id?: string;
   brand_id?: string;
   modules_enabled?: ModulesEnabled;
+  organization_footer?: string | null;
   has_connections?: boolean;
+
   page_permissions?: PagePermissions;
 }
 

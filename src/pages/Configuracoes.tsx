@@ -27,9 +27,12 @@ import { ThemeCustomizer } from "@/components/admin/ThemeCustomizer";
 import { GoogleCalendarPanel } from "@/components/crm/GoogleCalendarPanel";
 import { api as apiCall } from "@/lib/api";
 import { PhotoQualityConfigPanel } from "@/components/admin/PhotoQualityConfigPanel";
+import { applyThemeColors } from "@/hooks/use-branding";
 
 const Configuracoes = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
+
+
   const { theme, setTheme } = useTheme();
   const {
     settings: notifSettings,
@@ -43,17 +46,23 @@ const Configuracoes = () => {
   const isAdminOrOwner = user?.role === 'owner' || user?.role === 'admin';
   const [orgThemePreset, setOrgThemePreset] = useState<string | null>(null);
   const [orgThemeCustom, setOrgThemeCustom] = useState<string | null>(null);
+  const [orgFooterText, setOrgFooterText] = useState<string>("");
+  const [isSavingFooter, setIsSavingFooter] = useState(false);
+
+
 
   // Load org theme on mount
   useEffect(() => {
     if (isAdminOrOwner && user?.organization_id) {
-      apiCall<{ theme_preset: string | null; theme_custom_colors: string | null }>(
+      apiCall<{ theme_preset: string | null; theme_custom_colors: string | null; footer_text: string | null }>(
         `/api/organizations/${user.organization_id}/theme`
       ).then(data => {
         setOrgThemePreset(data.theme_preset);
         setOrgThemeCustom(data.theme_custom_colors);
+        setOrgFooterText(data.footer_text || "");
       }).catch(() => {});
     }
+
   }, [user?.organization_id, isAdminOrOwner]);
 
   const [displayName, setDisplayName] = useState(user?.name || "");
@@ -156,6 +165,70 @@ const Configuracoes = () => {
               Recursos
             </TabsTrigger>
           </TabsList>
+
+          {/* Org Appearance Settings (moved or additional section) */}
+          {isAdminOrOwner && (
+            <TabsContent value="aparencia" className="mt-6 space-y-6">
+              <ThemeCustomizer
+                currentPreset={orgThemePreset}
+                currentCustomColors={orgThemeCustom}
+                onSave={async (preset, customColors) => {
+                  if (!user?.organization_id) return;
+                  await api(`/api/organizations/${user.organization_id}/theme`, {
+                    method: 'PATCH',
+                    body: { theme_preset: preset, theme_custom_colors: customColors }
+                  });
+                  setOrgThemePreset(preset);
+                  setOrgThemeCustom(customColors);
+                  applyThemeColors(preset, customColors);
+                }}
+              />
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    Texto do Rodapé
+                  </CardTitle>
+                  <CardDescription>Texto personalizado que aparece no rodapé do sistema</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="footerText">Texto customizado</Label>
+                    <Input 
+                      id="footerText" 
+                      value={orgFooterText} 
+                      onChange={e => setOrgFooterText(e.target.value)} 
+                      placeholder="Ex: Agência XYZ - Todos os direitos reservados"
+                    />
+                  </div>
+                  <Button 
+                    className="w-full" 
+                    disabled={isSavingFooter}
+                    onClick={async () => {
+                      if (!user?.organization_id) return;
+                      setIsSavingFooter(true);
+                      try {
+                        await api(`/api/organizations/${user.organization_id}`, {
+                          method: 'PATCH',
+                          body: { footer_text: orgFooterText }
+                        });
+                        await refreshUser();
+                        toast.success("Rodapé atualizado!");
+
+                      } finally {
+                        setIsSavingFooter(false);
+                      }
+                    }}
+                  >
+                    {isSavingFooter ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                    Salvar Rodapé
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
 
           {/* General Settings Tab */}
           <TabsContent value="geral" className="mt-6">

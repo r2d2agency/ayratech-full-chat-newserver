@@ -3,7 +3,15 @@ import React from 'react';
 export default function Index() {
   return (
     <div className="p-8 space-y-4">
-      <h1 className="text-2xl font-bold">Instruções: Portal do Cliente (Marcas)</h1>
+      <h1 className="text-2xl font-bold">Personalização do Sistema & Relatórios</h1>
+      
+      <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-lg mb-6">
+        <p className="text-green-700 font-medium italic">✓ Branding implementado: Cor primária, Logo da Agência no PDF, Rodapé customizado e Acesso seguro para Marcas.</p>
+      </div>
+
+
+      <h1 className="text-xl font-semibold mt-8">Instruções: Portal do Cliente (Marcas)</h1>
+
       
       <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-lg">
         <p className="text-blue-700 font-medium">Como Gerenciar Acessos das Marcas</p>

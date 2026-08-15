@@ -1,5 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { resolveMediaUrl } from "@/lib/media";
+import { getBase64ImageFromURL } from "@/lib/pdf-utils";
+import { useAuth } from "@/contexts/AuthContext";
+
+
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -232,7 +236,7 @@ async function exportCurrentTabCSV(tab: string, filters: any, preRows?: any[], o
 }
 
 // Exporta PDF da aba atual
-async function exportCurrentTabPDF(tab: string, filters: any, preRows?: any[], only?: string[]) {
+async function exportCurrentTabPDF(tab: string, filters: any, preRows?: any[], only?: string[], userContext?: any) {
   try {
     const rows = preRows ?? await fetchTabData(tab, filters);
     if (!rows.length) { alert("Sem dados para exportar neste período/aba."); return; }
@@ -244,18 +248,34 @@ async function exportCurrentTabPDF(tab: string, filters: any, preRows?: any[], o
     const doc = new jsPDF('l', 'mm', 'a4');
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    // Header
+    // Header Background
     doc.setFillColor(30, 30, 46);
-    doc.rect(0, 0, pageWidth, 24, 'F');
+    doc.rect(0, 0, pageWidth, 40, 'F');
+
+    // Logo Placeholder
+    if (userContext?.organization_id) {
+      try {
+        const orgRes = await api<{ logo_url: string }>(`/api/organizations/${userContext.organization_id}`);
+        if (orgRes.logo_url) {
+          const agencyLogo = await getBase64ImageFromURL(orgRes.logo_url);
+          doc.addImage(agencyLogo, 'PNG', 12, 5, 20, 20);
+        }
+      } catch (e) {
+        console.error("PDF logo error", e);
+      }
+    }
+
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text(`Relatório - ${tabLabel(tab)}`, 12, 12);
+    doc.text(`Relatório - ${tabLabel(tab)}`, 40, 15);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     const brDate = (d?: string) => (d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '-');
-    const periodStr = `Período: ${brDate(filters.date_from)} a ${brDate(filters.date_to)} • Gerado em ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`;
-    doc.text(periodStr, 12, 19);
+    const periodStr = `Período: ${brDate(filters.date_from)} a ${brDate(filters.date_to)} • Gerado em ${new Date().toLocaleString('pt-BR')}`;
+    doc.text(periodStr, 40, 22);
+
+
 
     // Table
     const { headers, data } = buildExportRows(tab, rows, only);
@@ -266,7 +286,8 @@ async function exportCurrentTabPDF(tab: string, filters: any, preRows?: any[], o
     }));
 
     autoTable(doc, {
-      startY: 30,
+      startY: 45,
+
       head: [headers],
       body,
       styles: { fontSize: 7, cellPadding: 1.5, overflow: 'linebreak' },
@@ -281,8 +302,13 @@ async function exportCurrentTabPDF(tab: string, filters: any, preRows?: any[], o
       doc.setPage(i);
       doc.setFontSize(7);
       doc.setTextColor(150, 150, 150);
+      if (userContext?.organization_footer) {
+        doc.text(userContext.organization_footer, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+      }
       doc.text(`Ayratech • Sistema de Gestão v1.0.0 • Página ${i}/${pageCount}`,
-        pageWidth / 2, doc.internal.pageSize.getHeight() - 6, { align: 'center' });
+        pageWidth / 2, doc.internal.pageSize.getHeight() - 5, { align: 'center' });
+
+
     }
     doc.save(`relatorio_${tab}_${filters.date_from || ''}_${filters.date_to || ''}.pdf`);
   } catch (e: any) {
@@ -292,6 +318,8 @@ async function exportCurrentTabPDF(tab: string, filters: any, preRows?: any[], o
 
 // ===== Diálogo de exportação com personalização de colunas =====
 function ExportDialog({ open, onOpenChange, tab, filters }: { open: boolean; onOpenChange: (v: boolean) => void; tab: string; filters: any }) {
+  const { user } = useAuth();
+
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<any[]>([]);
   const [columns, setColumns] = useState<{ key: string; label: string }[]>([]);
@@ -315,10 +343,11 @@ function ExportDialog({ open, onOpenChange, tab, filters }: { open: boolean; onO
   const toggle = (key: string) =>
     setSelected(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
 
-  const run = async (fn: (t: string, f: any, r?: any[], only?: string[]) => Promise<void>) => {
-    await fn(tab, filters, rows, selected);
+  const run = async (fn: (t: string, f: any, r?: any[], only?: string[], u?: any) => Promise<void>) => {
+    await fn(tab, filters, rows, selected, user);
     onOpenChange(false);
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

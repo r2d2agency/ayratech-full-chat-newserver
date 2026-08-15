@@ -200,7 +200,7 @@ router.post('/', async (req, res) => {
 router.patch('/:id([0-9a-fA-F-]{36})', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, logo_url, modules_enabled } = req.body;
+    const { name, logo_url, modules_enabled, footer_text } = req.body;
 
     // Check if user is admin/owner
     const memberCheck = await query(
@@ -230,6 +230,11 @@ router.patch('/:id([0-9a-fA-F-]{36})', async (req, res) => {
       updates.push(`modules_enabled = $${paramIndex++}`);
       values.push(JSON.stringify(modules_enabled));
     }
+    if (footer_text !== undefined) {
+      updates.push(`footer_text = $${paramIndex++}`);
+      values.push(footer_text);
+    }
+
 
     if (updates.length === 0) {
       return res.status(400).json({ error: 'Nenhum campo para atualizar' });

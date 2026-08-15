@@ -215,7 +215,8 @@ router.post('/login', async (req, res) => {
 
     // Get role and organization info
     const orgResult = await query(
-      `SELECT om.role, om.brand_id, o.id as organization_id, o.modules_enabled
+      `SELECT om.role, om.brand_id, o.id as organization_id, o.modules_enabled, o.footer_text as organization_footer
+
        FROM organization_members om
        JOIN organizations o ON o.id = om.organization_id
        WHERE om.user_id = $1
@@ -304,7 +305,9 @@ router.post('/login', async (req, res) => {
         role,
         organization_id: organizationId,
         brand_id: orgResult.rows[0]?.brand_id || null,
+        organization_footer: orgResult.rows[0]?.organization_footer || null,
         modules_enabled: modulesEnabled,
+
         has_connections: hasConnections,
       },
       token
@@ -341,7 +344,8 @@ router.get('/me', async (req, res) => {
 
     // Role and organization info (multi-tenant)
     const orgResult = await query(
-      `SELECT om.role, om.brand_id, o.id as organization_id, o.modules_enabled, om.permission_template_id
+      `SELECT om.role, om.brand_id, o.id as organization_id, o.modules_enabled, om.permission_template_id, o.footer_text as organization_footer
+
        FROM organization_members om
        JOIN organizations o ON o.id = om.organization_id
        WHERE om.user_id = $1
@@ -443,7 +447,9 @@ router.get('/me', async (req, res) => {
         role,
         organization_id: organizationId,
         brand_id: orgResult.rows[0]?.brand_id || null,
+        organization_footer: orgResult.rows[0]?.organization_footer || null,
         modules_enabled: modulesEnabled,
+
         has_connections: hasConnections,
         page_permissions: pagePermissions,
       } 
