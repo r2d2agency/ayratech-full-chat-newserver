@@ -648,6 +648,47 @@ router.put('/employees/:id', async (req, res) => {
   }
 });
 
+// Helper: Internal function to sync employee work journey with a specific scale ID
+async function syncEmployeeScheduleWithId(employeeId, scheduleId, userId = null) {
+  const schedRes = await query(`SELECT * FROM work_schedules WHERE id = $1`, [scheduleId]);
+  const sched = schedRes.rows[0];
+  if (!sched) return null;
+
+  // Map schedule_type to work_schedule days
+  const days = { seg: false, ter: false, qua: false, qui: false, sex: false, sab: false, dom: false };
+  const type = String(sched.schedule_type || '').toLowerCase();
+
+  if (type.includes('5x2')) {
+    days.seg = days.ter = days.qua = days.qui = days.sex = true;
+  } else if (type.includes('6x1')) {
+    days.seg = days.ter = days.qua = days.qui = days.sex = days.sab = true;
+  } else {
+    // Default to 5x2 if unknown
+    days.seg = days.ter = days.qua = days.qui = days.sex = true;
+  }
+
+  const workSchedule = {
+    days,
+    entry: (sched.entry_time || '08:00').slice(0, 5),
+    exit: (sched.exit_time || '17:00').slice(0, 5),
+    lunch_start: (sched.break_start || '12:00').slice(0, 5),
+    lunch_end: (sched.break_end || '13:00').slice(0, 5),
+  };
+
+  const result = await query(
+    `UPDATE employees SET work_schedule = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+    [JSON.stringify(workSchedule), employeeId]
+  );
+
+  if (result.rows[0] && userId) {
+    await auditLog(result.rows[0].organization_id, 'employee', employeeId, 'update', 
+      [{ field: 'work_schedule', oldVal: 'auto_sync', newVal: JSON.stringify(workSchedule) }], 
+      userId
+    );
+  }
+  return result.rows[0];
+}
+
 // Sync employee work journey with a specific scale
 router.post('/employees/:id/sync-schedule', async (req, res) => {
   try {
