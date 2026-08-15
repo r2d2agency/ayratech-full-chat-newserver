@@ -3,7 +3,14 @@ import React from 'react';
 export default function Index() {
   return (
     <div className="p-8 space-y-4">
-      <h1 className="text-2xl font-bold">Instruções: Portal do Cliente (Marcas)</h1>
+      <h1 className="text-2xl font-bold">Personalização do Sistema & Relatórios</h1>
+      
+      <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-lg mb-6">
+        <p className="text-amber-700 font-medium italic">"O personalizar poderia deixar mudar a cor por um texto antes colocar a logo do cliente.. subir a logo da agencia.. e no rodape manter a assinatura do sistema ayratech"</p>
+      </div>
+
+      <h1 className="text-xl font-semibold mt-8">Instruções: Portal do Cliente (Marcas)</h1>
+
       
       <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-lg">
         <p className="text-blue-700 font-medium">Como Gerenciar Acessos das Marcas</p>
