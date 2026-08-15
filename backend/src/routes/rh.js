@@ -488,8 +488,8 @@ router.post('/employees', async (req, res) => {
         bank_name, bank_agency, bank_account, bank_account_type, pix_key, pix_key_type,
         ctps_number, ctps_series, pis_pasep, voter_id, voter_zone, voter_section, skin_color,
         cnpj, company_name, status, photo_url, created_by,
-        salary_items, benefits, home_latitude, home_longitude, facial_required)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44,$45,$46,$47,$48,$49,$50,$51,$52,$53,$54,$55)
+        salary_items, benefits, home_latitude, home_longitude, facial_required, branch_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44,$45,$46,$47,$48,$49,$50,$51,$52,$53,$54,$55,$25)
 
        RETURNING *`,
       [orgId, d.full_name, d.social_name, d.cpf, d.rg, d.rg_issuer, d.birth_date, d.gender, d.marital_status, d.email, d.phone, d.phone2,
@@ -502,6 +502,20 @@ router.post('/employees', async (req, res) => {
         d.cnpj, d.company_name, d.status, d.photo_url, req.userId,
         JSON.stringify(d.salary_items), JSON.stringify(d.benefits), d.home_latitude, d.home_longitude, d.facial_required]
     );
+
+    // Auto-sync schedule if a branch/HQ is linked on creation
+    if (result.rows[0] && d.branch_id) {
+      try {
+        const branchRes = await query(`SELECT schedule_id FROM pdvs WHERE id = $1`, [d.branch_id]);
+        const branch = branchRes.rows[0];
+        if (branch?.schedule_id) {
+          await syncEmployeeScheduleWithId(result.rows[0].id, branch.schedule_id);
+        }
+      } catch (e) {
+        logError('rh.employees.create.auto_sync', e);
+      }
+    }
+
     await auditLog(orgId, 'employee', result.rows[0].id, 'create', [{ field: 'full_name', oldVal: null, newVal: d.full_name }], req.userId);
     res.json(result.rows[0]);
 
