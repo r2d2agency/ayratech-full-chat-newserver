@@ -236,7 +236,7 @@ async function exportCurrentTabCSV(tab: string, filters: any, preRows?: any[], o
 }
 
 // Exporta PDF da aba atual
-async function exportCurrentTabPDF(tab: string, filters: any, preRows?: any[], only?: string[], user?: any) {
+async function exportCurrentTabPDF(tab: string, filters: any, preRows?: any[], only?: string[], userContext?: any) {
   try {
     const rows = preRows ?? await fetchTabData(tab, filters);
     if (!rows.length) { alert("Sem dados para exportar neste período/aba."); return; }
@@ -253,9 +253,9 @@ async function exportCurrentTabPDF(tab: string, filters: any, preRows?: any[], o
     doc.rect(0, 0, pageWidth, 40, 'F');
 
     // Logo Placeholder
-    if (user?.organization_id) {
+    if (userContext?.organization_id) {
       try {
-        const orgRes = await api<{ logo_url: string }>(`/api/organizations/${user.organization_id}`);
+        const orgRes = await api<{ logo_url: string }>(`/api/organizations/${userContext.organization_id}`);
         if (orgRes.logo_url) {
           const agencyLogo = await getBase64ImageFromURL(orgRes.logo_url);
           doc.addImage(agencyLogo, 'PNG', 12, 5, 20, 20);
@@ -274,6 +274,7 @@ async function exportCurrentTabPDF(tab: string, filters: any, preRows?: any[], o
     const brDate = (d?: string) => (d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '-');
     const periodStr = `Período: ${brDate(filters.date_from)} a ${brDate(filters.date_to)} • Gerado em ${new Date().toLocaleString('pt-BR')}`;
     doc.text(periodStr, 40, 22);
+
 
 
     // Table
@@ -301,11 +302,12 @@ async function exportCurrentTabPDF(tab: string, filters: any, preRows?: any[], o
       doc.setPage(i);
       doc.setFontSize(7);
       doc.setTextColor(150, 150, 150);
-      if (user?.organization_footer) {
-        doc.text(user.organization_footer, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+      if (userContext?.organization_footer) {
+        doc.text(userContext.organization_footer, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
       }
       doc.text(`Ayratech • Sistema de Gestão v1.0.0 • Página ${i}/${pageCount}`,
         pageWidth / 2, doc.internal.pageSize.getHeight() - 5, { align: 'center' });
+
 
     }
     doc.save(`relatorio_${tab}_${filters.date_from || ''}_${filters.date_to || ''}.pdf`);
