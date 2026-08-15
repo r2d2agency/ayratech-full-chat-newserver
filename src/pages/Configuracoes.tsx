@@ -32,6 +32,7 @@ import { applyThemeColors } from "@/hooks/use-branding";
 const Configuracoes = () => {
   const { user, refreshUser } = useAuth();
 
+
   const { theme, setTheme } = useTheme();
   const {
     settings: notifSettings,
@@ -47,6 +48,7 @@ const Configuracoes = () => {
   const [orgThemeCustom, setOrgThemeCustom] = useState<string | null>(null);
   const [orgFooterText, setOrgFooterText] = useState<string>("");
   const [isSavingFooter, setIsSavingFooter] = useState(false);
+
 
 
   // Load org theme on mount
