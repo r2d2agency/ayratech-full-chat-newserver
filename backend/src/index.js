@@ -421,6 +421,7 @@ app.use('/api/organizations', organizationsRoutes);
 app.use('/api/asaas', asaasRoutes);
 // Mount promoter-access early so its public routes (e.g. /api/public/networks)
 // are not swallowed by adminRoutes' authenticate middleware at /api/public.
+app.use('/api/network-portal', agencyNetworkRequestsRoutes);
 app.use('/api', promoterAccessRoutes);
 app.use('/api/admin', adminRoutes);
 // Público: auto-cadastro de colaborador (token + chave). Deve vir antes de adminRoutes.
