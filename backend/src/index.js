@@ -522,6 +522,15 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Fallback JSON for 404s
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Rota não encontrada',
+    method: req.method,
+    path: req.originalUrl
+  });
+});
+
 // Start the HTTP server immediately, then initialize the database in the background.
 // This prevents deploy-time 502 responses while long non-critical migrations run.
 app.listen(PORT, () => {
