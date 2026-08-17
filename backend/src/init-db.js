@@ -4735,7 +4735,7 @@ const migrationSteps = [
   { name: 'Promoter Conformity', sql: step45dPromoterConformity, critical: false },
   { name: 'Agency Billing', sql: step46AgencyBilling, critical: false },
   { name: 'Visit Requests', sql: step47VisitRequests, critical: false },
-  { name: 'Live Tracking', sql: step48LiveTracking, critical: false },
+  { name: 'Live Tracking', sql: step48LiveTracking, critical: true },
 ];
 
 export async function initDatabase() {
