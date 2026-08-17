@@ -100,10 +100,13 @@ router.post('/login', async (req, res) => {
       `SELECT nu.*, sn.organization_id, sn.name AS network_name
          FROM network_users nu
          JOIN supermarket_networks sn ON sn.id = nu.network_id
-        WHERE nu.email = $1 AND nu.active = true`,
+        WHERE (nu.email = $1 OR nu.name = $1) AND nu.active = true`,
       [String(email).trim().toLowerCase()]
     );
-    if (!r.rows.length) return res.status(401).json({ error: 'Credenciais inválidas' });
+    if (!r.rows.length) {
+      console.log(`[Network Login] User not found: ${email}`);
+      return res.status(401).json({ error: 'Credenciais inválidas' });
+    }
     const user = r.rows[0];
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) return res.status(401).json({ error: 'Credenciais inválidas' });

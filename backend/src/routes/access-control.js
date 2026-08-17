@@ -801,11 +801,17 @@ router.post('/totem/login', async (req, res) => {
               su.city, su.state, su.id as unit_id
        FROM supermarket_users su_user
        JOIN supermarket_units su ON su.id = su_user.supermarket_unit_id
-       WHERE su_user.email = $1 AND su_user.active = true`, [normalizedEmail]);
-    if (!r.rows.length) return res.status(401).json({ error: 'Credenciais inválidas' });
+        WHERE (su_user.email = $1 OR su_user.username = $1) AND su_user.active = true`, [normalizedEmail]);
+    if (!r.rows.length) {
+      console.log(`[Totem Login] User not found: ${normalizedEmail}`);
+      return res.status(401).json({ error: 'Credenciais inválidas' });
+    }
     const user = r.rows[0];
     const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) return res.status(401).json({ error: 'Credenciais inválidas' });
+    if (!valid) {
+      console.log(`[Totem Login] Invalid password for: ${normalizedEmail}`);
+      return res.status(401).json({ error: 'Credenciais inválidas' });
+    }
 
     let totemToken = user.totem_token;
     if (!totemToken || !user.totem_enabled) {

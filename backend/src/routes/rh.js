@@ -6,6 +6,28 @@ import { logInfo, logError } from '../logger.js';
 
 
 const router = express.Router();
+
+// Public route for client-side logging (must be BEFORE router.use(authenticate))
+router.post('/client-logs', async (req, res) => {
+  try {
+    const { logFromClient } = await import('../logger.js');
+    const { level, event, payload } = req.body;
+    
+    // Enrich with request context (userId will be null if not authenticated, which is expected for public logs)
+    const enrichedPayload = {
+      ...payload,
+      ip: req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+      user_id: req.userId || null
+    };
+
+    logFromClient(level || 'info', event || 'client_event', enrichedPayload);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Client logs error:', err);
+    res.status(500).json({ error: 'Erro ao registrar log do cliente' });
+  }
+});
+
 router.use(authenticate);
 
 const BR_GEOCODE_USER_AGENT = 'Ayratech/1.0 (suporte@ayratech.app.br)';
@@ -2535,25 +2557,6 @@ router.get('/runtime-logs', async (req, res) => {
   }
 });
 
-router.post('/client-logs', async (req, res) => {
-  try {
-    const { logFromClient } = await import('../logger.js');
-    const { level, event, payload } = req.body;
-    
-    // Enrich with request context
-    const enrichedPayload = {
-      ...payload,
-      ip: req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress,
-      user_id: req.userId
-    };
-
-    logFromClient(level || 'info', event || 'client_event', enrichedPayload);
-    res.json({ ok: true });
-  } catch (err) {
-    console.error('Client logs error:', err);
-    res.status(500).json({ error: 'Erro ao registrar log do cliente' });
-  }
-});
 
 router.get('/connected-devices', async (req, res) => {
   try {

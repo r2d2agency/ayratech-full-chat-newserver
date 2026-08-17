@@ -64,6 +64,8 @@ export default function Index() {
           <p className="text-blue-400">[PORTAL] Links de acesso ao Portal (Rede, Marcas e Onboarding) atualizados para o domínio access.ayratech.app.</p>
           <p className="text-green-400">[FIX] Erro 401 no login do Supermercado resolvido: garantida a criação automática do usuário administrador e isolamento de rede.</p>
           <p className="text-blue-400">[AUTH] Correção de redirecionamento no domínio admin.ayratech.app para suportar os módulos de acesso legado.</p>
+          <p className="text-green-400">[AUTH] Erro 401 resolvido no Portal do Supermercado: expandida a busca de usuários para aceitar login via 'username' e adicionados logs de depuração no servidor.</p>
+          <p className="text-blue-400">[LOGS] Erro 401 em logs de cliente resolvido: rota /api/rh/client-logs tornada pública para permitir registros de erros antes da autenticação.</p>
         </div>
       </div>
     </div>
