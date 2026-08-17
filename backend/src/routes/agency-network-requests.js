@@ -349,8 +349,9 @@ router.get('/network-portal/access-requests', authNetwork, async (req, res) => {
               (SELECT COUNT(*)::int FROM agency_access_request_items i WHERE i.request_id = aar.id AND i.conflict_with_agency_id IS NOT NULL) AS conflict_items
          FROM agency_access_requests aar
          JOIN agencies a ON a.id = aar.agency_id
-        WHERE aar.network_id = $1
-        ORDER BY aar.status='pending' DESC, aar.created_at DESC LIMIT 300`, [req.networkId]
+         JOIN supermarket_networks sn ON sn.id = aar.network_id
+        WHERE aar.network_id = $1 AND sn.organization_id = $2
+        ORDER BY aar.status='pending' DESC, aar.created_at DESC LIMIT 300`, [req.networkId, req.orgId]
     );
     res.json(r.rows);
   } catch (e) { console.error('network list requests', e); res.status(500).json({ error: 'Erro' }); }
@@ -363,7 +364,8 @@ router.get('/network-portal/access-requests/:id', authNetwork, async (req, res) 
       `SELECT aar.*, a.name AS agency_name, a.cnpj AS agency_cnpj
          FROM agency_access_requests aar
          JOIN agencies a ON a.id = aar.agency_id
-        WHERE aar.id=$1 AND aar.network_id=$2`, [req.params.id, req.networkId]
+         JOIN supermarket_networks sn ON sn.id = aar.network_id
+        WHERE aar.id=$1 AND aar.network_id=$2 AND sn.organization_id = $3`, [req.params.id, req.networkId, req.orgId]
     );
     if (!r.rows[0]) return res.status(404).json({ error: 'Não encontrado' });
     const items = await query(
@@ -392,8 +394,11 @@ router.post('/network-portal/access-requests/:id/review', authNetwork, async (re
     if (!['approved', 'rejected'].includes(decision)) {
       return res.status(400).json({ error: 'decision inválida' });
     }
-    const cur = await query(`SELECT * FROM agency_access_requests WHERE id=$1 AND network_id=$2`,
-      [req.params.id, req.networkId]);
+    const cur = await query(
+      `SELECT aar.* FROM agency_access_requests aar
+         JOIN supermarket_networks sn ON sn.id = aar.network_id
+        WHERE aar.id=$1 AND aar.network_id=$2 AND sn.organization_id = $3`,
+      [req.params.id, req.networkId, req.orgId]);
     if (!cur.rows[0]) return res.status(404).json({ error: 'Não encontrado' });
     const reqRow = cur.rows[0];
 

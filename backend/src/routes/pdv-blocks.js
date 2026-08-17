@@ -213,7 +213,8 @@ router.get('/blocks', authFlex, async (req, res) => {
     if (unitId) { params.push(unitId); where += ` AND b.supermarket_unit_id = $${params.length}`; }
     if (req.tokenType === 'network') {
       params.push(req.networkId);
-      where += ` AND su.network_id = $${params.length}`;
+      params.push(req.orgId);
+      where += ` AND su.network_id = $${params.length - 1} AND su.organization_id = $${params.length}`;
     }
     if (req.query.active === 'true') where += ` AND b.active = true`;
     if (req.query.active === 'false') where += ` AND b.active = false`;
