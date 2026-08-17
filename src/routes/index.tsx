@@ -68,6 +68,7 @@ export default function Index() {
           <p className="text-blue-400">[LOGS] Erro 401 em logs de cliente resolvido: rota /api/rh/client-logs tornada pública para permitir registros de erros antes da autenticação.</p>
           <p className="text-red-400">[DB] Corrigido erro "relation employee_live_locations does not exist": Step de Live Tracking marcado como CRÍTICO no init-db.js para garantir criação das tabelas.</p>
           <p className="text-green-400">[AGENCY] Corrigido erro 404 em solicitações de rede da agência: rotas de 'network-requests' mapeadas corretamente sob o prefixo /api/access-control.</p>
+          <p className="text-blue-400">[AGENCY] Corrigido erro de "Marca Vazia" na Solicitação de Acesso: mapeamento do backend corrigido para a tabela merch_brands.</p>
         </div>
       </div>
     </div>

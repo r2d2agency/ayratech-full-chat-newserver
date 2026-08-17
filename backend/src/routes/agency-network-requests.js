@@ -152,15 +152,18 @@ router.get('/agency/network-requests/networks/:networkId/units', authAgency, asy
 });
 
 // List brands available to the agency
+// This should only show brands that belong to the agency's organization
+// OR brands specifically linked to this agency if there's a linking table.
+// For now, it returns all brands in the organization.
 router.get('/agency/network-requests/brands', authAgency, async (req, res) => {
   try {
     const r = await query(
-      `SELECT b.id, b.name FROM brands b
+      `SELECT b.id, b.name FROM merch_brands b
         WHERE b.organization_id = $1 AND COALESCE(b.status,'active')='active'
         ORDER BY b.name ASC`, [req.orgId]
     );
     res.json(r.rows);
-  } catch (e) { res.status(500).json({ error: 'Erro' }); }
+  } catch (e) { console.error('agency-brands-error', e); res.status(500).json({ error: 'Erro' }); }
 });
 
 // Preflight conflict check
