@@ -29,7 +29,7 @@ export default function PromoterAppAccessDialog({ open, onOpenChange, promoter }
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const url = `${window.location.origin}/p/login`;
+  const url = `https://access.ayratech.app/p/login`;
   const cpfDigits = onlyDigits(promoter?.cpf || '');
 
   const handleGenerate = () => {

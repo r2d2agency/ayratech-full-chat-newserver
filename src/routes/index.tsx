@@ -61,7 +61,7 @@ export default function Index() {
           <p className="text-green-400">[APP/RH] Ponto Inteligente: O aplicativo agora detecta automaticamente turnos sem intervalo (ex: Sábados 07-11h) e remove as opções de "Saída/Retorno Intervalo", permitindo registrar apenas Entrada e Saída.</p>
           <p className="text-blue-400">[RH] Correção no cálculo de horas: intervalos vazios no cadastro de jornada individual não são mais subtraídos do total de horas trabalhadas.</p>
           <p className="text-green-400">[DOMAIN] Módulo de Controle de Acesso isolado: configurado redirecionamento inteligente para access.ayratech.app.</p>
-          <p className="text-blue-400">[PORTAL] Corrigido erro 401 no login do Portal de Rede (Supermercados): Adicionado usuário administrador inicial (admin@ayratech.app / ayra123) e configurada URL base do backend padrão.</p>
+          <p className="text-blue-400">[PORTAL] Links de acesso ao Portal (Rede, Marcas e Onboarding) atualizados para o domínio access.ayratech.app.</p>
         </div>
       </div>
     </div>
