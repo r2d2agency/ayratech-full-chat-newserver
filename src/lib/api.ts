@@ -88,6 +88,15 @@ const getResilienceConfig = (endpoint: string) => {
       silent: true,
     };
   }
+  if (path === MERCH_ROUTES_LIST_ENDPOINT || path === BRAND_CHECKLISTS_ENDPOINT || path === '/api/connections' || path === '/api/network-portal/access-requests') {
+    return {
+      cooldownMs: GENERAL_ENDPOINT_COOLDOWN_MS,
+      fallbackToOtherBases: false,
+      fallbackValue: () => [],
+      maxRetries: 0,
+      silent: true,
+    };
+  }
   return undefined;
 };
 
