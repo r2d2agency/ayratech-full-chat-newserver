@@ -227,11 +227,10 @@ router.post('/change-password', authenticatePromotor, async (req, res) => {
 // =============================================
 router.get('/home', authenticatePromotor, async (req, res) => {
   try {
-    // Use America/Sao_Paulo timezone
+    // Use America/Sao_Paulo timezone - ensures the current date matches the collaborator's region
     const nowBR = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-    // Safety check: ensure we are not shifting the actual clock time twice
-    // For punch records, we usually prefer UTC or DB-server time, but for logic check we use BR time
-    const today = nowBR.toLocaleDateString('en-CA'); // YYYY-MM-DD in local time zone
+    // Safety check: using 'en-CA' for stable YYYY-MM-DD format based on the localized time
+    const today = nowBR.toLocaleDateString('en-CA'); 
     const empId = req.employeeId;
 
     // Helper to run a query safely – returns empty result on missing-table errors
