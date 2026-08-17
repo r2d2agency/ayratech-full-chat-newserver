@@ -4914,3 +4914,19 @@ const step46NetworkPortal = async () => {
 };
 
 // Execute step 46 at the end of initializeDatabase function
+
+// ============================================
+// AUTO-EXECUTE INITIALIZATION ON START
+// ============================================
+if (import.meta.url === `file://${process.argv[1]}`) {
+  console.log('🚀 Manually running database initialization...');
+  initializeDatabase()
+    .then(() => {
+      console.log('✅ Initialization complete');
+      process.exit(0);
+    })
+    .catch(err => {
+      console.error('❌ Initialization failed:', err);
+      process.exit(1);
+    });
+}
