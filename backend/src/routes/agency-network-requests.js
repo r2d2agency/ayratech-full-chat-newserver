@@ -349,8 +349,9 @@ router.get('/network-portal/access-requests', authNetwork, async (req, res) => {
               (SELECT COUNT(*)::int FROM agency_access_request_items i WHERE i.request_id = aar.id AND i.conflict_with_agency_id IS NOT NULL) AS conflict_items
          FROM agency_access_requests aar
          JOIN agencies a ON a.id = aar.agency_id
-        WHERE aar.network_id = $1
-        ORDER BY aar.status='pending' DESC, aar.created_at DESC LIMIT 300`, [req.networkId]
+         JOIN supermarket_networks sn ON sn.id = aar.network_id
+        WHERE aar.network_id = $1 AND sn.organization_id = $2
+        ORDER BY aar.status='pending' DESC, aar.created_at DESC LIMIT 300`, [req.networkId, req.orgId]
     );
     res.json(r.rows);
   } catch (e) { console.error('network list requests', e); res.status(500).json({ error: 'Erro' }); }
