@@ -75,6 +75,7 @@ export default function Index() {
           <p className="text-green-400">[PORTAL] Link do Totem: Adicionado painel de ajuda em Configurações do Supermercado explicando como acessar e ativar o totem via access.ayratech.app/totem.</p>
           <p className="text-blue-400">[AGENCY] Restrição de Marcas: O Portal do Parceiro agora exibe apenas as marcas vinculadas à agência. Prestadores de serviço sem marcas vinculadas podem solicitar acesso apenas ao PDV.</p>
           <p className="text-green-400">[FIX] Visibilidade de Solicitações: Corrigido erro de sincronização que impedia que solicitações de acesso aparecessem para as Redes devido a conflito de escopo de organização no banco de dados.</p>
+          <p className="text-red-400">[FIX] Erro 404 em Acesso da Agência: Rota /api/network-portal/access-requests mapeada corretamente no backend, resolvendo falha no carregamento de solicitações para aprovação.</p>
         </div>
       </div>
     </div>
