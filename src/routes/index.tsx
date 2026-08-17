@@ -78,6 +78,7 @@ export default function Index() {
           <p className="text-red-400">[FIX] Erro 404 em Acesso da Agência: Rota /api/network-portal/access-requests mapeada corretamente no backend, resolvendo falha no carregamento de solicitações para aprovação.</p>
           <p className="text-blue-400">[FIX] Erro 404 persistente resolvido: Mapeamento redundante de rotas do Portal de Rede no backend garantido sob o prefixo correto.</p>
           <p className="text-green-400">[ROOT-CAUSE-FIX] Erro 404 definitivo resolvido: A rota networkPortalRoutes estava sendo montada APÓS o middleware de 404 global no backend. O router foi movido para o topo da pilha de rotas no backend/src/index.js, garantindo sua visibilidade.</p>
+          <p className="text-red-500 font-bold">[CRITICAL] Erro "relation employee_live_locations does not exist": As tabelas de rastreamento em tempo real foram adicionadas ao script de inicialização do banco de dados (backend/src/init-db.js). REINICIE o container do backend no Easypanel para criar as tabelas automaticamente.</p>
         </div>
       </div>
     </div>
