@@ -20,6 +20,14 @@ let schemaReady = null;
 async function ensureSchema() {
   if (schemaReady) return schemaReady;
   schemaReady = (async () => {
+    // Table to link brands to agencies (partners)
+    await query(`CREATE TABLE IF NOT EXISTS agency_brand_links (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+      brand_id UUID NOT NULL REFERENCES merch_brands(id) ON DELETE CASCADE,
+      UNIQUE(agency_id, brand_id)
+    )`);
+
     await query(`CREATE TABLE IF NOT EXISTS agency_brand_assignments (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       agency_id UUID NOT NULL,
@@ -155,17 +163,20 @@ router.get('/agency/network-requests/networks/:networkId/units', authAgency, asy
   } catch (e) { res.status(500).json({ error: 'Erro' }); }
 });
 
-// List brands available to the agency
-// This should only show brands that belong to the agency's organization
-// OR brands specifically linked to this agency if there's a linking table.
-// For now, it returns all brands in the organization.
+// List brands available to the partner
+// Logic: If the agency belongs to an organization that has brands linked to it, show only those.
+// For service providers (non-agencies), they might not have brands.
 router.get('/agency/network-requests/brands', authAgency, async (req, res) => {
   try {
     const r = await query(
       `SELECT b.id, b.name FROM merch_brands b
-        WHERE b.organization_id = $1 AND COALESCE(b.status,'active')='active'
-        ORDER BY b.name ASC`, [req.orgId]
+        JOIN agency_brand_links abl ON abl.brand_id = b.id
+       WHERE abl.agency_id = $1 AND b.organization_id = $2 AND COALESCE(b.status,'active')='active'
+       ORDER BY b.name ASC`, [req.agencyId, req.orgId]
     );
+    // If no brands are specifically linked, we check if it's a general service provider.
+    // If we want to return all brands for "Legacy" support, we'd do a fallback, 
+    // but the user explicitly asked to show ONLY brands the partner serves.
     res.json(r.rows);
   } catch (e) { console.error('agency-brands-error', e); res.status(500).json({ error: 'Erro' }); }
 });
