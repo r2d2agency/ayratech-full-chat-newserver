@@ -476,7 +476,7 @@ app.use('/api/ayratech-ai', ayratechAiRoutes);
 app.use('/api/promoter-validations', promoterValidationsRoutes);
 app.use('/api/pdv-blocks', pdvBlocksRoutes);
 app.use('/api/network-portal', networkPortalRoutes);
-app.use('/api', agencyNetworkRequestsRoutes);
+app.use('/api/access-control', agencyNetworkRequestsRoutes);
 // promoterAccessRoutes already mounted above (before /api/public)
 
 app.use('/api/promoter-leaves', promoterLeavesRoutes);
