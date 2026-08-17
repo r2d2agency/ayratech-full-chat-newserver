@@ -490,7 +490,14 @@ export default function RHPonto() {
                       const saida = punches.find((p: any) => p.punch_type === 'saida');
                       const hasGeoIssue = punches.some((p: any) => p.geo_status === 'fora_area');
                       const isIncomplete = punches.length % 2 !== 0;
-                      const hours = c.raw_hours ? Number(c.raw_hours).toFixed(1) : '—';
+                      const formatHours = (h: number) => {
+                        if (!h || h <= 0) return '—';
+                        const totalMinutes = Math.round(h * 60);
+                        const hh = Math.floor(totalMinutes / 60);
+                        const mm = totalMinutes % 60;
+                        return `${hh}h${mm.toString().padStart(2, '0')}`;
+                      };
+                      const hours = c.raw_hours ? formatHours(Number(c.raw_hours)) : '—';
 
                       return (
                         <TableRow key={idx} className={isIncomplete ? 'bg-yellow-50/50 dark:bg-yellow-950/10' : hasGeoIssue ? 'bg-orange-50/50 dark:bg-orange-950/10' : ''}>
