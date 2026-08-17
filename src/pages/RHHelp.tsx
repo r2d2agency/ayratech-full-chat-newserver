@@ -1,6 +1,6 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { HelpCircle, Users, Clock, Building2, ShieldCheck, MapPin } from "lucide-react";
+import { HelpCircle, Users, Clock, Building2, ShieldCheck, MapPin, Monitor } from "lucide-react";
 
 const helpItems = [
   {
@@ -41,8 +41,6 @@ const helpItems = [
     content: "O link e a gestão dos totens de ponto estão localizados no menu 'RH > Exportação AFD'. Lá você pode criar novos totens, definir se exigem reconhecimento facial e copiar o link direto para acesso."
   }
 ];
-
-import { Monitor } from "lucide-react";
 
 export default function RHHelp() {
   return (
