@@ -94,6 +94,13 @@ logInfo('db.config_loaded', {
 });
 
 export const pool = new Pool(dbConfig);
+// Configure session timezone for all queries to Brazil/Sao Paulo
+pool.on('connect', (client) => {
+  client.query("SET timezone = 'America/Sao_Paulo'").catch(err => {
+    logWarn('db.session_timezone_failed', err);
+  });
+});
+
 
 export async function query(text, params) {
   const startedAt = Date.now();
