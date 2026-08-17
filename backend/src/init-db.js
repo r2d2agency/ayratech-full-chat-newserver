@@ -4852,3 +4852,62 @@ export async function initDatabase() {
   return true;
 }
 
+
+// ============================================
+// STEP 46: NETWORK PORTAL INITIAL DATA
+// ============================================
+const step46NetworkPortal = async () => {
+  try {
+    // 1. Create table network_users if not exists
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS network_users (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        network_id UUID NOT NULL,
+        organization_id UUID,
+        email VARCHAR(255) NOT NULL UNIQUE,
+        password_hash VARCHAR(255) NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        role VARCHAR(30) DEFAULT 'admin',
+        last_login TIMESTAMPTZ,
+        active BOOLEAN NOT NULL DEFAULT true,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    
+    // 2. Ensure at least one network exists for testing/initial access
+    const orgRes = await pool.query('SELECT id FROM organizations LIMIT 1');
+    if (orgRes.rows.length > 0) {
+      const orgId = orgRes.rows[0].id;
+      
+      const netRes = await pool.query(
+        "INSERT INTO supermarket_networks (organization_id, name, active) VALUES (, 'Rede Padrão', true) ON CONFLICT DO NOTHING RETURNING id",
+        [orgId]
+      );
+      
+      let networkId = netRes.rows[0]?.id;
+      if (!networkId) {
+        const existingNet = await pool.query('SELECT id FROM supermarket_networks LIMIT 1');
+        networkId = existingNet.rows[0]?.id;
+      }
+      
+      if (networkId) {
+        // 3. Create initial network user (pass: ayra123)
+        const bcrypt = await import('bcryptjs');
+        const hash = await bcrypt.default.hash('ayra123', 10);
+        
+        await pool.query(`
+          INSERT INTO network_users (network_id, organization_id, email, password_hash, name, role)
+          VALUES (, , 'admin@ayratech.app', , 'Administrador Rede', 'admin')
+          ON CONFLICT (email) DO NOTHING
+        `, [networkId, orgId, hash]);
+        
+        console.log('  🌐 Network Portal initial data ensured');
+      }
+    }
+  } catch (e) {
+    console.error('  ⚠️ Failed to initialize Network Portal data:', e.message);
+  }
+};
+
+// Execute step 46 at the end of initializeDatabase function
