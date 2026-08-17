@@ -415,10 +415,10 @@ router.post('/network-portal/access-requests/:id/review', authNetwork, async (re
           }
           await query(
             `INSERT INTO agency_brand_assignments
-               (agency_id, supermarket_unit_id, brand_id, network_id, organization_id, assigned_via, active)
-             VALUES ($1,$2,$3,$4,$5,$6,true)
+               (agency_id, supermarket_unit_id, brand_id, network_id, organization_id, assigned_via, active, partner_segment, professional_role)
+             VALUES ($1,$2,$3,$4,$5,$6,true,$7,$8)
              ON CONFLICT DO NOTHING`,
-            [reqRow.agency_id, it.supermarket_unit_id, it.brand_id, req.networkId, reqRow.organization_id, reqRow.id]
+            [reqRow.agency_id, it.supermarket_unit_id, it.brand_id, req.networkId, reqRow.organization_id, reqRow.id, it.partner_segment, it.professional_role]
           );
           // Ensure agency_allowed_units (compat with existing flows)
           await query(
