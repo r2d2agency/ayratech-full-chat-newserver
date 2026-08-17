@@ -66,6 +66,7 @@ export default function Index() {
           <p className="text-blue-400">[AUTH] Correção de redirecionamento no domínio admin.ayratech.app para suportar os módulos de acesso legado.</p>
           <p className="text-green-400">[AUTH] Erro 401 resolvido no Portal do Supermercado: expandida a busca de usuários para aceitar login via 'username' e adicionados logs de depuração no servidor.</p>
           <p className="text-blue-400">[LOGS] Erro 401 em logs de cliente resolvido: rota /api/rh/client-logs tornada pública para permitir registros de erros antes da autenticação.</p>
+          <p className="text-red-400">[DB] Corrigido erro "relation employee_live_locations does not exist": Step de Live Tracking marcado como CRÍTICO no init-db.js para garantir criação das tabelas.</p>
         </div>
       </div>
     </div>
