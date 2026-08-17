@@ -72,6 +72,7 @@ export default function Index() {
           <p className="text-green-400">[PORTAL] Generalização do Portal da Agência: agora renomeado para "Portal do Parceiro" para permitir acesso a qualquer profissional ou prestador de serviço.</p>
           <p className="text-red-400">[FIX] Erro useAgencyAuth resolvido: AgencySignup agora está envolvido pelo AgencyAuthProvider, corrigindo falha no carregamento do cadastro de parceiros.</p>
           <p className="text-blue-400">[DOC] Totem de Ponto: Central de Ajuda atualizada informando que a gestão e o link dos totens estão em {'RH > Exportação AFD'}.</p>
+          <p className="text-green-400">[PORTAL] Link do Totem: Adicionado painel de ajuda em Configurações do Supermercado explicando como acessar e ativar o totem via access.ayratech.app/totem.</p>
         </div>
       </div>
     </div>
