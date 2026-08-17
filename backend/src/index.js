@@ -424,6 +424,7 @@ app.use('/api/asaas', asaasRoutes);
 // Mount network portal routes under /api/network-portal
 app.use('/api/network-portal', networkPortalRoutes);
 app.use('/api/network-portal', agencyNetworkRequestsRoutes);
+app.use('/api/access-control', agencyNetworkRequestsRoutes); // Alias para compatibilidade legado
 app.use('/api', promoterAccessRoutes);
 app.use('/api/admin', adminRoutes);
 // Público: auto-cadastro de colaborador (token + chave). Deve vir antes de adminRoutes.
