@@ -82,6 +82,7 @@ export default function Index() {
           <p className="text-yellow-400 font-bold">[BACKEND-FIX] Erro de SyntaxError no init-db.js resolvido: A sintaxe de template literal com escape estava incorreta e causava a falha na inicialização. O código foi corrigido para garantir que o backend inicie corretamente no Easypanel.</p>
           <p className="text-yellow-400">[PORTAL] Erro 401 Unauthorized no login do Portal de Rede: Verifique se o e-mail "kininoa@akto.com.br" está cadastrado na tabela network_users e se a senha está correta. O sistema de login de rede é independente do login administrativo.</p>
           <p className="text-red-400 font-bold">[TIMEZONE] Corrigido erro de "Dia Atrasado" (17/08 logado como 16/08): O fuso horário America/Sao_Paulo foi configurado GLOBALMENTE no backend e no banco de dados. Agora, todas as consultas e filtragens de data respeitam o horário local de Brasília, mesmo rodando em servidores UTC.</p>
+          <p className="text-green-400 font-bold">[DATA] Migração concluída: Todos os registros criados erroneamente em 16/08 devido ao fuso horário (Punches, Rotas, Escalas) foram migrados manualmente para 17/08 para garantir a integridade dos relatórios.</p>
           <p className="text-green-400">[PONTO] Ajustes manuais de ponto agora convertem corretamente o horário de Brasília para UTC antes de salvar no banco de dados, mantendo a integridade dos registros históricos.</p>
         </div>
       </div>
