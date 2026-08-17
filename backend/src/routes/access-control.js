@@ -10,10 +10,18 @@ import { triggerValidation } from './promoter-validations.js';
 const router = express.Router();
 
 // ============ HELPER: get org from authenticated user ============
-async function getOrgId(userId) {
-  const r = await query('SELECT organization_id FROM organization_members WHERE user_id = $1 LIMIT 1', [userId]);
-  return r.rows[0]?.organization_id;
+async function getOrgId(req) {
+  // If orgId is already in the request (from auth middleware), use it
+  if (req.orgId) return req.orgId;
+
+  // Fallback to database lookup
+  if (req.userId) {
+    const r = await query('SELECT organization_id FROM organization_members WHERE user_id = $1 LIMIT 1', [req.userId]);
+    return r.rows[0]?.organization_id;
+  }
+  return null;
 }
+
 
 const onlyDigits = (value) => String(value || '').replace(/\D/g, '');
 const tableExists = async (tableName) => {
