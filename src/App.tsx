@@ -211,7 +211,8 @@ function SmartRedirect() {
   const isPWA = window.matchMedia('(display-mode: standalone)').matches
     || (navigator as any).standalone === true;
   const isPromotorDomain = hostname.startsWith('promotor.');
-  const isSupermarketDomain = hostname.startsWith('supermercado.') || hostname.startsWith('acesso.');
+  const isAccessDomain = hostname.startsWith('access.') || hostname.startsWith('acesso.');
+  const isSupermarketDomain = hostname.startsWith('supermercado.') || isAccessDomain;
   const isAccessPromotorDomain = hostname.startsWith('parceiro.') || hostname.startsWith('acesso-promotor.');
   
   // Subdomain specific redirects
