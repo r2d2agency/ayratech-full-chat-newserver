@@ -4901,7 +4901,7 @@ const step46NetworkPortal = async () => {
         
         await pool.query(`
           INSERT INTO network_users (network_id, organization_id, email, password_hash, name, role)
-          VALUES (, , 'admin@ayratech.app', , 'Administrador Rede', 'admin')
+          VALUES ($1, $2, 'admin@ayratech.app', $3, 'Administrador Rede', 'admin')
           ON CONFLICT (email) DO NOTHING
         `, [networkId, orgId, hash]);
         

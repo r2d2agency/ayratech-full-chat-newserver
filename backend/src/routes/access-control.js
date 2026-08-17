@@ -1780,11 +1780,17 @@ router.post('/supermarket/login', async (req, res) => {
     const r = await query(
       `SELECT su_user.*, su.organization_id as org_id, su.name as unit_name FROM supermarket_users su_user
        JOIN supermarket_units su ON su.id = su_user.supermarket_unit_id
-       WHERE su_user.email = $1 AND su_user.active = true`, [normalizedEmail]);
-    if (!r.rows.length) return res.status(401).json({ error: 'Credenciais inválidas' });
+       WHERE (su_user.email = $1 OR su_user.name = $1) AND su_user.active = true`, [normalizedEmail]);
+    if (!r.rows.length) {
+      console.log(`[Supermarket Login] User not found: ${normalizedEmail}`);
+      return res.status(401).json({ error: 'Credenciais inválidas' });
+    }
     const user = r.rows[0];
     const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) return res.status(401).json({ error: 'Credenciais inválidas' });
+    if (!valid) {
+      console.log(`[Supermarket Login] Invalid password for: ${normalizedEmail}`);
+      return res.status(401).json({ error: 'Credenciais inválidas' });
+    }
     const token = jwt.sign({
       userId: user.id, unitId: user.supermarket_unit_id, networkId: user.network_id,
       canViewAllNetwork: user.can_view_all_network, orgId: user.org_id, type: 'supermarket'
