@@ -977,10 +977,7 @@ router.get('/consolidated-timesheet', async (req, res) => {
           'sync_status', tp.sync_status,
           'manual_adjustment', tp.manual_adjustment, 'adjustment_reason', tp.adjustment_reason
         ) ORDER BY tp.punched_at) as punches,
-        COUNT(*) as punch_count,
-        MIN(tp.punched_at) as first_punch,
-        MAX(tp.punched_at) as last_punch,
-        EXTRACT(EPOCH FROM (MAX(tp.punched_at) - MIN(tp.punched_at)))/3600.0 as raw_hours
+        COUNT(*) as punch_count
       FROM time_punches tp
       JOIN employees e ON e.id = tp.employee_id
       LEFT JOIN pdvs p ON p.id = tp.pdv_id
@@ -993,7 +990,69 @@ router.get('/consolidated-timesheet', async (req, res) => {
     sql += ` GROUP BY tp.employee_id, e.full_name, e.cpf, e.position, e.work_schedule, (tp.punched_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date
              ORDER BY (tp.punched_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date DESC, e.full_name`;
     const result = await query(sql, params);
-    res.json(result.rows);
+    
+    // Server-side calculation logic for hours
+    const rows = result.rows.map(row => {
+      const punches = Array.isArray(row.punches) ? row.punches : [];
+      
+      let raw_hours = 0;
+      
+      // We look for specific sequences: 
+      // 1. entrada -> saida_intervalo
+      // 2. retorno_intervalo -> saida
+      
+      const entrada = punches.find(p => p.punch_type === 'entrada');
+      const saida_int = punches.find(p => p.punch_type === 'saida_intervalo');
+      const retorno = punches.find(p => p.punch_type === 'retorno_intervalo');
+      const saida = punches.find(p => p.punch_type === 'saida');
+      
+      let total_ms = 0;
+      
+      // First period: Entry to Lunch Start
+      if (entrada && saida_int) {
+        const t1 = new Date(entrada.punched_at).getTime();
+        const t2 = new Date(saida_int.punched_at).getTime();
+        if (t2 > t1) total_ms += (t2 - t1);
+      }
+      
+      // Second period: Return to Exit
+      if (retorno && saida) {
+        const t3 = new Date(retorno.punched_at).getTime();
+        const t4 = new Date(saida.punched_at).getTime();
+        if (t4 > t3) total_ms += (t4 - t3);
+      }
+      
+      // Fallback 1: If it's a 2-punch day (entrada -> saida) or no lunch marks
+      if (total_ms === 0 && punches.length >= 2) {
+        // If there's an entry and an exit, but no lunch marks
+        if (entrada && saida) {
+           const t1 = new Date(entrada.punched_at).getTime();
+           const t2 = new Date(saida.punched_at).getTime();
+           if (t2 > t1) total_ms = (t2 - t1);
+        } else if (punches.length >= 2) {
+           // Basic fallback: last - first
+           const first = new Date(punches[0].punched_at).getTime();
+           const last = new Date(punches[punches.length-1].punched_at).getTime();
+           
+           // Only count as final if the last one is actually a 'saida'
+           const lastType = punches[punches.length-1].punch_type;
+           if (lastType === 'saida' || lastType === 'extraordinaria') {
+              if (last > first) total_ms = (last - first);
+           }
+        }
+      }
+      
+      raw_hours = total_ms / (1000 * 60 * 60);
+
+      return {
+        ...row,
+        raw_hours: Math.round(raw_hours * 100) / 100,
+        first_punch: punches[0]?.punched_at,
+        last_punch: punches[punches.length - 1]?.punched_at
+      };
+    });
+
+    res.json(rows);
   } catch (err) {
     logError('rh.consolidated_timesheet', err);
     res.status(500).json({ error: 'Erro' });
