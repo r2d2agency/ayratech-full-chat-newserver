@@ -83,17 +83,17 @@ export default function AgencySignup() {
             <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-2">
               <Building2 className="h-8 w-8 text-primary" />
             </div>
-            <CardTitle className="text-center text-2xl">Cadastrar agência</CardTitle>
+            <CardTitle className="text-center text-2xl">Cadastro de Parceiro / Prestador</CardTitle>
             <CardDescription className="text-center">
-              Preencha os dados da sua agência. A rede aprovará o acesso.
+              Preencha os dados da sua empresa. O acesso será liberado para atendimento às marcas.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={submit} className="space-y-4">
               <div className="grid sm:grid-cols-2 gap-3">
                 <div className="sm:col-span-2 space-y-1">
-                  <label className="text-sm font-medium">Razão social *</label>
-                  <Input value={form.company_name} onChange={set('company_name')} required />
+                  <label className="text-sm font-medium">Nome da Empresa / Razão Social *</label>
+                  <Input value={form.company_name} onChange={set('company_name')} placeholder="Ex: Prestador de Serviços XYZ" required />
                 </div>
                 <div className="space-y-1">
                   <label className="text-sm font-medium">CNPJ</label>
@@ -127,7 +127,7 @@ export default function AgencySignup() {
 
               {networks.length > 0 && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Redes que pretende atender</label>
+                  <label className="text-sm font-medium">Redes / Contratantes que pretende atender</label>
                   <div className="grid sm:grid-cols-2 gap-2 p-3 rounded-md border bg-muted/30 max-h-48 overflow-auto">
                     {networks.map((n) => (
                       <label key={n.id} className="flex items-center gap-2 text-sm">

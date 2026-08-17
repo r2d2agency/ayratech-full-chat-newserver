@@ -44,8 +44,8 @@ export default function AgencyLogin() {
           <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
             <Building2 className="h-8 w-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Portal da Agência</CardTitle>
-          <CardDescription>Acesse o painel de gestão da sua agência</CardDescription>
+          <CardTitle className="text-2xl">Portal do Parceiro</CardTitle>
+          <CardDescription>Acesse o painel de gestão da sua empresa</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -84,7 +84,7 @@ export default function AgencyLogin() {
             </Button>
             <p className="text-xs text-center text-muted-foreground">
               Ainda não tem cadastro?{' '}
-              <a href="/agencia/cadastro" className="text-primary underline">Cadastrar agência</a>
+              <a href="/agencia/cadastro" className="text-primary underline">Cadastrar empresa parceira</a>
             </p>
           </form>
         </CardContent>
