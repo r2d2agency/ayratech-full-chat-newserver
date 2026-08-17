@@ -364,7 +364,8 @@ router.get('/network-portal/access-requests/:id', authNetwork, async (req, res) 
       `SELECT aar.*, a.name AS agency_name, a.cnpj AS agency_cnpj
          FROM agency_access_requests aar
          JOIN agencies a ON a.id = aar.agency_id
-        WHERE aar.id=$1 AND aar.network_id=$2`, [req.params.id, req.networkId]
+         JOIN supermarket_networks sn ON sn.id = aar.network_id
+        WHERE aar.id=$1 AND aar.network_id=$2 AND sn.organization_id = $3`, [req.params.id, req.networkId, req.orgId]
     );
     if (!r.rows[0]) return res.status(404).json({ error: 'Não encontrado' });
     const items = await query(
@@ -393,8 +394,11 @@ router.post('/network-portal/access-requests/:id/review', authNetwork, async (re
     if (!['approved', 'rejected'].includes(decision)) {
       return res.status(400).json({ error: 'decision inválida' });
     }
-    const cur = await query(`SELECT * FROM agency_access_requests WHERE id=$1 AND network_id=$2`,
-      [req.params.id, req.networkId]);
+    const cur = await query(
+      `SELECT aar.* FROM agency_access_requests aar
+         JOIN supermarket_networks sn ON sn.id = aar.network_id
+        WHERE aar.id=$1 AND aar.network_id=$2 AND sn.organization_id = $3`,
+      [req.params.id, req.networkId, req.orgId]);
     if (!cur.rows[0]) return res.status(404).json({ error: 'Não encontrado' });
     const reqRow = cur.rows[0];
 
