@@ -4849,6 +4849,9 @@ export async function initDatabase() {
     console.error('  ⚠️ Failed to expand agency_promoters:', e.message);
   }
   
+  // Initialize Network Portal data
+  await step46NetworkPortal();
+  
   return true;
 }
 
