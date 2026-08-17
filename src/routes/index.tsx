@@ -70,6 +70,7 @@ export default function Index() {
           <p className="text-green-400">[AGENCY] Corrigido erro 404 em solicitações de rede da agência: rotas de 'network-requests' mapeadas corretamente sob o prefixo /api/access-control.</p>
           <p className="text-blue-400">[AGENCY] Corrigido erro de "Marca Vazia" na Solicitação de Acesso: mapeamento do backend corrigido para a tabela merch_brands.</p>
           <p className="text-green-400">[PORTAL] Generalização do Portal da Agência: agora renomeado para "Portal do Parceiro" para permitir acesso a qualquer profissional ou prestador de serviço.</p>
+          <p className="text-red-400">[FIX] Erro useAgencyAuth resolvido: AgencySignup agora está envolvido pelo AgencyAuthProvider, corrigindo falha no carregamento do cadastro de parceiros.</p>
         </div>
       </div>
     </div>
