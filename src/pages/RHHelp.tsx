@@ -1,6 +1,6 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { HelpCircle, Users, Clock, Building2, ShieldCheck, MapPin } from "lucide-react";
+import { HelpCircle, Users, Clock, Building2, ShieldCheck, MapPin, Monitor } from "lucide-react";
 
 const helpItems = [
   {
@@ -33,6 +33,12 @@ const helpItems = [
     description: "Regras de visibilidade para colaboradores e gestores.",
     icon: ShieldCheck,
     content: "Colaboradores comuns veem apenas seu próprio ponto. Gestores com permissão administrativa acessam o painel completo de auditoria no módulo RH para monitorar toda a equipe."
+  },
+  {
+    title: "Totem de Ponto",
+    description: "Onde encontrar o link do totem para tablets ou quiosques.",
+    icon: Monitor,
+    content: "O link e a gestão dos totens de ponto estão localizados no menu 'RH > Exportação AFD'. Lá você pode criar novos totens, definir se exigem reconhecimento facial e copiar o link direto para acesso."
   }
 ];
 

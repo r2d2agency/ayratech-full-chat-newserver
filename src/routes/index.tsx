@@ -20,7 +20,7 @@ export default function Index() {
         </p>
         <ol className="text-xs text-blue-600 mt-2 list-decimal ml-4 space-y-2">
           <li>
-            <strong>Crie/Edite a Marca:</strong> Vá em <i>Merchandising {" > "} Marcas</i>. Na edição da marca, use as checkboxes no final do formulário para definir o que ela pode ver (Fotos, Rotas, Estoque, etc).
+            <strong>Crie/Edite a Marca:</strong> Vá em <i>Merchandising {' > '} Marcas</i>. Na edição da marca, use as checkboxes no final do formulário para definir o que ela pode ver (Fotos, Rotas, Estoque, etc).
           </li>
           <li>
             <strong>Crie o Usuário:</strong> Vá em <i>Administração {" > "} Organizações</i>. Clique em <strong>Novo Usuário</strong> ou edite um existente.
@@ -71,6 +71,7 @@ export default function Index() {
           <p className="text-blue-400">[AGENCY] Corrigido erro de "Marca Vazia" na Solicitação de Acesso: mapeamento do backend corrigido para a tabela merch_brands.</p>
           <p className="text-green-400">[PORTAL] Generalização do Portal da Agência: agora renomeado para "Portal do Parceiro" para permitir acesso a qualquer profissional ou prestador de serviço.</p>
           <p className="text-red-400">[FIX] Erro useAgencyAuth resolvido: AgencySignup agora está envolvido pelo AgencyAuthProvider, corrigindo falha no carregamento do cadastro de parceiros.</p>
+          <p className="text-blue-400">[DOC] Totem de Ponto: Central de Ajuda atualizada informando que a gestão e o link dos totens estão em {'RH > Exportação AFD'}.</p>
         </div>
       </div>
     </div>
