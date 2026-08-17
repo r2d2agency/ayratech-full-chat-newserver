@@ -79,6 +79,7 @@ export default function Index() {
           <p className="text-blue-400">[FIX] Erro 404 persistente resolvido: Mapeamento redundante de rotas do Portal de Rede no backend garantido sob o prefixo correto.</p>
           <p className="text-green-400">[ROOT-CAUSE-FIX] Erro 404 definitivo resolvido: A rota networkPortalRoutes estava sendo montada APÓS o middleware de 404 global no backend. O router foi movido para o topo da pilha de rotas no backend/src/index.js, garantindo sua visibilidade. Adicionado alias /api/access-control para compatibilidade.</p>
           <p className="text-red-500 font-bold">[CRITICAL] Erro "relation employee_live_locations does not exist": As tabelas de rastreamento em tempo real foram adicionadas ao script de inicialização do banco de dados (backend/src/init-db.js). REINICIE o container do backend no Easypanel para criar as tabelas automaticamente.</p>
+          <p className="text-yellow-400 font-bold">[BACKEND-FIX] Erro de SyntaxError no init-db.js resolvido: A sintaxe de template literal com escape estava incorreta e causava a falha na inicialização. O código foi corrigido para garantir que o backend inicie corretamente no Easypanel.</p>
           <p className="text-yellow-400">[PORTAL] Erro 401 Unauthorized no login do Portal de Rede: Verifique se o e-mail "kininoa@akto.com.br" está cadastrado na tabela network_users e se a senha está correta. O sistema de login de rede é independente do login administrativo.</p>
         </div>
       </div>
