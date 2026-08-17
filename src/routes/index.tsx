@@ -77,6 +77,7 @@ export default function Index() {
           <p className="text-green-400">[FIX] Visibilidade de Solicitações: Corrigido erro de sincronização que impedia que solicitações de acesso aparecessem para as Redes devido a conflito de escopo de organização no banco de dados.</p>
           <p className="text-red-400">[FIX] Erro 404 em Acesso da Agência: Rota /api/network-portal/access-requests mapeada corretamente no backend, resolvendo falha no carregamento de solicitações para aprovação.</p>
           <p className="text-blue-400">[FIX] Erro 404 persistente resolvido: Mapeamento redundante de rotas do Portal de Rede no backend garantido sob o prefixo correto.</p>
+          <p className="text-green-400">[ROOT-CAUSE-FIX] Erro 404 definitivo resolvido: A rota networkPortalRoutes estava sendo montada APÓS o middleware de 404 global no backend. O router foi movido para o topo da pilha de rotas no backend/src/index.js, garantindo sua visibilidade.</p>
         </div>
       </div>
     </div>

@@ -421,6 +421,8 @@ app.use('/api/organizations', organizationsRoutes);
 app.use('/api/asaas', asaasRoutes);
 // Mount promoter-access early so its public routes (e.g. /api/public/networks)
 // are not swallowed by adminRoutes' authenticate middleware at /api/public.
+// Mount network portal routes under /api/network-portal
+app.use('/api/network-portal', networkPortalRoutes);
 app.use('/api/network-portal', agencyNetworkRequestsRoutes);
 app.use('/api', promoterAccessRoutes);
 app.use('/api/admin', adminRoutes);
@@ -476,8 +478,7 @@ app.use('/api/merch/brand-checklists', merchChecklistsRoutes);
 app.use('/api/ayratech-ai', ayratechAiRoutes);
 app.use('/api/promoter-validations', promoterValidationsRoutes);
 app.use('/api/pdv-blocks', pdvBlocksRoutes);
-app.use('/api/network-portal', agencyNetworkRequestsRoutes);
-app.use('/api/network-portal', networkPortalRoutes);
+// Duplicate mount removed, using the one above at line 424.
 // promoterAccessRoutes already mounted above (before /api/public)
 
 app.use('/api/promoter-leaves', promoterLeavesRoutes);
