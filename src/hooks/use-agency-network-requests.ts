@@ -9,6 +9,8 @@ export interface RequestItem {
   id?: string;
   supermarket_unit_id: string;
   brand_id: string;
+  partner_segment?: string;
+  professional_role?: string;
   conflict_with_agency_id?: string | null;
   status?: string;
   decision?: string;

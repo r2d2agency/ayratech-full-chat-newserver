@@ -30,6 +30,8 @@ async function ensureSchema() {
       assigned_at TIMESTAMPTZ DEFAULT NOW(),
       assigned_via UUID,
       active BOOLEAN NOT NULL DEFAULT true,
+      partner_segment VARCHAR(100),
+      professional_role VARCHAR(100),
       UNIQUE(supermarket_unit_id, brand_id, active) DEFERRABLE INITIALLY IMMEDIATE
     )`).catch(async () => {
       // fallback if partial unique not supported via constraint above
@@ -76,6 +78,8 @@ async function ensureSchema() {
       status VARCHAR(20) NOT NULL DEFAULT 'pending',
       decision VARCHAR(20),
       created_at TIMESTAMPTZ DEFAULT NOW(),
+      partner_segment VARCHAR(100),
+      professional_role VARCHAR(100),
       UNIQUE(request_id, supermarket_unit_id, brand_id)
     )`);
     await query(`CREATE INDEX IF NOT EXISTS idx_aari_req ON agency_access_request_items(request_id)`);
@@ -238,11 +242,11 @@ router.post('/agency/network-requests', authAgency, async (req, res) => {
 
     for (const it of enriched) {
       await query(
-        `INSERT INTO agency_access_request_items (request_id, supermarket_unit_id, brand_id, conflict_with_agency_id, status)
-         VALUES ($1,$2,$3,$4,$5)
+        `INSERT INTO agency_access_request_items (request_id, supermarket_unit_id, brand_id, conflict_with_agency_id, status, partner_segment, professional_role)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)
          ON CONFLICT (request_id, supermarket_unit_id, brand_id) DO NOTHING`,
         [request.id, it.supermarket_unit_id, it.brand_id, it.conflict_with_agency_id,
-         it.conflict_with_agency_id ? 'conflict_pending' : 'pending']
+         it.conflict_with_agency_id ? 'conflict_pending' : 'pending', it.partner_segment || null, it.professional_role || null]
       );
       if (it.conflict_with_agency_id) {
         await query(
