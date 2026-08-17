@@ -39,6 +39,12 @@ const helpItems = [
     description: "Onde encontrar o link do totem para tablets ou quiosques.",
     icon: Monitor,
     content: "O link e a gestão dos totens de ponto estão localizados no menu 'RH > Exportação AFD'. Lá você pode criar novos totens, definir se exigem reconhecimento facial e copiar o link direto para acesso."
+  },
+  {
+    title: "Fechamento de Folha de Ponto",
+    description: "Como realizar o fechamento mensal ou individual dos registros de ponto.",
+    icon: FileText,
+    content: "1. Conferência: Acesse 'RH > Ponto', selecione o período e o colaborador. Verifique divergências (ícone amarelo/vermelho).\n2. Ajustes: Se necessário, use o botão 'Ajuste Manual' para corrigir marcações.\n3. Exportação: Clique em 'Exportar XLS' para gerar o espelho de ponto consolidado. O sistema calcula automaticamente horas extras e faltas com base na jornada cadastrada.\n4. Holerite: Após a conferência, você pode importar o holerite em 'RH > Holerites' para assinatura digital."
   }
 ];
 
