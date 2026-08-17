@@ -766,8 +766,9 @@ router.get('/app-punches', async (req, res) => {
     const params = [orgId];
     let idx = 2;
     if (employee_id) { sql += ` AND tp.employee_id = $${idx++}`; params.push(employee_id); }
-    if (start_date) { sql += ` AND tp.punched_at::date >= $${idx++}`; params.push(start_date); }
-    if (end_date) { sql += ` AND tp.punched_at::date <= $${idx++}`; params.push(end_date); }
+    // Ensure comparison uses Brazil timezone date for filtered results
+    if (start_date) { sql += ` AND (tp.punched_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date >= $${idx++}`; params.push(start_date); }
+    if (end_date) { sql += ` AND (tp.punched_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date <= $${idx++}`; params.push(end_date); }
     sql += ` ORDER BY tp.punched_at DESC LIMIT 500`;
     const result = await query(sql, params);
     res.json(result.rows);
@@ -806,7 +807,7 @@ router.post('/app-punches', async (req, res) => {
       `INSERT INTO time_punches
         (organization_id, employee_id, punch_type, punched_at, pdv_id, geo_status, is_offline, sync_status,
          justification, manual_adjustment, adjustment_reason, adjusted_by, adjusted_at)
-       VALUES ($1,$2,$3,$4,$5,'manual',false,'synced',$6,true,$6,$7,NOW())
+       VALUES ($1,$2,$3,($4 AT TIME ZONE 'America/Sao_Paulo' AT TIME ZONE 'UTC'),$5,'manual',false,'synced',$6,true,$6,$7,NOW())
        RETURNING *`,
       [orgId, employee_id, punch_type, punched_at, pdv_id || null, reason, req.userId]
     );
@@ -826,7 +827,7 @@ router.patch('/app-punches/:id', async (req, res) => {
     if (!adjustment_reason) return res.status(400).json({ error: 'Informe o motivo do ajuste' });
     const r = await query(
       `UPDATE time_punches SET
-         punched_at = COALESCE($1, punched_at),
+         punched_at = COALESCE(($1 AT TIME ZONE 'America/Sao_Paulo' AT TIME ZONE 'UTC'), punched_at),
          punch_type = COALESCE($2, punch_type),
          pdv_id = COALESCE($3, pdv_id),
          manual_adjustment = true,
@@ -969,7 +970,7 @@ router.get('/consolidated-timesheet', async (req, res) => {
         e.cpf,
         e.position,
         e.work_schedule,
-        tp.punched_at::date as record_date,
+        (tp.punched_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date as record_date,
         json_agg(json_build_object(
           'id', tp.id, 'punch_type', tp.punch_type, 'punched_at', tp.punched_at,
           'geo_status', tp.geo_status, 'is_offline', tp.is_offline, 'pdv_name', p.name,
@@ -987,10 +988,10 @@ router.get('/consolidated-timesheet', async (req, res) => {
     const params = [orgId];
     let idx = 2;
     if (employee_id) { sql += ` AND tp.employee_id = $${idx++}`; params.push(employee_id); }
-    if (start_date) { sql += ` AND tp.punched_at::date >= $${idx++}`; params.push(start_date); }
-    if (end_date) { sql += ` AND tp.punched_at::date <= $${idx++}`; params.push(end_date); }
-    sql += ` GROUP BY tp.employee_id, e.full_name, e.cpf, e.position, e.work_schedule, tp.punched_at::date
-             ORDER BY tp.punched_at::date DESC, e.full_name`;
+    if (start_date) { sql += ` AND (tp.punched_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date >= $${idx++}`; params.push(start_date); }
+    if (end_date) { sql += ` AND (tp.punched_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date <= $${idx++}`; params.push(end_date); }
+    sql += ` GROUP BY tp.employee_id, e.full_name, e.cpf, e.position, e.work_schedule, (tp.punched_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date
+             ORDER BY (tp.punched_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date DESC, e.full_name`;
     const result = await query(sql, params);
     res.json(result.rows);
   } catch (err) {
@@ -1019,7 +1020,7 @@ router.get('/punch-divergences', async (req, res) => {
       WHERE e.organization_id = $1 AND e.status = 'ativo'
         AND EXTRACT(DOW FROM d.dt) NOT IN (0, 6)
         AND NOT EXISTS (
-          SELECT 1 FROM time_punches tp WHERE tp.employee_id = e.id AND tp.punched_at::date = d.dt::date
+          SELECT 1 FROM time_punches tp WHERE tp.employee_id = e.id AND (tp.punched_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = d.dt::date
         )
         AND NOT EXISTS (
           SELECT 1 FROM time_records tr WHERE tr.employee_id = e.id AND tr.record_date = d.dt::date
@@ -1044,13 +1045,13 @@ router.get('/punch-divergences', async (req, res) => {
 
     // 2. Incomplete punch sequences (odd number of punches = missing entry/exit)
     const incomplete = await query(`
-      SELECT tp.employee_id, e.full_name, tp.punched_at::date as punch_date, COUNT(*) as punch_count
+      SELECT tp.employee_id, e.full_name, (tp.punched_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date as punch_date, COUNT(*) as punch_count
       FROM time_punches tp
       JOIN employees e ON e.id = tp.employee_id
-      WHERE tp.organization_id = $1 AND tp.punched_at::date BETWEEN $2 AND $3
-      GROUP BY tp.employee_id, e.full_name, tp.punched_at::date
+      WHERE tp.organization_id = $1 AND (tp.punched_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN $2 AND $3
+      GROUP BY tp.employee_id, e.full_name, (tp.punched_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date
       HAVING COUNT(*) % 2 != 0
-      ORDER BY tp.punched_at::date DESC
+      ORDER BY (tp.punched_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date DESC
     `, [orgId, sd, ed]);
 
     for (const r of incomplete.rows) {
@@ -1066,13 +1067,13 @@ router.get('/punch-divergences', async (req, res) => {
 
     // 3. Outside PDV punches
     const outsidePdv = await query(`
-      SELECT tp.employee_id, e.full_name, tp.punched_at::date as punch_date, COUNT(*) as count
+      SELECT tp.employee_id, e.full_name, (tp.punched_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date as punch_date, COUNT(*) as count
       FROM time_punches tp
       JOIN employees e ON e.id = tp.employee_id
-      WHERE tp.organization_id = $1 AND tp.punched_at::date BETWEEN $2 AND $3
+      WHERE tp.organization_id = $1 AND (tp.punched_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN $2 AND $3
         AND tp.geo_status = 'fora_area'
-      GROUP BY tp.employee_id, e.full_name, tp.punched_at::date
-      ORDER BY tp.punched_at::date DESC
+      GROUP BY tp.employee_id, e.full_name, (tp.punched_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date
+      ORDER BY (tp.punched_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date DESC
     `, [orgId, sd, ed]);
 
     for (const r of outsidePdv.rows) {
