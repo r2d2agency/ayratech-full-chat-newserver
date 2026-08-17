@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Settings, Palette, Lock, Key, Copy, RefreshCw, Loader2, Eye, EyeOff, Monitor, UserCog, ExternalLink, QrCode } from 'lucide-react';
 import { FileUploadInput } from '@/components/ui/file-upload-input';
+import HelpPanel from '@/components/access-control/HelpPanel';
 
 const getHeaders = () => {
   const t = localStorage.getItem('supermarket_auth_token');
@@ -186,7 +187,22 @@ export default function SupermarketSettings() {
             </Badge>
           </div>
           <div className="space-y-2">
-            <Label>Token de Liberação</Label>
+            <div className="flex items-center justify-between">
+              <Label>Token de Liberação</Label>
+              <HelpPanel
+                title="Como usar este token?"
+                sections={[
+                  {
+                    title: "Ativação do Tablet/Totem",
+                    content: [
+                      "1. No tablet, abra o navegador e acesse: access.ayratech.app/totem",
+                      "2. O sistema pedirá o E-mail de Acesso e o Token de Liberação (exibido aqui).",
+                      "3. Insira os dados e o totem ficará 'logado' permanentemente neste dispositivo."
+                    ]
+                  }
+                ]}
+              />
+            </div>
             <div className="flex items-center gap-2">
               <Input
                 readOnly
