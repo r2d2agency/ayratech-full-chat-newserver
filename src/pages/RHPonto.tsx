@@ -255,19 +255,15 @@ export default function RHPonto() {
       return {
         'Data': formatDateValue(c.record_date, 'dd/MM/yyyy', ''),
         'Colaborador': c.employee_name,
+        'Matrícula': c.registration_number || '',
         'CPF': c.cpf || '',
+        'PIS': c.pis_pasep || '',
         'Cargo': c.position || '',
-        'Entrada': formatDateValue(getPunchTimestamp(entrada), 'HH:mm', ''),
-        'Saída Intervalo': formatDateValue(getPunchTimestamp(saidaInt), 'HH:mm', ''),
-        'Retorno Intervalo': formatDateValue(getPunchTimestamp(retorno), 'HH:mm', ''),
-        'Saída': formatDateValue(getPunchTimestamp(saida), 'HH:mm', ''),
-        'Total Registros': c.punch_count,
-        'Horas Brutas': c.raw_hours ? (() => {
-          const totalMinutes = Math.round(Number(c.raw_hours) * 60);
-          const hh = Math.floor(totalMinutes / 60);
-          const mm = totalMinutes % 60;
-          return `${hh}h${mm.toString().padStart(2, '0')}`;
-        })() : '',
+        'Entrada 1': formatDateValue(getPunchTimestamp(entrada), 'HH:mm', ''),
+        'Saída 1': formatDateValue(getPunchTimestamp(saidaInt), 'HH:mm', ''),
+        'Entrada 2': formatDateValue(getPunchTimestamp(retorno), 'HH:mm', ''),
+        'Saída 2': formatDateValue(getPunchTimestamp(saida), 'HH:mm', ''),
+        'Horas Trabalhadas': c.formatted_hours || (c.total_minutes ? formatMinutesToHHMM(c.total_minutes) : ''),
         'Status Geo': punches.some((p: any) => p.geo_status === 'fora_area') ? 'FORA PDV' : 'OK',
         'Offline': punches.some((p: any) => p.is_offline) ? 'SIM' : 'NÃO',
       };
@@ -275,10 +271,18 @@ export default function RHPonto() {
 
     const ws = XLSX.utils.json_to_sheet(rows);
     ws['!cols'] = [
-      { wch: 12 }, { wch: 30 }, { wch: 15 }, { wch: 20 },
-      { wch: 8 }, { wch: 14 }, { wch: 16 }, { wch: 8 },
-      { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 8 },
+      { wch: 12 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 },
+      { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 15 }, { wch: 12 }, { wch: 8 }
     ];
+
+    // Format 'Horas Trabalhadas' column as [h]:mm in Excel if possible
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+    for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+      const cellAddress = XLSX.utils.encode_cell({ r: R, c: 10 }); // Column K (10) is 'Horas Trabalhadas'
+      if (ws[cellAddress]) {
+        ws[cellAddress].z = '[h]:mm';
+      }
+    }
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Folha de Ponto");
 
@@ -503,14 +507,7 @@ export default function RHPonto() {
                       const saida = punches.find((p: any) => p.punch_type === 'saida');
                       const hasGeoIssue = punches.some((p: any) => p.geo_status === 'fora_area');
                       const isIncomplete = punches.length % 2 !== 0;
-                      const formatHours = (h: number) => {
-                        if (!h || h <= 0) return '—';
-                        const totalMinutes = Math.round(h * 60);
-                        const hh = Math.floor(totalMinutes / 60);
-                        const mm = totalMinutes % 60;
-                        return `${hh}h${mm.toString().padStart(2, '0')}`;
-                      };
-                      const hours = c.raw_hours ? formatHours(Number(c.raw_hours)) : '—';
+                      const hours = c.formatted_hours || (c.total_minutes ? formatMinutesToHHMM(c.total_minutes) : '—');
 
                       return (
                         <TableRow key={idx} className={isIncomplete ? 'bg-yellow-50/50 dark:bg-yellow-950/10' : hasGeoIssue ? 'bg-orange-50/50 dark:bg-orange-950/10' : ''}>
@@ -522,7 +519,7 @@ export default function RHPonto() {
                           <TableCell className="hidden md:table-cell text-sm">{formatDateValue(getPunchTimestamp(saidaInt), 'HH:mm')}</TableCell>
                           <TableCell className="hidden md:table-cell text-sm">{formatDateValue(getPunchTimestamp(retorno), 'HH:mm')}</TableCell>
                           <TableCell className="text-sm">{formatDateValue(getPunchTimestamp(saida), 'HH:mm')}</TableCell>
-                          <TableCell className="font-medium text-sm">{hours}h</TableCell>
+                          <TableCell className="font-medium text-sm">{hours}</TableCell>
                           <TableCell>
                             <div className="flex gap-1">
                               <Badge variant="outline" className="text-[10px]">{c.punch_count}x</Badge>
@@ -654,8 +651,8 @@ export default function RHPonto() {
                         <TableCell className="hidden md:table-cell">{r.exit1 || "—"}</TableCell>
                         <TableCell className="hidden md:table-cell">{r.entry2 || "—"}</TableCell>
                         <TableCell className="hidden md:table-cell">{r.exit2 || "—"}</TableCell>
-                        <TableCell className="font-medium">{r.total_hours ? `${r.total_hours}h` : "—"}</TableCell>
-                        <TableCell>{parseFloat(r.overtime_hours) > 0 ? <Badge variant="outline" className="text-primary">{r.overtime_hours}h</Badge> : "—"}</TableCell>
+                        <TableCell className="font-medium">{r.total_hours ? formatMinutesToHHMM(Math.round(r.total_hours * 60)) : "—"}</TableCell>
+                        <TableCell>{parseFloat(r.overtime_hours) > 0 ? <Badge variant="outline" className="text-primary">{formatMinutesToHHMM(Math.round(r.overtime_hours * 60))}</Badge> : "—"}</TableCell>
                         <TableCell><Badge variant="outline">{STATUS_LABELS[r.status] || r.status}</Badge></TableCell>
                       </TableRow>
                     ))}
