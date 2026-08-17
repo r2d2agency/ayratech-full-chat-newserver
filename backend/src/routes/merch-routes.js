@@ -1699,7 +1699,7 @@ router.put('/brand-checklists/:id', authenticate, async (req, res) => {
        min_category_photos_before=COALESCE($13,min_category_photos_before),
        min_category_photos_after=COALESCE($14,min_category_photos_after),
        category_photo_mode=COALESCE($15,category_photo_mode),
-       updated_at=NOW()
+       updated_at=(NOW() AT TIME ZONE 'America/Sao_Paulo' AT TIME ZONE 'UTC')
        WHERE id=$1 RETURNING *`,
       [req.params.id, name, description, 
        require_checkin_photo ?? true, require_checkout_photo ?? false, 
@@ -2409,8 +2409,8 @@ async function ensureExecutionCategoryTables() {
       completed BOOLEAN DEFAULT false,
       completed_at TIMESTAMPTZ,
       performed_by UUID,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      created_at TIMESTAMPTZ DEFAULT (NOW() AT TIME ZONE 'America/Sao_Paulo' AT TIME ZONE 'UTC'),
+      updated_at TIMESTAMPTZ DEFAULT (NOW() AT TIME ZONE 'America/Sao_Paulo' AT TIME ZONE 'UTC'),
       UNIQUE NULLS NOT DISTINCT (route_id, category_id, route_brand_id)
     )`);
 
@@ -2493,8 +2493,8 @@ async function ensureRouteBrandsTables() {
       started_at TIMESTAMPTZ,
       completed_at TIMESTAMPTZ,
       sort_order INTEGER DEFAULT 0,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      created_at TIMESTAMPTZ DEFAULT (NOW() AT TIME ZONE 'America/Sao_Paulo' AT TIME ZONE 'UTC'),
+      updated_at TIMESTAMPTZ DEFAULT (NOW() AT TIME ZONE 'America/Sao_Paulo' AT TIME ZONE 'UTC'),
       UNIQUE(route_id, brand_id)
     )`);
     await query(`ALTER TABLE route_product_executions ADD COLUMN IF NOT EXISTS route_brand_id UUID`);
