@@ -43,6 +43,7 @@ export default function Index() {
           </div>
         </div>
         <div className="space-y-1.5">
+          <p className="text-purple-400">[PONTO] PADRONIZAÇÃO HH:MM E EXCEL XLSX CONCLUÍDA.</p>
           <p className="text-blue-400">[RH] Implementado ajuste de horários individual por dia da semana na Jornada de Trabalho (ex: Seg a Sex 07-17h, Sáb 07-11h).</p>
           <p className="text-green-400">[RH] Sincronização automática de Escala para Jornada: ao vincular uma escala a um colaborador, a Jornada de Trabalho (JSON) é atualizada instantaneamente para refletir os horários da escala.</p>
           <p className="text-blue-400">[BACKEND] Validação de ponto do promotor atualizada para respeitar configurações de horários diferenciados por dia.</p>

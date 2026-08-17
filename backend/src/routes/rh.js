@@ -995,8 +995,15 @@ router.get('/consolidated-timesheet', async (req, res) => {
     const rows = result.rows.map(row => {
       const punches = Array.isArray(row.punches) ? row.punches : [];
       
-      let raw_hours = 0;
-      
+      let total_minutes = 0;
+
+      // Function to format minutes to HH:MM
+      const formatHHMM = (m) => {
+        const h = Math.floor(m / 60);
+        const mm = m % 60;
+        return `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+      };
+
       // We look for specific sequences: 
       // 1. entrada -> saida_intervalo
       // 2. retorno_intervalo -> saida
@@ -1042,11 +1049,12 @@ router.get('/consolidated-timesheet', async (req, res) => {
         }
       }
       
-      raw_hours = total_ms / (1000 * 60 * 60);
+      total_minutes = Math.round(total_ms / (1000 * 60));
 
       return {
         ...row,
-        raw_hours: Math.round(raw_hours * 100) / 100,
+        total_minutes: total_minutes,
+        formatted_hours: formatHHMM(total_minutes),
         first_punch: punches[0]?.punched_at,
         last_punch: punches[punches.length - 1]?.punched_at
       };
