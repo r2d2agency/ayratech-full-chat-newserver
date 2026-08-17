@@ -268,7 +268,7 @@ const authenticateSupermarket = async (req, res, next) => {
 // --- Supermarket Networks CRUD ---
 router.get('/networks', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const r = await query('SELECT * FROM supermarket_networks WHERE organization_id = $1 ORDER BY name', [orgId]);
     res.json(r.rows);
   } catch (err) { logError('access.networks.list', err); res.status(500).json({ error: 'Erro ao listar redes' }); }
@@ -276,7 +276,7 @@ router.get('/networks', authenticate, async (req, res) => {
 
 router.post('/networks', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const { name, cnpj, contact_name, contact_phone, contact_email, notes } = req.body;
     if (!name) return res.status(400).json({ error: 'Nome é obrigatório' });
     const r = await query(
@@ -290,7 +290,7 @@ router.post('/networks', authenticate, async (req, res) => {
 
 router.put('/networks/:id', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const { name, cnpj, contact_name, contact_phone, contact_email, notes, active } = req.body;
     const r = await query(
       `UPDATE supermarket_networks SET name=COALESCE($1,name), cnpj=$2, contact_name=$3, contact_phone=$4,
@@ -305,7 +305,7 @@ router.put('/networks/:id', authenticate, async (req, res) => {
 
 router.delete('/networks/:id', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     await query('DELETE FROM supermarket_networks WHERE id=$1 AND organization_id=$2', [req.params.id, orgId]);
     res.json({ ok: true });
   } catch (err) { logError('access.networks.delete', err); res.status(500).json({ error: 'Erro ao excluir rede' }); }
@@ -314,7 +314,7 @@ router.delete('/networks/:id', authenticate, async (req, res) => {
 // --- Supermarket Units CRUD ---
 router.get('/units', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const { network_id } = req.query;
     let sql = `SELECT su.*, sn.name as network_name FROM supermarket_units su
                LEFT JOIN supermarket_networks sn ON sn.id = su.network_id
@@ -329,7 +329,7 @@ router.get('/units', authenticate, async (req, res) => {
 
 router.post('/units', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const { name, cnpj, network_id, pdv_id, address, city, state, zip_code, neighborhood, latitude, longitude,
             radius_meters, opening_time, closing_time, operating_days, operational_requirements, totem_enabled } = req.body;
     if (!name) return res.status(400).json({ error: 'Nome é obrigatório' });
@@ -350,7 +350,7 @@ router.post('/units', authenticate, async (req, res) => {
 
 router.put('/units/:id', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const { name, cnpj, network_id, pdv_id, address, city, state, zip_code, neighborhood, latitude, longitude,
             radius_meters, opening_time, closing_time, operating_days, operational_requirements, totem_enabled, active } = req.body;
     if (cnpj && !isValidCnpj(cnpj)) return res.status(400).json({ error: 'CNPJ inválido' });
@@ -379,7 +379,7 @@ router.put('/units/:id', authenticate, async (req, res) => {
 
 router.delete('/units/:id', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     await query('DELETE FROM supermarket_units WHERE id=$1 AND organization_id=$2', [req.params.id, orgId]);
     res.json({ ok: true });
   } catch (err) { logError('access.units.delete', err); res.status(500).json({ error: 'Erro ao excluir unidade' }); }
@@ -388,7 +388,7 @@ router.delete('/units/:id', authenticate, async (req, res) => {
 // Regenerate totem token
 router.post('/units/:id/regenerate-token', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const newToken = crypto.randomBytes(32).toString('hex');
     const r = await query(
       'UPDATE supermarket_units SET totem_token=$1, totem_enabled=true, updated_at=NOW() WHERE id=$2 AND organization_id=$3 RETURNING totem_token',
@@ -401,7 +401,7 @@ router.post('/units/:id/regenerate-token', authenticate, async (req, res) => {
 
 router.get('/units/:id/supermarket-user', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const r = await query(
       `SELECT su_user.id, su_user.email, su_user.name, su_user.role, su_user.can_view_all_network,
               su_user.active, su_user.supermarket_unit_id, su_user.network_id, su_user.created_at
@@ -419,7 +419,7 @@ router.get('/units/:id/supermarket-user', authenticate, async (req, res) => {
 // --- Agencies CRUD ---
 router.get('/agencies', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const r = await query(
       `SELECT a.*, s.plan_id, s.promoter_count as contracted_promoters,
               (SELECT COUNT(*) FROM agency_promoters ap WHERE ap.agency_id = a.id AND ap.status = 'active') as promoter_count
