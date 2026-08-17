@@ -60,6 +60,7 @@ export default function Index() {
           <p className="text-blue-400">[EXPORT] Novo botão "Exportar (personalizar colunas)" — escolha exatamente quais informações vão para Excel, CSV ou PDF antes de gerar.</p>
           <p className="text-green-400">[APP/RH] Ponto Inteligente: O aplicativo agora detecta automaticamente turnos sem intervalo (ex: Sábados 07-11h) e remove as opções de "Saída/Retorno Intervalo", permitindo registrar apenas Entrada e Saída.</p>
           <p className="text-blue-400">[RH] Correção no cálculo de horas: intervalos vazios no cadastro de jornada individual não são mais subtraídos do total de horas trabalhadas.</p>
+          <p className="text-green-400">[DOMAIN] Módulo de Controle de Acesso isolado: configurado redirecionamento inteligente para access.ayratech.app.</p>
         </div>
       </div>
     </div>
