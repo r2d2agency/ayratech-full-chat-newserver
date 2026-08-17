@@ -23,7 +23,7 @@ export interface OnboardingLink {
 }
 
 export function buildOnboardingUrl(link: { token: string; access_key: string }) {
-  return `${window.location.origin}/cadastro-colaborador/${link.token}?key=${link.access_key}`;
+  return `https://access.ayratech.app/cadastro-colaborador/${link.token}?key=${link.access_key}`;
 }
 
 export function useOnboardingCatalog() {
