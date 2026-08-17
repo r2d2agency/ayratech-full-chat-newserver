@@ -197,23 +197,31 @@ export default function RHPonto() {
     return records.filter((r: any) => r.status === 'falta' || (r.total_hours && parseFloat(r.total_hours) < 8));
   }, [records, reportType]);
 
-  const calcHours = (f: any) => {
+  const calcMinutes = (f: any) => {
     let total = 0;
     const calc = (entry: string, exit: string) => {
       if (!entry || !exit) return 0;
       const [eh, em] = entry.split(":").map(Number);
       const [xh, xm] = exit.split(":").map(Number);
-      return (xh * 60 + xm - eh * 60 - em) / 60;
+      return (xh * 60 + xm - eh * 60 - em);
     };
     total += calc(f.entry1, f.exit1);
     total += calc(f.entry2, f.exit2);
     total += calc(f.entry3, f.exit3);
-    return Math.round(total * 100) / 100;
+    return total;
+  };
+
+  const formatMinutesToHHMM = (m: number) => {
+    if (!m || m <= 0) return '—';
+    const h = Math.floor(m / 60);
+    const mm = m % 60;
+    return `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
   };
 
   const handleSave = async () => {
     if (!form.employee_id || !form.record_date) { toast({ title: "Selecione o colaborador e a data", variant: "destructive" }); return; }
-    const totalH = calcHours(form);
+    const totalMinutes = calcMinutes(form);
+    const totalH = totalMinutes / 60;
     const overtime = Math.max(0, totalH - 8);
     try {
       await saveMut.mutateAsync({ ...form, total_hours: totalH, overtime_hours: overtime });
