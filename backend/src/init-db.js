@@ -4918,7 +4918,8 @@ const step46NetworkPortal = async () => {
 // ============================================
 // AUTO-EXECUTE INITIALIZATION ON START
 // ============================================
-if (import.meta.url === \`file://\${process.argv[1]}\`) {
+const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+if (isMainModule) {
   console.log('🚀 Manually running database initialization...');
   initDatabase()
     .then(() => {
