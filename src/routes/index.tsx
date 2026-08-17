@@ -62,6 +62,8 @@ export default function Index() {
           <p className="text-blue-400">[RH] Correção no cálculo de horas: intervalos vazios no cadastro de jornada individual não são mais subtraídos do total de horas trabalhadas.</p>
           <p className="text-green-400">[DOMAIN] Módulo de Controle de Acesso isolado: configurado redirecionamento inteligente para access.ayratech.app.</p>
           <p className="text-blue-400">[PORTAL] Links de acesso ao Portal (Rede, Marcas e Onboarding) atualizados para o domínio access.ayratech.app.</p>
+          <p className="text-green-400">[FIX] Erro 401 no login do Supermercado resolvido: garantida a criação automática do usuário administrador e isolamento de rede.</p>
+          <p className="text-blue-400">[AUTH] Correção de redirecionamento no domínio admin.ayratech.app para suportar os módulos de acesso legado.</p>
         </div>
       </div>
     </div>

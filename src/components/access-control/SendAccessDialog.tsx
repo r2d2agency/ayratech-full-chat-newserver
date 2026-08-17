@@ -28,8 +28,9 @@ const SendAccessDialog = ({
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
 
-  const portalPath = portalType === "agency" ? "/agencia/login" : "/supermercado/login";
-  const portalUrl = `${window.location.origin}${portalPath}`;
+  const portalUrl = portalType === "agency" 
+    ? "https://access.ayratech.app/agencia/login" 
+    : "https://access.ayratech.app/supermercado/login";
   const portalLabel = portalType === "agency" ? "Portal da Agência" : "Portal do Supermercado";
 
   const handleOpen = (isOpen: boolean) => {
