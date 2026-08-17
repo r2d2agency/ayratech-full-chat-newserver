@@ -20,7 +20,7 @@ export default function Index() {
         </p>
         <ol className="text-xs text-blue-600 mt-2 list-decimal ml-4 space-y-2">
           <li>
-            <strong>Crie/Edite a Marca:</strong> Vá em <i>Merchandising {" > "} Marcas</i>. Na edição da marca, use as checkboxes no final do formulário para definir o que ela pode ver (Fotos, Rotas, Estoque, etc).
+            <strong>Crie/Edite a Marca:</strong> Vá em <i>Merchandising {' > '} Marcas</i>. Na edição da marca, use as checkboxes no final do formulário para definir o que ela pode ver (Fotos, Rotas, Estoque, etc).
           </li>
           <li>
             <strong>Crie o Usuário:</strong> Vá em <i>Administração {" > "} Organizações</i>. Clique em <strong>Novo Usuário</strong> ou edite um existente.
