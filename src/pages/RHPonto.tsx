@@ -254,7 +254,12 @@ export default function RHPonto() {
         'Retorno Intervalo': formatDateValue(getPunchTimestamp(retorno), 'HH:mm', ''),
         'Saída': formatDateValue(getPunchTimestamp(saida), 'HH:mm', ''),
         'Total Registros': c.punch_count,
-        'Horas Brutas': c.raw_hours ? Number(c.raw_hours).toFixed(2) : '',
+        'Horas Brutas': c.raw_hours ? (() => {
+          const totalMinutes = Math.round(Number(c.raw_hours) * 60);
+          const hh = Math.floor(totalMinutes / 60);
+          const mm = totalMinutes % 60;
+          return `${hh}h${mm.toString().padStart(2, '0')}`;
+        })() : '',
         'Status Geo': punches.some((p: any) => p.geo_status === 'fora_area') ? 'FORA PDV' : 'OK',
         'Offline': punches.some((p: any) => p.is_offline) ? 'SIM' : 'NÃO',
       };
