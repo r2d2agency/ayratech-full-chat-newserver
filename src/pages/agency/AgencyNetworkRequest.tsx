@@ -16,7 +16,7 @@ import {
   useAgencyConflictNotifications, useAckConflictNotification,
 } from '@/hooks/use-agency-network-requests';
 
-type Pair = { supermarket_unit_id: string; brand_id: string };
+type Pair = { supermarket_unit_id: string; brand_id: string; partner_segment: string; professional_role: string };
 
 export default function AgencyNetworkRequest() {
   const { toast } = useToast();
@@ -55,7 +55,7 @@ export default function AgencyNetworkRequest() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items]);
 
-  const addRow = () => setItems((p) => [...p, { supermarket_unit_id: '', brand_id: '' }]);
+  const addRow = () => setItems((p) => [...p, { supermarket_unit_id: '', brand_id: '', partner_segment: '', professional_role: '' }]);
   const updRow = (i: number, k: keyof Pair, v: string) =>
     setItems((p) => p.map((it, idx) => (idx === i ? { ...it, [k]: v } : it)));
   const delRow = (i: number) => setItems((p) => p.filter((_, idx) => idx !== i));
@@ -223,6 +223,26 @@ export default function AgencyNetworkRequest() {
                           <Button size="icon" variant="ghost" onClick={() => delRow(i)}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-medium uppercase text-muted-foreground">Segmento / Tipo de Função</label>
+                          <Input 
+                            placeholder="Ex: Merchandising, Logística..." 
+                            value={it.partner_segment} 
+                            onChange={(e) => updRow(i, 'partner_segment', e.target.value)}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-medium uppercase text-muted-foreground">Cargo do Profissional</label>
+                          <Input 
+                            placeholder="Ex: Promotor, Repositor..." 
+                            value={it.professional_role} 
+                            onChange={(e) => updRow(i, 'professional_role', e.target.value)}
+                            className="h-8 text-sm"
+                          />
                         </div>
                       </div>
                       {conf && (
