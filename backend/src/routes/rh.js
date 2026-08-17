@@ -807,7 +807,7 @@ router.post('/app-punches', async (req, res) => {
       `INSERT INTO time_punches
         (organization_id, employee_id, punch_type, punched_at, pdv_id, geo_status, is_offline, sync_status,
          justification, manual_adjustment, adjustment_reason, adjusted_by, adjusted_at)
-       VALUES ($1,$2,$3,$4,$5,'manual',false,'synced',$6,true,$6,$7,NOW())
+       VALUES ($1,$2,$3,($4 AT TIME ZONE 'America/Sao_Paulo' AT TIME ZONE 'UTC'),$5,'manual',false,'synced',$6,true,$6,$7,NOW())
        RETURNING *`,
       [orgId, employee_id, punch_type, punched_at, pdv_id || null, reason, req.userId]
     );
@@ -827,7 +827,7 @@ router.patch('/app-punches/:id', async (req, res) => {
     if (!adjustment_reason) return res.status(400).json({ error: 'Informe o motivo do ajuste' });
     const r = await query(
       `UPDATE time_punches SET
-         punched_at = COALESCE($1, punched_at),
+         punched_at = COALESCE(($1 AT TIME ZONE 'America/Sao_Paulo' AT TIME ZONE 'UTC'), punched_at),
          punch_type = COALESCE($2, punch_type),
          pdv_id = COALESCE($3, pdv_id),
          manual_adjustment = true,
