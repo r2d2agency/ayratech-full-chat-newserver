@@ -10,10 +10,18 @@ import { triggerValidation } from './promoter-validations.js';
 const router = express.Router();
 
 // ============ HELPER: get org from authenticated user ============
-async function getOrgId(userId) {
-  const r = await query('SELECT organization_id FROM organization_members WHERE user_id = $1 LIMIT 1', [userId]);
-  return r.rows[0]?.organization_id;
+async function getOrgId(req) {
+  // If orgId is already in the request (from auth middleware), use it
+  if (req.orgId) return req.orgId;
+
+  // Fallback to database lookup
+  if (req.userId) {
+    const r = await query('SELECT organization_id FROM organization_members WHERE user_id = $1 LIMIT 1', [req.userId]);
+    return r.rows[0]?.organization_id;
+  }
+  return null;
 }
+
 
 const onlyDigits = (value) => String(value || '').replace(/\D/g, '');
 const tableExists = async (tableName) => {
@@ -260,7 +268,7 @@ const authenticateSupermarket = async (req, res, next) => {
 // --- Supermarket Networks CRUD ---
 router.get('/networks', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const r = await query('SELECT * FROM supermarket_networks WHERE organization_id = $1 ORDER BY name', [orgId]);
     res.json(r.rows);
   } catch (err) { logError('access.networks.list', err); res.status(500).json({ error: 'Erro ao listar redes' }); }
@@ -268,7 +276,7 @@ router.get('/networks', authenticate, async (req, res) => {
 
 router.post('/networks', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const { name, cnpj, contact_name, contact_phone, contact_email, notes } = req.body;
     if (!name) return res.status(400).json({ error: 'Nome é obrigatório' });
     const r = await query(
@@ -282,7 +290,7 @@ router.post('/networks', authenticate, async (req, res) => {
 
 router.put('/networks/:id', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const { name, cnpj, contact_name, contact_phone, contact_email, notes, active } = req.body;
     const r = await query(
       `UPDATE supermarket_networks SET name=COALESCE($1,name), cnpj=$2, contact_name=$3, contact_phone=$4,
@@ -297,7 +305,7 @@ router.put('/networks/:id', authenticate, async (req, res) => {
 
 router.delete('/networks/:id', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     await query('DELETE FROM supermarket_networks WHERE id=$1 AND organization_id=$2', [req.params.id, orgId]);
     res.json({ ok: true });
   } catch (err) { logError('access.networks.delete', err); res.status(500).json({ error: 'Erro ao excluir rede' }); }
@@ -306,7 +314,7 @@ router.delete('/networks/:id', authenticate, async (req, res) => {
 // --- Supermarket Units CRUD ---
 router.get('/units', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const { network_id } = req.query;
     let sql = `SELECT su.*, sn.name as network_name FROM supermarket_units su
                LEFT JOIN supermarket_networks sn ON sn.id = su.network_id
@@ -321,7 +329,7 @@ router.get('/units', authenticate, async (req, res) => {
 
 router.post('/units', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const { name, cnpj, network_id, pdv_id, address, city, state, zip_code, neighborhood, latitude, longitude,
             radius_meters, opening_time, closing_time, operating_days, operational_requirements, totem_enabled } = req.body;
     if (!name) return res.status(400).json({ error: 'Nome é obrigatório' });
@@ -342,7 +350,7 @@ router.post('/units', authenticate, async (req, res) => {
 
 router.put('/units/:id', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const { name, cnpj, network_id, pdv_id, address, city, state, zip_code, neighborhood, latitude, longitude,
             radius_meters, opening_time, closing_time, operating_days, operational_requirements, totem_enabled, active } = req.body;
     if (cnpj && !isValidCnpj(cnpj)) return res.status(400).json({ error: 'CNPJ inválido' });
@@ -371,7 +379,7 @@ router.put('/units/:id', authenticate, async (req, res) => {
 
 router.delete('/units/:id', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     await query('DELETE FROM supermarket_units WHERE id=$1 AND organization_id=$2', [req.params.id, orgId]);
     res.json({ ok: true });
   } catch (err) { logError('access.units.delete', err); res.status(500).json({ error: 'Erro ao excluir unidade' }); }
@@ -380,7 +388,7 @@ router.delete('/units/:id', authenticate, async (req, res) => {
 // Regenerate totem token
 router.post('/units/:id/regenerate-token', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const newToken = crypto.randomBytes(32).toString('hex');
     const r = await query(
       'UPDATE supermarket_units SET totem_token=$1, totem_enabled=true, updated_at=NOW() WHERE id=$2 AND organization_id=$3 RETURNING totem_token',
@@ -393,7 +401,7 @@ router.post('/units/:id/regenerate-token', authenticate, async (req, res) => {
 
 router.get('/units/:id/supermarket-user', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const r = await query(
       `SELECT su_user.id, su_user.email, su_user.name, su_user.role, su_user.can_view_all_network,
               su_user.active, su_user.supermarket_unit_id, su_user.network_id, su_user.created_at
@@ -411,7 +419,7 @@ router.get('/units/:id/supermarket-user', authenticate, async (req, res) => {
 // --- Agencies CRUD ---
 router.get('/agencies', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const r = await query(
       `SELECT a.*, s.plan_id, s.promoter_count as contracted_promoters,
               (SELECT COUNT(*) FROM agency_promoters ap WHERE ap.agency_id = a.id AND ap.status = 'active') as promoter_count
@@ -425,7 +433,7 @@ router.get('/agencies', authenticate, async (req, res) => {
 
 router.post('/agencies', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const { name, cnpj, responsible_name, responsible_cpf, responsible_phone, responsible_email, address, city, state,
             plan_name, max_promoters, price_per_promoter, auto_block_on_overdue, notes, plan_id, contracted_promoters } = req.body;
     if (!name) return res.status(400).json({ error: 'Nome é obrigatório' });
@@ -473,7 +481,7 @@ router.post('/agencies', authenticate, async (req, res) => {
 
 router.put('/agencies/:id', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const { name, cnpj, responsible_name, responsible_cpf, responsible_phone, responsible_email, address, city, state,
             plan_name, max_promoters, price_per_promoter, auto_block_on_overdue, status, billing_status, notes, plan_id, contracted_promoters } = req.body;
     if (cnpj && !isValidCnpj(cnpj)) return res.status(400).json({ error: 'CNPJ inválido' });
@@ -535,7 +543,7 @@ router.put('/agencies/:id', authenticate, async (req, res) => {
 
 router.delete('/agencies/:id', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     await query('DELETE FROM agencies WHERE id=$1 AND organization_id=$2', [req.params.id, orgId]);
     res.json({ ok: true });
   } catch (err) { logError('access.agencies.delete', err); res.status(500).json({ error: 'Erro ao excluir agência' }); }
@@ -566,7 +574,7 @@ router.put('/agencies/:id/allowed-units', authenticate, async (req, res) => {
 // --- Agency Users CRUD (create login for agency) ---
 router.post('/agencies/:id/users', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const agency = await query('SELECT id FROM agencies WHERE id=$1 AND organization_id=$2', [req.params.id, orgId]);
     if (!agency.rows.length) return res.status(404).json({ error: 'Agência não encontrada' });
     const { email, password, name, role } = req.body;
@@ -644,7 +652,7 @@ router.put('/agencies/:agencyId/promoters/:id', authenticate, async (req, res) =
 // --- Access Rules CRUD ---
 router.get('/access-rules', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const { unit_id, agency_promoter_id, employee_id } = req.query;
       let sql = `SELECT ar.*, su.name as unit_name, ap.name as promoter_name, ap.cpf,
                 a.name as agency_name, e.full_name as employee_name,
@@ -670,7 +678,7 @@ router.get('/access-rules', authenticate, async (req, res) => {
 
 router.post('/access-rules', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const { agency_promoter_id, employee_id, supermarket_unit_id, allowed_weekdays, start_time, end_time,
             max_duration_minutes, require_active_route, require_prior_approval, brand_ids, notes } = req.body;
     if (!supermarket_unit_id) return res.status(400).json({ error: 'Unidade é obrigatória' });
@@ -703,7 +711,7 @@ router.post('/access-rules', authenticate, async (req, res) => {
 
 router.put('/access-rules/:id', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const { allowed_weekdays, start_time, end_time, max_duration_minutes, require_active_route,
             require_prior_approval, approval_status, active, brand_ids, notes } = req.body;
     const r = await query(
@@ -729,7 +737,7 @@ router.put('/access-rules/:id', authenticate, async (req, res) => {
 
 router.delete('/access-rules/:id', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     await query('DELETE FROM pdv_access_rules WHERE id=$1 AND organization_id=$2', [req.params.id, orgId]);
     res.json({ ok: true });
   } catch (err) { logError('access.rules.delete', err); res.status(500).json({ error: 'Erro' }); }
@@ -738,7 +746,7 @@ router.delete('/access-rules/:id', authenticate, async (req, res) => {
 // --- Entry Logs (admin view) ---
 router.get('/entry-logs', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const { unit_id, date, status } = req.query;
     let sql = `SELECT el.*, su.name as unit_name, ap.name as promoter_name, ap.cpf, ap.photo_url,
                a.name as agency_name, e.full_name as employee_name
@@ -761,7 +769,7 @@ router.get('/entry-logs', authenticate, async (req, res) => {
 // --- Audit Logs ---
 router.get('/audit-logs', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const { unit_id, action, limit: lim } = req.query;
     let sql = 'SELECT * FROM access_audit_logs WHERE organization_id = $1';
     const params = [orgId];
@@ -1798,7 +1806,7 @@ router.get('/supermarket/me', authenticateSupermarket, async (req, res) => {
 // Supermarket: create user (admin)
 router.post('/supermarket-users', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const { supermarket_unit_id, network_id, email, password, name, role, can_view_all_network } = req.body;
     if (!email || !password || !name || !supermarket_unit_id) return res.status(400).json({ error: 'Dados obrigatórios faltando' });
     if (String(password).length < 6) return res.status(400).json({ error: 'Senha deve ter no mínimo 6 caracteres' });
@@ -1822,7 +1830,7 @@ router.post('/supermarket-users', authenticate, async (req, res) => {
 
 router.put('/supermarket-users/:id', authenticate, async (req, res) => {
   try {
-    const orgId = await getOrgId(req.userId);
+    const orgId = await getOrgId(req);
     const { supermarket_unit_id, network_id, email, password, name, role, can_view_all_network, active } = req.body;
     if (!email || !name || !supermarket_unit_id) return res.status(400).json({ error: 'Nome, email e unidade são obrigatórios' });
     if (password && String(password).length < 6) return res.status(400).json({ error: 'Senha deve ter no mínimo 6 caracteres' });

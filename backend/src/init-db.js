@@ -4884,7 +4884,7 @@ const step46NetworkPortal = async () => {
       const orgId = orgRes.rows[0].id;
       
       const netRes = await pool.query(
-        "INSERT INTO supermarket_networks (organization_id, name, active) VALUES (, 'Rede Padrão', true) ON CONFLICT DO NOTHING RETURNING id",
+        "INSERT INTO supermarket_networks (organization_id, name, active) VALUES ($1, 'Rede Padrão', true) ON CONFLICT DO NOTHING RETURNING id",
         [orgId]
       );
       
