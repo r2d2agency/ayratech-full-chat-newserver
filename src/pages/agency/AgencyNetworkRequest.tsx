@@ -61,14 +61,24 @@ export default function AgencyNetworkRequest() {
   const delRow = (i: number) => setItems((p) => p.filter((_, idx) => idx !== i));
 
   const submit = async () => {
-    const valid = items.filter((i) => i.supermarket_unit_id && i.brand_id);
+    // If there are brands available, brand_id is required. 
+    // If no brands are available (service provider), brand_id can be empty.
+    const hasBrands = brands.length > 0;
+    const valid = items.filter((i) => i.supermarket_unit_id && (hasBrands ? i.brand_id : true));
+    
     if (!networkId) return toast({ title: 'Selecione a rede', variant: 'destructive' });
-    if (!valid.length) return toast({ title: 'Adicione ao menos um par PDV + Marca', variant: 'destructive' });
+    if (!valid.length) {
+      return toast({ 
+        title: hasBrands ? 'Adicione ao menos um par PDV + Marca' : 'Adicione ao menos um PDV', 
+        variant: 'destructive' 
+      });
+    }
+
     try {
       const r: any = await createReq.mutateAsync({ network_id: networkId, message, items: valid });
       toast({
         title: r.has_conflict ? 'Solicitação criada com conflitos' : 'Solicitação enviada',
-        description: r.has_conflict ? 'A rede será notificada para resolver o conflito de marca.' : 'A rede receberá para aprovar.',
+        description: r.has_conflict ? 'A rede será notificada para resolver o conflito.' : 'A rede receberá para aprovar.',
       });
       setOpen(false); setItems([]); setMessage(''); setNetworkId('');
     } catch (e: any) {
@@ -212,14 +222,20 @@ export default function AgencyNetworkRequest() {
                           </SelectContent>
                         </Select>
                         <div className="flex gap-2">
-                          <Select value={it.brand_id} onValueChange={(v) => updRow(i, 'brand_id', v)}>
-                            <SelectTrigger><SelectValue placeholder="Marca..." /></SelectTrigger>
-                            <SelectContent>
-                              {brands.map((b) => (
-                                <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          {brands.length > 0 ? (
+                            <Select value={it.brand_id} onValueChange={(v) => updRow(i, 'brand_id', v)}>
+                              <SelectTrigger><SelectValue placeholder="Marca..." /></SelectTrigger>
+                              <SelectContent>
+                                {brands.map((b) => (
+                                  <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <div className="flex-1 flex items-center px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-input">
+                              Prestador de Serviço (Sem marca)
+                            </div>
+                          )}
                           <Button size="icon" variant="ghost" onClick={() => delRow(i)}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
