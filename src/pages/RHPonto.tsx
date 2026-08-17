@@ -692,7 +692,7 @@ export default function RHPonto() {
               </Select>
             </div>
             <div><Label>Justificativa</Label><Input value={form.justification} onChange={e => setField("justification", e.target.value)} /></div>
-            <div className="text-sm text-muted-foreground">Total calculado: <strong>{calcHours(form)}h</strong></div>
+            <div className="text-sm text-muted-foreground">Total calculado: <strong>{formatMinutesToHHMM(calcMinutes(form))}</strong></div>
           </div>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
