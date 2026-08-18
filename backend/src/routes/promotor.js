@@ -523,9 +523,25 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
     const scheduleStartMin = parseToMin(scheduleStart) || 480;
     const scheduleEndMin = parseToMin(scheduleEnd) || 1020;
 
-    // Allow 15 min before start and 15 min after end as tolerance
-    const toleranceBefore = 15;
-    const toleranceAfter = 15;
+    // Dynamic tolerance from organization settings (default to 15)
+    let toleranceBefore = 15;
+    let toleranceAfter = 15;
+    
+    try {
+      const orgRes = await query(`SELECT work_schedule FROM organizations WHERE id = $1`, [req.organizationId]);
+      if (orgRes.rows[0]?.work_schedule) {
+        const sched = typeof orgRes.rows[0].work_schedule === 'string' 
+          ? JSON.parse(orgRes.rows[0].work_schedule) 
+          : orgRes.rows[0].work_schedule;
+        if (sched.punch_tolerance_minutes !== undefined) {
+          toleranceBefore = parseInt(sched.punch_tolerance_minutes);
+          toleranceAfter = parseInt(sched.punch_tolerance_minutes);
+        }
+      }
+    } catch (e) {
+      console.error('[Promotor Punch] Error reading org tolerance:', e);
+    }
+
     const isWithinSchedule = currentMinutes >= (scheduleStartMin - toleranceBefore) && currentMinutes <= (scheduleEndMin + toleranceAfter);
 
     if (!isWithinSchedule) {

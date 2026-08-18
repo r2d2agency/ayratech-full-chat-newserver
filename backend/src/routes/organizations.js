@@ -1010,6 +1010,7 @@ router.get('/work-schedule', async (req, res) => {
       lunch_end: schedule.lunch_end || '13:00',
       slot_duration_minutes: schedule.slot_duration_minutes || 60,
       buffer_minutes: schedule.buffer_minutes || 15,
+      punch_tolerance_minutes: schedule.punch_tolerance_minutes !== undefined ? schedule.punch_tolerance_minutes : 15,
     });
   } catch (error) {
     console.error('Get work schedule error:', error);
@@ -1030,7 +1031,7 @@ router.put('/work-schedule', async (req, res) => {
     }
 
     const orgId = memberResult.rows[0].organization_id;
-    const { timezone, work_days, work_start, work_end, lunch_start, lunch_end, slot_duration_minutes, buffer_minutes } = req.body;
+    const { timezone, work_days, work_start, work_end, lunch_start, lunch_end, slot_duration_minutes, buffer_minutes, punch_tolerance_minutes } = req.body;
 
     const schedule = {
       timezone: timezone || 'America/Sao_Paulo',
@@ -1041,6 +1042,7 @@ router.put('/work-schedule', async (req, res) => {
       lunch_end: lunch_end || '13:00',
       slot_duration_minutes: slot_duration_minutes || 60,
       buffer_minutes: buffer_minutes || 15,
+      punch_tolerance_minutes: punch_tolerance_minutes !== undefined ? punch_tolerance_minutes : 15,
     };
 
     await query(

@@ -17,6 +17,7 @@ interface WorkSchedule {
   lunch_end: string;
   slot_duration_minutes: number;
   buffer_minutes: number;
+  punch_tolerance_minutes: number;
 }
 
 const DAY_NAMES = [
@@ -39,6 +40,7 @@ export function WorkSchedulePanel() {
     lunch_end: '13:00',
     slot_duration_minutes: 60,
     buffer_minutes: 15,
+    punch_tolerance_minutes: 15,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -195,11 +197,24 @@ export function WorkSchedulePanel() {
           </div>
         </div>
 
+        {/* Punch Tolerance */}
+        <div className="space-y-2">
+          <Label>Tolerância para Bater Ponto (min)</Label>
+          <Input
+            type="number"
+            min={0}
+            max={120}
+            value={schedule.punch_tolerance_minutes}
+            onChange={(e) => setSchedule(prev => ({ ...prev, punch_tolerance_minutes: parseInt(e.target.value) || 0 }))}
+          />
+          <p className="text-xs text-muted-foreground">Tempo permitido para registro antes/depois do horário da escala</p>
+        </div>
+
         {/* Preview */}
         <div className="rounded-lg bg-muted/50 p-4 text-sm">
           <p className="font-medium mb-1">📋 Resumo do expediente:</p>
           <p className="text-muted-foreground">
-            {DAY_NAMES.filter(d => schedule.work_days.includes(d.id)).map(d => d.label).join(', ')} • {schedule.work_start} às {schedule.work_end} • Almoço {schedule.lunch_start}-{schedule.lunch_end} • Slots de {schedule.slot_duration_minutes}min com {schedule.buffer_minutes}min de intervalo
+            {DAY_NAMES.filter(d => schedule.work_days.includes(d.id)).map(d => d.label).join(', ')} • {schedule.work_start} às {schedule.work_end} • Almoço {schedule.lunch_start}-{schedule.lunch_end} • Slots de {schedule.slot_duration_minutes}min • Tolerância de ponto: {schedule.punch_tolerance_minutes}min
           </p>
         </div>
 
