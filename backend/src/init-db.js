@@ -4850,6 +4850,24 @@ export async function initDatabase() {
   } catch (e) {
     console.error('  ⚠️ Failed to expand agency_promoters:', e.message);
   }
+
+  // One-time historical repair for clock-out punches saved three hours behind
+  // on 18/08/2026. This is idempotent: after the update no matching 14h rows remain.
+  try {
+    const repairedPunches = await pool.query(`
+      UPDATE time_punches
+      SET punched_at = punched_at + INTERVAL '3 hours'
+      WHERE punch_type = 'saida'
+        AND (punched_at AT TIME ZONE 'America/Sao_Paulo')::date = DATE '2026-08-18'
+        AND EXTRACT(HOUR FROM punched_at AT TIME ZONE 'America/Sao_Paulo') = 14
+      RETURNING id
+    `);
+    if (repairedPunches.rowCount > 0) {
+      console.log(`  ✅ Corrigidas ${repairedPunches.rowCount} batidas de saída de 14h para 17h`);
+    }
+  } catch (e) {
+    console.error('  ⚠️ Falha ao corrigir batidas históricas de saída:', e.message);
+  }
   
   // Initialize Network Portal data
   await step46NetworkPortal();
