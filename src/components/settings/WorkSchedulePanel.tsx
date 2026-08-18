@@ -96,19 +96,64 @@ export function WorkSchedulePanel() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-primary" />
-          Horário de Trabalho
-        </CardTitle>
-        <CardDescription>
-          Configure o expediente para que os agentes de IA agendem reuniões respeitando seus horários
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Work Days */}
-        <div className="space-y-2">
+    <div className="space-y-6">
+      {/* Punch Tolerance */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-primary" />
+            Tolerância de Ponto Global
+          </CardTitle>
+          <CardDescription>
+            Configure a tolerância padrão para toda a empresa. Este valor será usado caso o colaborador não tenha uma tolerância individual definida.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Tolerância para Bater Ponto (minutos)</Label>
+            <Input
+              type="number"
+              min={0}
+              max={120}
+              value={schedule.punch_tolerance_minutes}
+              onChange={(e) => setSchedule(prev => ({ ...prev, punch_tolerance_minutes: parseInt(e.target.value) || 0 }))}
+            />
+            <p className="text-xs text-muted-foreground">
+              Tempo permitido para registro antes/depois do horário da escala.
+            </p>
+          </div>
+
+          <Button onClick={handleSave} disabled={saving} className="w-full">
+            {saving ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Salvando...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Salvar Configuração Global
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Legacy Scheduling Config - Now hidden/secondary as it's for AI Agent scheduling, not HR Point */}
+      <Card className="opacity-60 grayscale-[0.5] hover:opacity-100 hover:grayscale-0 transition-all">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Calendar className="h-4 w-4" />
+            Configurações de Agendamento IA (Legado)
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Estas configurações são usadas apenas para o agendamento automático de reuniões por IA.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6 pt-0">
+          {/* Work Days */}
+          <div className="space-y-2">
+
           <Label>Dias de Trabalho</Label>
           <div className="flex gap-2">
             {DAY_NAMES.map(day => (
@@ -197,42 +242,26 @@ export function WorkSchedulePanel() {
           </div>
         </div>
 
-        {/* Punch Tolerance */}
-        <div className="space-y-2">
-          <Label>Tolerância para Bater Ponto (min)</Label>
-          <Input
-            type="number"
-            min={0}
-            max={120}
-            value={schedule.punch_tolerance_minutes}
-            onChange={(e) => setSchedule(prev => ({ ...prev, punch_tolerance_minutes: parseInt(e.target.value) || 0 }))}
-          />
-          <p className="text-xs text-muted-foreground">Tempo permitido para registro antes/depois do horário da escala (pode ser sobrescrito no perfil do colaborador).</p>
-        </div>
-
-
         {/* Preview */}
         <div className="rounded-lg bg-muted/50 p-4 text-sm">
-          <p className="font-medium mb-1">📋 Resumo do expediente:</p>
+          <p className="font-medium mb-1">📋 Resumo do expediente IA:</p>
           <p className="text-muted-foreground">
-            {DAY_NAMES.filter(d => schedule.work_days.includes(d.id)).map(d => d.label).join(', ')} • {schedule.work_start} às {schedule.work_end} • Almoço {schedule.lunch_start}-{schedule.lunch_end} • Slots de {schedule.slot_duration_minutes}min • Tolerância de ponto: {schedule.punch_tolerance_minutes}min
+            {DAY_NAMES.filter(d => schedule.work_days.includes(d.id)).map(d => d.label).join(', ')} • {schedule.work_start} às {schedule.work_end} • Almoço {schedule.lunch_start}-{schedule.lunch_end}
           </p>
         </div>
 
-        <Button onClick={handleSave} disabled={saving} className="w-full">
+        <Button onClick={handleSave} variant="outline" disabled={saving} className="w-full text-xs py-1 h-8">
           {saving ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Salvando...
-            </>
+            <Loader2 className="h-3 w-3 mr-2 animate-spin" />
           ) : (
             <>
-              <Save className="h-4 w-4 mr-2" />
-              Salvar Horário de Trabalho
+              <Save className="h-3 w-3 mr-2" />
+              Atualizar Agenda IA
             </>
           )}
         </Button>
       </CardContent>
     </Card>
+  </div>
   );
 }
