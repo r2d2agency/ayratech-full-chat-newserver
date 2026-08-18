@@ -181,7 +181,8 @@ DO $$ BEGIN
       "lunch_start": "12:00",
       "lunch_end": "13:00",
       "slot_duration_minutes": 60,
-      "buffer_minutes": 15
+      "buffer_minutes": 15,
+      "punch_tolerance_minutes": 15
     }'::jsonb;
 EXCEPTION WHEN duplicate_column THEN null; END $$;
 

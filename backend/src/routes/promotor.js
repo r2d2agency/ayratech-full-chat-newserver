@@ -240,7 +240,7 @@ router.get('/home', authenticatePromotor, async (req, res) => {
     };
 
     const [employee, punches, pendingDocs, notifications, assignment, settings] = await Promise.all([
-      safeQuery(`SELECT id, full_name, email, cpf, photo_url, worker_profile, work_schedule, position FROM employees WHERE id = $1`, [empId]),
+      safeQuery(`SELECT e.id, e.full_name, e.email, e.cpf, e.photo_url, e.worker_profile, e.work_schedule, e.position, e.punch_tolerance_minutes, o.work_schedule as organization_work_schedule FROM employees e JOIN organizations o ON o.id = e.organization_id WHERE e.id = $1`, [empId]),
       safeQuery(`SELECT * FROM time_punches WHERE employee_id = $1 AND punched_at::date = $2 ORDER BY punched_at`, [empId, today]),
       safeQuery(`SELECT COUNT(*) as count FROM rh_document_deliveries WHERE employee_id = $1 AND status IN ('enviado', 'entregue', 'visualizado') AND (requires_signature = true OR requires_confirmation = true)`, [empId]),
       safeQuery(`SELECT * FROM collaborator_notifications WHERE employee_id = $1 AND read = false ORDER BY created_at DESC LIMIT 10`, [empId]),
@@ -389,7 +389,12 @@ router.get('/home', authenticatePromotor, async (req, res) => {
     const startMin = parseToMin(scheduleStart) || 480;
     const endMin = parseToMin(scheduleEnd) || 1020;
     
-    const isWithinSchedule = currentMin >= (startMin - 15) && currentMin <= (endMin + 15);
+    // Punch tolerance logic: Individual employee > Global org setting > 15 min default
+    const globalSchedule = employee.rows[0]?.organization_work_schedule;
+    const globalTolerance = (globalSchedule && typeof globalSchedule === 'object') ? (globalSchedule.punch_tolerance_minutes || 15) : 15;
+    const toleranceMinutes = employee.rows[0]?.punch_tolerance_minutes ?? globalTolerance;
+    
+    const isWithinSchedule = currentMin >= (startMin - toleranceMinutes) && currentMin <= (endMin + toleranceMinutes);
 
     // Check overtime approval for today
     let overtimeRequest = null;
