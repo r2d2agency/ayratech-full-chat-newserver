@@ -142,7 +142,9 @@ const EMPTY_FORM = {
   bank_name: "", bank_agency: "", bank_account: "", bank_account_type: "", pix_key: "", pix_key_type: "",
   ctps_number: "", pis_pasep: "", cnpj: "", company_name: "", status: "ativo",
   facial_required: null as boolean | null,
+  punch_tolerance_minutes: null as number | null,
   salary_items: [] as { type: string; description: string; value: string }[],
+
   benefits: [] as { type: string; description: string; value: string; employer_cost: string }[],
 };
 
@@ -609,7 +611,21 @@ export default function RHColaboradores() {
 
             <TabsContent value="profissional" className="space-y-3 mt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div><Label>Matrícula</Label><Input value={form.registration_number} onChange={e => setField("registration_number", e.target.value)} /></div>
+                <div className="space-y-1">
+                  <Label>Matrícula</Label>
+                  <Input value={form.registration_number} onChange={e => setField("registration_number", e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Tolerância para Ponto (min)</Label>
+                  <Input 
+                    type="number" 
+                    placeholder="Padrão da organização"
+                    value={form.punch_tolerance_minutes || ""} 
+                    onChange={e => setField("punch_tolerance_minutes", e.target.value ? parseInt(e.target.value) : null)} 
+                  />
+                  <p className="text-[10px] text-muted-foreground">Deixe vazio para usar a configuração global.</p>
+                </div>
+
                 <div>
                   <div className="flex items-center justify-between">
                     <Label>Cargo</Label>
