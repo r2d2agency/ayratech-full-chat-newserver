@@ -207,8 +207,9 @@ export function WorkSchedulePanel() {
             value={schedule.punch_tolerance_minutes}
             onChange={(e) => setSchedule(prev => ({ ...prev, punch_tolerance_minutes: parseInt(e.target.value) || 0 }))}
           />
-          <p className="text-xs text-muted-foreground">Tempo permitido para registro antes/depois do horário da escala</p>
+          <p className="text-xs text-muted-foreground">Tempo permitido para registro antes/depois do horário da escala (pode ser sobrescrito no perfil do colaborador).</p>
         </div>
+
 
         {/* Preview */}
         <div className="rounded-lg bg-muted/50 p-4 text-sm">
