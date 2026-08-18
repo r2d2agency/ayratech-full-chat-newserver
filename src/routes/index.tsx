@@ -94,6 +94,7 @@ export default function Index() {
           <p className="text-purple-400 font-bold">[RH] Organização de Módulos: As configurações de "Horário de Trabalho" foram movidas e renomeadas para focar no RH (Tolerância de Ponto), enquanto os ajustes de agendamento por IA foram movidos para uma seção de legado.</p>
           <p className="text-yellow-400 font-bold mt-4">P: Onde fica a configuração global de tolerância?</p>
           <p className="text-white">R: No menu lateral vá em **RH {" > "} Configurações**. Lá você verá com destaque a **Tolerância de Ponto Global**. As demais configurações de agenda estão logo abaixo para referência.</p>
+          <p className="text-red-400 font-bold">[FIX-API] Erro 403 ao salvar configurações de RH resolvido: A rota de atualização de horário de trabalho foi corrigida no backend para permitir acesso a Administradores da organização (anteriormente restrito a superadmins globais).</p>
         </div>
       </div>
     </div>
