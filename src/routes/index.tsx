@@ -91,8 +91,9 @@ export default function Index() {
           <p className="text-green-400 font-bold">[PONTO] Ajuste Automático: Batidas de hoje (18/08) realizadas às 14h foram corrigidas para 17h conforme solicitado. (Executado via backend/fix_punches_today.js)</p>
           <p className="text-blue-400 font-bold">[RH] Tolerância Global: Agora você pode configurar uma tolerância de ponto padrão para toda a empresa em RH {" > "} Configurações. O colaborador pode sobrescrever esse valor em seu perfil se necessário.</p>
           <p className="text-green-400">[PONTO] Validação de batida atualizada para priorizar a tolerância individual e usar a global como fallback.</p>
+          <p className="text-purple-400 font-bold">[RH] Organização de Módulos: As configurações de "Horário de Trabalho" foram movidas e renomeadas para focar no RH (Tolerância de Ponto), enquanto os ajustes de agendamento por IA foram movidos para uma seção de legado.</p>
           <p className="text-yellow-400 font-bold mt-4">P: Onde fica a configuração global de tolerância?</p>
-          <p className="text-white">R: No menu lateral vá em **RH {" > "} Configurações**, e procure o card **Horário de Trabalho**. Lá você encontrará o campo "Tolerância para Bater Ponto (min)".</p>
+          <p className="text-white">R: No menu lateral vá em **RH {" > "} Configurações**. Lá você verá com destaque a **Tolerância de Ponto Global**. As demais configurações de agenda estão logo abaixo para referência.</p>
         </div>
       </div>
     </div>
