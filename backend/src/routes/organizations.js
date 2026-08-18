@@ -1026,7 +1026,7 @@ router.put('/work-schedule', async (req, res) => {
       [req.userId]
     );
     if (memberResult.rows.length === 0) return res.status(403).json({ error: 'Sem organização' });
-    if (!['admin', 'superadmin'].includes(memberResult.rows[0].role)) {
+    if (!['owner', 'admin', 'superadmin'].includes(memberResult.rows[0].role)) {
       return res.status(403).json({ error: 'Apenas admins podem alterar horário de trabalho' });
     }
 
