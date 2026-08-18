@@ -1,16 +1,27 @@
 import pg from 'pg';
 import dotenv from 'dotenv';
-dotenv.config();
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Carrega o .env da raiz do backend se existir
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const { Pool } = pg;
 
+// Se não houver DATABASE_URL no .env, tenta usar a variável de ambiente direta do sistema
+const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@desenvolvimento-r2d2_ayratech-bd-new:5432/postgres';
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL.includes('sslmode=disable') ? false : { rejectUnauthorized: false }
+  connectionString: connectionString,
+  ssl: connectionString.includes('sslmode=disable') ? false : { rejectUnauthorized: false }
 });
 
 async function run() {
   try {
+    console.log("Tentando conectar ao banco para ajuste de batidas...");
     const client = await pool.connect();
     await client.query("SET timezone = 'America/Sao_Paulo'");
     
@@ -32,7 +43,10 @@ async function run() {
 
     client.release();
   } catch (err) {
-    console.error("Erro durante o ajuste:", err);
+    console.error("Erro durante o ajuste:", err.message);
+    if (err.code === 'ENOTFOUND') {
+      console.error("ERRO: O host do banco de dados não foi encontrado. Certifique-se de executar este script dentro do container do backend no Easypanel.");
+    }
   } finally {
     await pool.end();
   }
