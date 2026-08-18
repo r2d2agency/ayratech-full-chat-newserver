@@ -3736,8 +3736,10 @@ CREATE TABLE IF NOT EXISTS employees (
   status employee_status DEFAULT 'ativo',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  created_by UUID REFERENCES users(id) ON DELETE SET NULL
+  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  punch_tolerance_minutes INTEGER
 );
+
 CREATE INDEX IF NOT EXISTS idx_employees_org ON employees(organization_id);
 CREATE INDEX IF NOT EXISTS idx_employees_status ON employees(status);
 CREATE INDEX IF NOT EXISTS idx_employees_cpf ON employees(cpf);
@@ -4908,10 +4910,15 @@ const step46NetworkPortal = async () => {
         console.log('  🌐 Network Portal initial data ensured');
       }
     }
+    
+    // Step 47: Extra columns for RH (Tolerance)
+    await pool.query(`ALTER TABLE employees ADD COLUMN IF NOT EXISTS punch_tolerance_minutes INTEGER`);
+
   } catch (e) {
     console.error('  ⚠️ Failed to initialize Network Portal data:', e.message);
   }
 };
+
 
 // Execute step 46 at the end of initializeDatabase function
 
