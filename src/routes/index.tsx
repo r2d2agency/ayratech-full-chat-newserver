@@ -20,7 +20,7 @@ export default function Index() {
         </p>
         <ol className="text-xs text-blue-600 mt-2 list-decimal ml-4 space-y-2">
           <li>
-            <strong>Crie/Edite a Marca:</strong> Vá em <i>Merchandising {' > '} Marcas</i>. Na edição da marca, use as checkboxes no final do formulário para definir o que ela pode ver (Fotos, Rotas, Estoque, etc).
+            <strong>Crie/Edite a Marca:</strong> Vá em <i>Merchandising {" > "} Marcas</i>. Na edição da marca, use as checkboxes no final do formulário para definir o que ela pode ver (Fotos, Rotas, Estoque, etc).
           </li>
           <li>
             <strong>Crie o Usuário:</strong> Vá em <i>Administração {" > "} Organizações</i>. Clique em <strong>Novo Usuário</strong> ou edite um existente.
@@ -48,7 +48,7 @@ export default function Index() {
           <p className="text-green-400">[RH] Sincronização automática de Escala para Jornada: ao vincular uma escala a um colaborador, a Jornada de Trabalho (JSON) é atualizada instantaneamente para refletir os horários da escala.</p>
           <p className="text-blue-400">[BACKEND] Validação de ponto do promotor atualizada para respeitar configurações de horários diferenciados por dia.</p>
           <p className="text-green-400">[PORTAL] Adicionar uma tela de login e dashboard do Portal do Cliente com identidade da marca via token/link, garantindo que cada marca veja apenas seus dados.</p>
-          <p className="text-blue-400">[AUTH] Login inteligente com redirecionamento automático para MerchDashboard validado.</p>
+          <p className="text-blue-400">[AUTH] Login inteligente with redirecionamento automático para MerchDashboard validado.</p>
           <p className="text-slate-400">[DOC] Documentação detalhada sobre como dar acesso às marcas adicionada em Merchandising {" > "} Marcas e na Central de Ajuda.</p>
           <p className="text-blue-400">[CHECKLIST] Trava de obrigatoriedade ao salvar produto individual removida (validação final mantida no fechamento da categoria).</p>
           <p className="text-green-400">[BACKEND] Corrigido erro 500 em relatórios de merchandising (função getOrgId inexistente substituída por getOrgInfo).</p>
@@ -87,9 +87,11 @@ export default function Index() {
           <p className="text-green-400">[PONTO] Ajustes manuais de ponto agora convertem corretamente o horário de Brasília para UTC antes de salvar no banco de dados, mantendo a integridade dos registros históricos.</p>
           <p className="text-green-400 font-bold">[CÁLCULO] Corrigida a lógica de horas trabalhadas: agora o sistema desconta corretamente o intervalo de almoço (Entrada → Almoço + Retorno → Saída) e não utiliza o retorno como saída caso a jornada não tenha sido encerrada.</p>
           <p className="text-yellow-400 font-bold">[FIX-BACKEND] Erro de geofence resolvido: Corrigido o erro "ensurePdvGeofenceColumn is not defined" que impedia o check-in do promotor. A função de validação de perímetro foi devidamente importada no módulo de rotas.</p>
-        </div>
           <p className="text-yellow-400 font-bold">[PONTO] Correção Crítica de Fuso Horário: O registro de ponto agora utiliza explicitamente o horário de Brasília (America/Sao_Paulo) no momento da inserção, resolvendo o problema de registros aparecendo com 3 horas de atraso.</p>
           <p className="text-green-400 font-bold">[PONTO] Ajuste Automático: Batidas de hoje (18/08) realizadas às 14h foram corrigidas para 17h conforme solicitado.</p>
           <p className="text-blue-400">[RH] Menu de Tolerância: A configuração de tolerância individual está disponível no formulário de cada colaborador (RH > Colaboradores > Editar).</p>
+        </div>
+      </div>
+    </div>
   );
 }
