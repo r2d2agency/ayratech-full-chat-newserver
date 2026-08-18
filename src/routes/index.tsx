@@ -86,6 +86,7 @@ export default function Index() {
           <p className="text-green-400 font-bold">[DATA] Migração concluída: Todos os registros criados erroneamente em 16/08 devido ao fuso horário (Punches, Rotas, Escalas) foram migrados manualmente para 17/08 para garantir a integridade dos relatórios.</p>
           <p className="text-green-400">[PONTO] Ajustes manuais de ponto agora convertem corretamente o horário de Brasília para UTC antes de salvar no banco de dados, mantendo a integridade dos registros históricos.</p>
           <p className="text-green-400 font-bold">[CÁLCULO] Corrigida a lógica de horas trabalhadas: agora o sistema desconta corretamente o intervalo de almoço (Entrada → Almoço + Retorno → Saída) e não utiliza o retorno como saída caso a jornada não tenha sido encerrada.</p>
+          <p className="text-yellow-400 font-bold">[FIX-BACKEND] Erro de geofence resolvido: Corrigido o erro "ensurePdvGeofenceColumn is not defined" que impedia o check-in do promotor. A função de validação de perímetro foi devidamente importada no módulo de rotas.</p>
         </div>
       </div>
     </div>
