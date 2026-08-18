@@ -89,7 +89,7 @@ export default function Index() {
           <p className="text-yellow-400 font-bold">[FIX-BACKEND] Erro de geofence resolvido: Corrigido o erro "ensurePdvGeofenceColumn is not defined" que impedia o check-in do promotor. A função de validação de perímetro foi devidamente importada no módulo de rotas.</p>
           <p className="text-yellow-400 font-bold">[PONTO] Correção Crítica de Fuso Horário: O registro de ponto agora utiliza explicitamente o horário de Brasília (America/Sao_Paulo) no momento da inserção, resolvendo o problema de registros aparecendo com 3 horas de atraso.</p>
           <p className="text-green-400 font-bold">[PONTO] Ajuste Automático: Batidas de hoje (18/08) realizadas às 14h foram corrigidas para 17h conforme solicitado.</p>
-          <p className="text-blue-400">[RH] Menu de Tolerância: A configuração de tolerância individual está disponível no formulário de cada colaborador (RH > Colaboradores > Editar).</p>
+          <p className="text-blue-400">[RH] Menu de Tolerância: A configuração de tolerância individual está disponível no formulário de cada colaborador (RH {" > "} Colaboradores {" > "} Editar).</p>
         </div>
       </div>
     </div>
