@@ -153,6 +153,7 @@ export const getNavSections = (hasConnections: boolean): NavSection[] => [
       { name: "Rastreamento", href: "/rh/rastreamento", icon: Navigation, pageKey: 'rh_rastreamento', moduleKey: 'rh' },
       { name: "Logs & Erros", href: "/rh/logs", icon: Code, pageKey: 'rh_logs', moduleKey: 'rh' },
       { name: "Ajuda & Manuais", href: "/rh/ajuda", icon: HelpCircle, pageKey: 'rh_ajuda', moduleKey: 'rh' },
+      { name: "Configurações", href: "/rh/configuracoes", icon: Settings, pageKey: 'rh_configuracoes', moduleKey: 'rh', adminOnly: true },
     ],
   },
   {
