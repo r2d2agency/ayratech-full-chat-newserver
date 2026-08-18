@@ -88,7 +88,8 @@ export default function Index() {
           <p className="text-green-400 font-bold">[CÁLCULO] Corrigida a lógica de horas trabalhadas: agora o sistema desconta corretamente o intervalo de almoço (Entrada → Almoço + Retorno → Saída) e não utiliza o retorno como saída caso a jornada não tenha sido encerrada.</p>
           <p className="text-yellow-400 font-bold">[FIX-BACKEND] Erro de geofence resolvido: Corrigido o erro "ensurePdvGeofenceColumn is not defined" que impedia o check-in do promotor. A função de validação de perímetro foi devidamente importada no módulo de rotas.</p>
         </div>
-      </div>
+          <p className="text-yellow-400 font-bold">[PONTO] Correção Crítica de Fuso Horário: O registro de ponto agora utiliza explicitamente o horário de Brasília (America/Sao_Paulo) no momento da inserção, resolvendo o problema de registros aparecendo com 3 horas de atraso.</p>
+        </div>
     </div>
   );
 }
