@@ -3,6 +3,7 @@ import { query } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
 import { logInfo, logError, logWarn } from '../logger.js';
 import { sendStockCountSummaryForRoute } from './stock-count.js';
+import { validatePdvLocation, ensurePdvGeofenceColumn } from '../lib/geofence.js';
 
 
 const router = express.Router();
