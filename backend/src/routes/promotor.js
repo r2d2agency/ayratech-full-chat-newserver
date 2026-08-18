@@ -644,10 +644,14 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
       if (justification) geo_status = 'excecao';
     }
 
+    // Use Brazil/Sao Paulo timezone for "now"
+    const nowLocal = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const punchedAt = is_offline && offline_local_time ? new Date(offline_local_time) : nowLocal;
+
     const result = await query(
       `INSERT INTO time_punches (organization_id, employee_id, punch_type, punched_at, latitude, longitude, accuracy_meters, pdv_id, distance_from_pdv, geo_status, device_info, ip_address, is_offline, offline_local_time, sync_status, justification)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
-      [req.organizationId, req.employeeId, punch_type, is_offline ? offline_local_time : new Date(),
+      [req.organizationId, req.employeeId, punch_type, punchedAt,
         latitude, longitude, accuracy_meters, pdv_id || null, distance, geo_status,
         req.headers['user-agent'], req.ip, is_offline || false, offline_local_time || null,
         is_offline ? 'synced' : 'synced', justification || null]
