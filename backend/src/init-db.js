@@ -4870,27 +4870,33 @@ export async function initDatabase() {
       console.error('  ⚠️ Falha ao corrigir batidas históricas de saída:', e.message);
     }
   
-    // Repair for 19/08/2026 (REVERTING previous +3h shift for all records today to start fresh)
+    // Repair for 19/08/2026
     try {
       const today = new Date().toISOString().split('T')[0];
       
-      // First, revert any record from today that was ALREADY shifted (created_at > NOW - 24h)
-      // This is a safety measure because the user said I shifted correctly but the FIRST one is now +3h ahead of what it should be.
-      // Actually, if the user says "voltar -3h" for the FIRST one, it means my previous automatic script ALREADY ran and shifted everything.
-      
-      const revertToday = await pool.query(`
+      // 1. Corrigir Entrada (voltar -3h): O usuário disse que a entrada ficou com +3h indevidas.
+      const fixEntrada = await pool.query(`
         UPDATE time_punches
         SET punched_at = punched_at - INTERVAL '3 hours'
         WHERE (punched_at AT TIME ZONE 'America/Sao_Paulo')::date = $1
+          AND punch_type = 'entrada'
           AND created_at > NOW() - INTERVAL '24 hours'
-        RETURNING id
+      `, [today]);
+
+      // 2. Corrigir Intervalo (avançar +3h): O usuário disse que Saída/Retorno Intervalo precisam de +3h.
+      const fixIntervalo = await pool.query(`
+        UPDATE time_punches
+        SET punched_at = punched_at + INTERVAL '3 hours'
+        WHERE (punched_at AT TIME ZONE 'America/Sao_Paulo')::date = $1
+          AND punch_type IN ('saida_intervalo', 'retorno_intervalo')
+          AND created_at > NOW() - INTERVAL '24 hours'
       `, [today]);
       
-      if (revertToday.rowCount > 0) {
-        console.log(`  ✅ Revertidas ${revertToday.rowCount} batidas de hoje (${today}) deslocando -3h para normalizar`);
+      if (fixEntrada.rowCount > 0 || fixIntervalo.rowCount > 0) {
+        console.log(`  ✅ Ajustes de Ponto 19/08: ${fixEntrada.rowCount} Entradas (-3h), ${fixIntervalo.rowCount} Intervalos (+3h)`);
       }
     } catch (e) {
-      console.error('  ⚠️ Falha ao normalizar batidas de hoje:', e.message);
+      console.error('  ⚠️ Falha ao ajustar batidas específicas de hoje:', e.message);
     }
   
   // Initialize Network Portal data
