@@ -1,5 +1,11 @@
 import React from 'react';
 
+// O arquivo fix_timezone_punches.js está localizado em:
+// backend/fix_timezone_punches.js (na raiz do projeto)
+// No Easypanel, o caminho dentro do container do backend é /app/fix_timezone_punches.js ou /app/src/fix_timezone_punches.js dependendo da estrutura de montagem.
+// Se você não o encontrou em /app/, verifique a pasta /app/src/
+
+
 export default function Index() {
   return (
     <div className="p-8 space-y-4">
