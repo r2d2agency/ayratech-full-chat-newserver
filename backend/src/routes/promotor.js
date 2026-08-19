@@ -228,9 +228,10 @@ router.post('/change-password', authenticatePromotor, async (req, res) => {
 router.get('/home', authenticatePromotor, async (req, res) => {
   try {
     // Use America/Sao_Paulo timezone - ensures the current date matches the collaborator's region
-    const nowBR = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-    // Safety check: using 'en-CA' for stable YYYY-MM-DD format based on the localized time
-    const today = nowBR.toLocaleDateString('en-CA'); 
+    // CRITICAL: Database-side NOW() and America/Sao_Paulo context
+    // We strictly use NOW() in DB to avoid any drift from app-server JS time
+    const todayResult = await query("SELECT (NOW() AT TIME ZONE 'America/Sao_Paulo')::date as today");
+    const today = todayResult.rows[0].today.toISOString().split('T')[0];
     const empId = req.employeeId;
 
     // Helper to run a query safely – returns empty result on missing-table errors
@@ -300,7 +301,8 @@ router.get('/home', authenticatePromotor, async (req, res) => {
       // 2. Check recurring schedule (Escala)
       try {
         const dowMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
-        const dayOfWeek = dowMap[nowBR.getDay()];
+        const dowRes = await query("SELECT EXTRACT(DOW FROM (NOW() AT TIME ZONE 'America/Sao_Paulo')) as dow");
+        const dayOfWeek = dowMap[Math.floor(dowRes.rows[0].dow)];
         const recurring = await safeQuery(
           `SELECT s.items FROM rh_employee_schedules es
            JOIN rh_schedules s ON s.id = es.schedule_id
@@ -336,7 +338,8 @@ router.get('/home', authenticatePromotor, async (req, res) => {
         
         if (parsed) {
           const dowMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
-          const dayOfWeek = dowMap[nowBR.getDay()];
+          const dowRes = await query("SELECT EXTRACT(DOW FROM (NOW() AT TIME ZONE 'America/Sao_Paulo')) as dow");
+          const dayOfWeek = dowMap[Math.floor(dowRes.rows[0].dow)];
           
           if (parsed.useIndividualDays && parsed.dayConfig && parsed.dayConfig[dayOfWeek]) {
             const config = parsed.dayConfig[dayOfWeek];
@@ -378,7 +381,8 @@ router.get('/home', authenticatePromotor, async (req, res) => {
     if (!scheduleStart) scheduleStart = '08:00';
     if (!scheduleEnd) scheduleEnd = '17:00';
 
-    const currentMin = nowBR.getHours() * 60 + nowBR.getMinutes();
+    const minRes = await query("SELECT (EXTRACT(HOUR FROM (NOW() AT TIME ZONE 'America/Sao_Paulo')) * 60 + EXTRACT(MINUTE FROM (NOW() AT TIME ZONE 'America/Sao_Paulo'))) as current_min");
+    const currentMin = Math.floor(minRes.rows[0].current_min);
     const parseToMin = (str) => {
       if (!str || typeof str !== 'string') return 0;
       const parts = str.split(':');
@@ -455,13 +459,23 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
 
     // ===== WORK SCHEDULE VALIDATION =====
     const empRes = await query(`SELECT work_schedule, face_descriptor, facial_required, punch_tolerance_minutes FROM employees WHERE id = $1`, [req.employeeId]);
-    const now = is_offline && offline_local_time
-      ? new Date(offline_local_time)
-      : new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
     
-    // Ensure we are comparing hours correctly by using the localized date object
-    const today = now.toLocaleDateString('en-CA'); 
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    // CRITICAL: Database-side NOW() and America/Sao_Paulo context
+    // We strictly use NOW() in DB to avoid any drift from app-server JS time
+    const timeInfoRes = await query(`
+      SELECT 
+        (NOW() AT TIME ZONE 'America/Sao_Paulo')::date as today,
+        (EXTRACT(HOUR FROM (NOW() AT TIME ZONE 'America/Sao_Paulo')) * 60 + EXTRACT(MINUTE FROM (NOW() AT TIME ZONE 'America/Sao_Paulo'))) as current_minutes,
+        TO_CHAR(NOW() AT TIME ZONE 'America/Sao_Paulo', 'HH24:MI') as current_time_str
+    `);
+    
+    const today = timeInfoRes.rows[0].today.toISOString().split('T')[0];
+    const currentMinutes = Math.floor(timeInfoRes.rows[0].current_minutes);
+    const currentTimeStr = timeInfoRes.rows[0].current_time_str;
+
+    // Use a date object for is_offline fallback if provided, but standard punch uses DB time
+    const now = is_offline && offline_local_time ? new Date(offline_local_time) : new Date();
+
 
     // 1. Check for specific daily assignment (Escala) or recurring schedule first
     let scheduleStart = null, scheduleEnd = null;
@@ -478,7 +492,8 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
       } else {
         // Check for recurring work schedule (Escala recorrente)
         const dowMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
-        const dayOfWeek = dowMap[now.getDay()];
+        const dowRes = await query("SELECT EXTRACT(DOW FROM (NOW() AT TIME ZONE 'America/Sao_Paulo')) as dow");
+        const dayOfWeek = dowMap[Math.floor(dowRes.rows[0].dow)];
         const recurring = await query(
           `SELECT s.items FROM rh_employee_schedules es
            JOIN rh_schedules s ON s.id = es.schedule_id
@@ -569,7 +584,7 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
           error: `Fora do horário de trabalho (${scheduleStart} - ${scheduleEnd}). Solicite autorização de hora extra ao supervisor.`,
           code: 'OUTSIDE_SCHEDULE',
           schedule: { start: scheduleStart, end: scheduleEnd },
-          current_time: `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
+          current_time: currentTimeStr
         });
       }
 
