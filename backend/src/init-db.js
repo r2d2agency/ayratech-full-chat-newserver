@@ -4866,9 +4866,26 @@ export async function initDatabase() {
     if (repairedPunches.rowCount > 0) {
       console.log(`  ✅ Corrigidas ${repairedPunches.rowCount} batidas de saída de 14h para 17h`);
     }
-  } catch (e) {
-    console.error('  ⚠️ Falha ao corrigir batidas históricas de saída:', e.message);
-  }
+    } catch (e) {
+      console.error('  ⚠️ Falha ao corrigir batidas históricas de saída:', e.message);
+    }
+  
+    // Repair for 19/08/2026 (General shift +3h)
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const repairedToday = await pool.query(`
+        UPDATE time_punches
+        SET punched_at = punched_at + INTERVAL '3 hours'
+        WHERE (punched_at AT TIME ZONE 'America/Sao_Paulo')::date = $1
+          AND created_at > NOW() - INTERVAL '24 hours'
+        RETURNING id
+      `, [today]);
+      if (repairedToday.rowCount > 0) {
+        console.log(`  ✅ Corrigidas ${repairedToday.rowCount} batidas de hoje (${today}) deslocando +3h`);
+      }
+    } catch (e) {
+      console.error('  ⚠️ Falha ao corrigir batidas de hoje:', e.message);
+    }
   
   // Initialize Network Portal data
   await step46NetworkPortal();
