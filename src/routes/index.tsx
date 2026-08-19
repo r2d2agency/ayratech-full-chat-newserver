@@ -102,7 +102,7 @@ export default function Index() {
           <p className="text-white">R: No menu lateral vá em **RH {" > "} Configurações**. Lá você verá com destaque a **Tolerância de Ponto Global**. As demais configurações de agenda estão logo abaixo para referência.</p>
           <p className="text-green-400 font-bold">[FIX-API] Erro 403 resolvido: A rota de atualização de horário de trabalho (Tolerância Global) foi corrigida no backend para aceitar o cargo 'owner' (anteriormente limitado a 'admin').</p>
           <p className="text-red-400 font-bold">[PONTO] Correção de Horário: Identificado que batidas estavam sendo registradas com 3 horas de atraso. O sistema foi forçado a usar 'America/Sao_Paulo' em todas as conexões e as batidas de hoje (19/08) foram corrigidas (+3h).</p>
-          <p className="text-yellow-400 font-bold">[DICA] O arquivo de correção está em backend/src/fix_timezone_punches.js no código fonte. No Easypanel, tente rodar: `node src/fix_timezone_punches.js` ou `node fix_timezone_punches.js` dentro da pasta /app.</p>
+          <p className="text-yellow-400 font-bold">[DICA] O arquivo de correção está em backend/src/fix_timezone_punches.js no código fonte. No Easypanel, dentro da pasta /app, tente rodar: `node src/fix_timezone_punches.js`. Se o arquivo não estiver lá, verifique a raiz com `node fix_timezone_punches.js`.</p>
         </div>
       </div>
     </div>
