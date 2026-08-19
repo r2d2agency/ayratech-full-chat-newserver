@@ -4870,7 +4870,7 @@ export async function initDatabase() {
       console.error('  ⚠️ Falha ao corrigir batidas históricas de saída:', e.message);
     }
   
-    // Repair for 19/08/2026 (Shift +3h only for entries recorded with old offset)
+    // Repair for 19/08/2026 (General shift +3h only for LATE morning punches)
     try {
       const today = new Date().toISOString().split('T')[0];
       const repairedToday = await pool.query(`
@@ -4878,12 +4878,13 @@ export async function initDatabase() {
         SET punched_at = punched_at + INTERVAL '3 hours'
         WHERE (punched_at AT TIME ZONE 'America/Sao_Paulo')::date = $1
           AND created_at > NOW() - INTERVAL '24 hours'
-          -- We only shift if the hour is clearly UTC-shifted (e.g. 09h instead of 12h)
-          AND EXTRACT(HOUR FROM punched_at AT TIME ZONE 'America/Sao_Paulo') < EXTRACT(HOUR FROM NOW()) - 2
+          -- Shift only if recorded between 00:00 and 11:00 (UTC-3), which means 03:00 to 14:00 UTC
+          -- If it's already afternoon, don't double shift
+          AND EXTRACT(HOUR FROM punched_at AT TIME ZONE 'America/Sao_Paulo') < 12
         RETURNING id
       `, [today]);
       if (repairedToday.rowCount > 0) {
-        console.log(`  ✅ Corrigidas ${repairedToday.rowCount} batidas de hoje (${today}) deslocando +3h`);
+        console.log(`  ✅ Corrigidas ${repairedToday.rowCount} batidas de entrada/manhã de hoje (${today}) deslocando +3h`);
       }
     } catch (e) {
       console.error('  ⚠️ Falha ao corrigir batidas de hoje:', e.message);

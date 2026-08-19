@@ -102,7 +102,8 @@ export default function Index() {
           <p className="text-white">R: No menu lateral vá em **RH {" > "} Configurações**. Lá você verá com destaque a **Tolerância de Ponto Global**. As demais configurações de agenda estão logo abaixo para referência.</p>
           <p className="text-green-400 font-bold">[FIX-API] Erro 403 resolvido: A rota de atualização de horário de trabalho (Tolerância Global) foi corrigida no backend para aceitar o cargo 'owner' (anteriormente limitado a 'admin').</p>
           <p className="text-red-400 font-bold">[PONTO] Correção DEFINITIVA de Horário: O sistema agora ignora o relógio do celular e usa apenas o horário oficial do servidor (NOW() no Banco de Dados) configurado para Brasília.</p>
-          <p className="text-yellow-400 font-bold text-xs">[AÇÃO] Reinicie o backend no Easypanel para aplicar o ajuste de +3h nas batidas incorretas de hoje (19/08).</p>
+          <p className="text-yellow-400 font-bold text-xs">[AÇÃO] Reinicie o backend no Easypanel para aplicar o ajuste de +3h nas batidas de hoje (19/08) que ficaram erradas na entrada.</p>
+          <p className="text-green-400 font-bold">[PONTO] Lógica de reparo automático ajustada para não duplicar o deslocamento nas batidas da tarde.</p>
         </div>
       </div>
     </div>
