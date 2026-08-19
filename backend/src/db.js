@@ -101,6 +101,10 @@ pool.on('connect', (client) => {
   });
 });
 
+pool.on('error', (err) => {
+  logError('db.pool_error', err);
+});
+
 
 export async function query(text, params) {
   const startedAt = Date.now();

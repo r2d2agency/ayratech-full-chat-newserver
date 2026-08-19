@@ -228,9 +228,10 @@ router.post('/change-password', authenticatePromotor, async (req, res) => {
 router.get('/home', authenticatePromotor, async (req, res) => {
   try {
     // Use America/Sao_Paulo timezone - ensures the current date matches the collaborator's region
-    const nowBR = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-    // Safety check: using 'en-CA' for stable YYYY-MM-DD format based on the localized time
-    const today = nowBR.toLocaleDateString('en-CA'); 
+    // CRITICAL: Database-side NOW() and America/Sao_Paulo context
+    // We strictly use NOW() in DB to avoid any drift from app-server JS time
+    const todayResult = await query("SELECT (NOW() AT TIME ZONE 'America/Sao_Paulo')::date as today");
+    const today = todayResult.rows[0].today.toISOString().split('T')[0];
     const empId = req.employeeId;
 
     // Helper to run a query safely – returns empty result on missing-table errors
@@ -300,7 +301,8 @@ router.get('/home', authenticatePromotor, async (req, res) => {
       // 2. Check recurring schedule (Escala)
       try {
         const dowMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
-        const dayOfWeek = dowMap[nowBR.getDay()];
+        const dowRes = await query("SELECT EXTRACT(DOW FROM (NOW() AT TIME ZONE 'America/Sao_Paulo')) as dow");
+        const dayOfWeek = dowMap[Math.floor(dowRes.rows[0].dow)];
         const recurring = await safeQuery(
           `SELECT s.items FROM rh_employee_schedules es
            JOIN rh_schedules s ON s.id = es.schedule_id
@@ -336,7 +338,8 @@ router.get('/home', authenticatePromotor, async (req, res) => {
         
         if (parsed) {
           const dowMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
-          const dayOfWeek = dowMap[nowBR.getDay()];
+          const dowRes = await query("SELECT EXTRACT(DOW FROM (NOW() AT TIME ZONE 'America/Sao_Paulo')) as dow");
+          const dayOfWeek = dowMap[Math.floor(dowRes.rows[0].dow)];
           
           if (parsed.useIndividualDays && parsed.dayConfig && parsed.dayConfig[dayOfWeek]) {
             const config = parsed.dayConfig[dayOfWeek];
@@ -378,7 +381,8 @@ router.get('/home', authenticatePromotor, async (req, res) => {
     if (!scheduleStart) scheduleStart = '08:00';
     if (!scheduleEnd) scheduleEnd = '17:00';
 
-    const currentMin = nowBR.getHours() * 60 + nowBR.getMinutes();
+    const minRes = await query("SELECT (EXTRACT(HOUR FROM (NOW() AT TIME ZONE 'America/Sao_Paulo')) * 60 + EXTRACT(MINUTE FROM (NOW() AT TIME ZONE 'America/Sao_Paulo'))) as current_min");
+    const currentMin = Math.floor(minRes.rows[0].current_min);
     const parseToMin = (str) => {
       if (!str || typeof str !== 'string') return 0;
       const parts = str.split(':');
