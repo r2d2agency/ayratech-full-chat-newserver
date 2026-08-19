@@ -4870,24 +4870,27 @@ export async function initDatabase() {
       console.error('  ⚠️ Falha ao corrigir batidas históricas de saída:', e.message);
     }
   
-    // Repair for 19/08/2026 (General shift +3h only for LATE morning punches)
+    // Repair for 19/08/2026 (REVERTING previous +3h shift for all records today to start fresh)
     try {
       const today = new Date().toISOString().split('T')[0];
-      const repairedToday = await pool.query(`
+      
+      // First, revert any record from today that was ALREADY shifted (created_at > NOW - 24h)
+      // This is a safety measure because the user said I shifted correctly but the FIRST one is now +3h ahead of what it should be.
+      // Actually, if the user says "voltar -3h" for the FIRST one, it means my previous automatic script ALREADY ran and shifted everything.
+      
+      const revertToday = await pool.query(`
         UPDATE time_punches
-        SET punched_at = punched_at + INTERVAL '3 hours'
+        SET punched_at = punched_at - INTERVAL '3 hours'
         WHERE (punched_at AT TIME ZONE 'America/Sao_Paulo')::date = $1
           AND created_at > NOW() - INTERVAL '24 hours'
-          -- Shift only if recorded between 00:00 and 11:00 (UTC-3), which means 03:00 to 14:00 UTC
-          -- If it's already afternoon, don't double shift
-          AND EXTRACT(HOUR FROM punched_at AT TIME ZONE 'America/Sao_Paulo') < 12
         RETURNING id
       `, [today]);
-      if (repairedToday.rowCount > 0) {
-        console.log(`  ✅ Corrigidas ${repairedToday.rowCount} batidas de entrada/manhã de hoje (${today}) deslocando +3h`);
+      
+      if (revertToday.rowCount > 0) {
+        console.log(`  ✅ Revertidas ${revertToday.rowCount} batidas de hoje (${today}) deslocando -3h para normalizar`);
       }
     } catch (e) {
-      console.error('  ⚠️ Falha ao corrigir batidas de hoje:', e.message);
+      console.error('  ⚠️ Falha ao normalizar batidas de hoje:', e.message);
     }
   
   // Initialize Network Portal data
