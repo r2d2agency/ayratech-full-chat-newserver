@@ -459,13 +459,23 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
 
     // ===== WORK SCHEDULE VALIDATION =====
     const empRes = await query(`SELECT work_schedule, face_descriptor, facial_required, punch_tolerance_minutes FROM employees WHERE id = $1`, [req.employeeId]);
-    const now = is_offline && offline_local_time
-      ? new Date(offline_local_time)
-      : new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
     
-    // Ensure we are comparing hours correctly by using the localized date object
-    const today = now.toLocaleDateString('en-CA'); 
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    // CRITICAL: Database-side NOW() and America/Sao_Paulo context
+    // We strictly use NOW() in DB to avoid any drift from app-server JS time
+    const timeInfoRes = await query(`
+      SELECT 
+        (NOW() AT TIME ZONE 'America/Sao_Paulo')::date as today,
+        (EXTRACT(HOUR FROM (NOW() AT TIME ZONE 'America/Sao_Paulo')) * 60 + EXTRACT(MINUTE FROM (NOW() AT TIME ZONE 'America/Sao_Paulo'))) as current_minutes,
+        TO_CHAR(NOW() AT TIME ZONE 'America/Sao_Paulo', 'HH24:MI') as current_time_str
+    `);
+    
+    const today = timeInfoRes.rows[0].today.toISOString().split('T')[0];
+    const currentMinutes = Math.floor(timeInfoRes.rows[0].current_minutes);
+    const currentTimeStr = timeInfoRes.rows[0].current_time_str;
+
+    // Use a date object for is_offline fallback if provided, but standard punch uses DB time
+    const now = is_offline && offline_local_time ? new Date(offline_local_time) : new Date();
+
 
     // 1. Check for specific daily assignment (Escala) or recurring schedule first
     let scheduleStart = null, scheduleEnd = null;
@@ -482,7 +492,8 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
       } else {
         // Check for recurring work schedule (Escala recorrente)
         const dowMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
-        const dayOfWeek = dowMap[now.getDay()];
+        const dowRes = await query("SELECT EXTRACT(DOW FROM (NOW() AT TIME ZONE 'America/Sao_Paulo')) as dow");
+        const dayOfWeek = dowMap[Math.floor(dowRes.rows[0].dow)];
         const recurring = await query(
           `SELECT s.items FROM rh_employee_schedules es
            JOIN rh_schedules s ON s.id = es.schedule_id
@@ -573,7 +584,7 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
           error: `Fora do horário de trabalho (${scheduleStart} - ${scheduleEnd}). Solicite autorização de hora extra ao supervisor.`,
           code: 'OUTSIDE_SCHEDULE',
           schedule: { start: scheduleStart, end: scheduleEnd },
-          current_time: `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
+          current_time: currentTimeStr
         });
       }
 
