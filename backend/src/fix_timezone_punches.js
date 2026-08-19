@@ -92,7 +92,7 @@ async function fixTimezoneIssues() {
 
     // 2. Identify punches from today that are shifted
     // Today is 19/08/2026.
-    const todayStr = '2026-08-19';
+    const todayStr = new Date().toISOString().split('T')[0];
 
     console.log(`Auditing punches for date: ${todayStr}`);
 
