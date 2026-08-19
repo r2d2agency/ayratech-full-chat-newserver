@@ -4870,30 +4870,32 @@ export async function initDatabase() {
       console.error('  ⚠️ Falha ao corrigir batidas históricas de saída:', e.message);
     }
   
-    // Repair for 19/08/2026
+    // Repair for 19/08/2026 (Final granular adjustment)
     try {
       const today = new Date().toISOString().split('T')[0];
       
-      // 1. Corrigir Entrada (voltar -3h): O usuário disse que a entrada ficou com +3h indevidas.
+      // 1. Entrada +3h (O usuário disse que bagunçou e agora precisa de +3h)
       const fixEntrada = await pool.query(`
         UPDATE time_punches
-        SET punched_at = punched_at - INTERVAL '3 hours'
+        SET punched_at = punched_at + INTERVAL '3 hours'
         WHERE (punched_at AT TIME ZONE 'America/Sao_Paulo')::date = $1
           AND punch_type = 'entrada'
           AND created_at > NOW() - INTERVAL '24 hours'
       `, [today]);
 
-      // 2. Corrigir Intervalo (avançar +3h): O usuário disse que Saída/Retorno Intervalo precisam de +3h.
-      const fixIntervalo = await pool.query(`
+      // 2. Saída Final +3h (O usuário disse que precisa de +3h)
+      const fixSaida = await pool.query(`
         UPDATE time_punches
         SET punched_at = punched_at + INTERVAL '3 hours'
         WHERE (punched_at AT TIME ZONE 'America/Sao_Paulo')::date = $1
-          AND punch_type IN ('saida_intervalo', 'retorno_intervalo')
+          AND punch_type = 'saida'
           AND created_at > NOW() - INTERVAL '24 hours'
       `, [today]);
+
+      // 3. Intervalos (Não mexer, conforme solicitado)
       
-      if (fixEntrada.rowCount > 0 || fixIntervalo.rowCount > 0) {
-        console.log(`  ✅ Ajustes de Ponto 19/08: ${fixEntrada.rowCount} Entradas (-3h), ${fixIntervalo.rowCount} Intervalos (+3h)`);
+      if (fixEntrada.rowCount > 0 || fixSaida.rowCount > 0) {
+        console.log(`  ✅ Ajuste Granular 19/08: ${fixEntrada.rowCount} Entradas (+3h), ${fixSaida.rowCount} Saídas (+3h)`);
       }
     } catch (e) {
       console.error('  ⚠️ Falha ao ajustar batidas específicas de hoje:', e.message);
