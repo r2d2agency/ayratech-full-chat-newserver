@@ -4858,21 +4858,21 @@ export async function initDatabase() {
   try {
     const fix19 = await pool.query(`
       UPDATE time_punches 
-      SET punched_at = punched_at + INTERVAL '3 hours"
-      WHERE punched_at >= '2026-08-19 00:00:00" 
-        AND punched_at < '2026-08-20 00:00:00"
+      SET punched_at = punched_at + INTERVAL '3 hours'
+      WHERE punched_at >= '2026-08-19 00:00:00' 
+        AND punched_at < '2026-08-20 00:00:00'
         AND manual_adjustment IS NOT TRUE
-        AND sync_status = 'synced"
-        AND punched_at < NOW() - INTERVAL '1 hour";
+        AND sync_status = 'synced'
+        AND punched_at < NOW() - INTERVAL '1 hour';
     `);
     const fix20 = await pool.query(`
       UPDATE time_punches 
-      SET punched_at = punched_at + INTERVAL '3 hours"
-      WHERE punched_at >= '2026-08-20 00:00:00" 
-        AND punched_at < NOW() - INTERVAL '5 minutes"
+      SET punched_at = punched_at + INTERVAL '3 hours'
+      WHERE punched_at >= '2026-08-20 00:00:00' 
+        AND punched_at < NOW() - INTERVAL '5 minutes'
         AND manual_adjustment IS NOT TRUE
-        AND sync_status = 'synced"
-        AND punched_at < (NOW() - INTERVAL '2 hours 30 minutes");
+        AND sync_status = 'synced'
+        AND punched_at < (NOW() - INTERVAL '2 hours 30 minutes');
     `);
     if (fix19.rowCount > 0 || fix20.rowCount > 0) {
       console.log(`[TimezoneFix] Corrected ${fix19.rowCount} records from 19/08 and ${fix20.rowCount} from 20/08`);
