@@ -833,7 +833,7 @@ router.patch('/app-punches/:id', async (req, res) => {
     if (!adjustment_reason) return res.status(400).json({ error: 'Informe o motivo do ajuste' });
     const r = await query(
       `UPDATE time_punches SET
-         punched_at = COALESCE($1::timestamp, punched_at),
+         punched_at = COALESCE(($1::timestamp AT TIME ZONE 'America/Sao_Paulo'), punched_at),
          punch_type = COALESCE($2, punch_type),
          pdv_id = COALESCE($3, pdv_id),
          manual_adjustment = true,
