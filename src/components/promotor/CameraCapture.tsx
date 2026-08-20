@@ -55,8 +55,8 @@ const DEFAULT_QUALITY_CONFIG: PhotoQualityConfig = {
   max_brightness: 220,
   min_resolution_w: 640,
   min_resolution_h: 480,
-  compression_quality: 0.7,
-  max_file_size_kb: 1024,
+  compression_quality: 0.6,    // Reduced from 0.7 for better initial compression
+  max_file_size_kb: 500,        // Reduced from 1024 to save server storage
 };
 
 interface ValidationResult {

@@ -134,19 +134,25 @@ function compressMainThread(
   maxSizeKb: number
 ): Promise<Blob | null> {
   return new Promise((resolve) => {
-    let q = quality;
+    // Determine quality step based on input
     const attempt = (currentQuality: number, attemptsLeft: number) => {
       canvas.toBlob(
         (blob) => {
           if (!blob) return resolve(null);
+          // If already small enough or no more attempts, return it
           if (blob.size / 1024 <= maxSizeKb || attemptsLeft <= 0) return resolve(blob);
-          attempt(currentQuality - 0.1, attemptsLeft - 1);
+          
+          // Reduction strategy: more aggressive if far from target
+          const sizeRatio = (blob.size / 1024) / maxSizeKb;
+          const reduction = sizeRatio > 2 ? 0.2 : 0.1;
+          
+          attempt(Math.max(0.1, currentQuality - reduction), attemptsLeft - 1);
         },
         'image/webp',
         currentQuality
       );
     };
-    attempt(q, 5);
+    attempt(quality, 6);
   });
 }
 
