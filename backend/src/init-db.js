@@ -4866,6 +4866,8 @@ export async function initDatabase() {
 
     // 2. Identify records on 20/08 that were created BEFORE the timezone fix was finalized
     // We increase the window and refine the detection.
+    // We check records from today that have a suspiciously old 'created_at' (recorded in UTC) 
+    // vs 'punched_at' (what was intended).
     const fixToday = await pool.query(`
       UPDATE time_punches 
       SET punched_at = punched_at + INTERVAL '3 hours'
@@ -4874,33 +4876,39 @@ export async function initDatabase() {
         AND manual_adjustment IS NOT TRUE
         AND sync_status = 'synced'
         AND (
-          -- If the punch was recorded with -3h lag relative to current wall time (Brasilia)
+          -- Heuristic: if recorded today but time is way behind current wall time
           (NOW() AT TIME ZONE 'America/Sao_Paulo') - (punched_at AT TIME ZONE 'America/Sao_Paulo') > INTERVAL '2 hours 45 minutes'
           OR
-          -- Or if it's just very old for today and we know we had a bug
+          -- Heuristic: if it looks like UTC time was saved as local
           (punched_at AT TIME ZONE 'UTC')::time < '17:00:00'::time
         )
-        AND NOT EXISTS (
-           SELECT 1 FROM time_punches tp2 
-           WHERE tp2.id = time_punches.id 
-           AND tp2.adjustment_reason = 'Timezone Fix Applied'
-        );
+        AND (adjustment_reason IS NULL OR adjustment_reason != 'Timezone Fix Applied');
     `);
     
     if (fixToday.rowCount > 0) {
       console.log(`[TimezoneFix] Corrected ${fixToday.rowCount} records from today (20/08)`);
-      // Mark them so we don't fix twice if the server restarts
-      await pool.query(`
-        UPDATE time_punches 
-        SET adjustment_reason = 'Timezone Fix Applied'
-        WHERE id IN (
-          SELECT id FROM time_punches 
+      // Update them specifically using IDs to avoid double-firing
+      const ids = fixToday.rows.map(r => r.id);
+      if (ids.length > 0) {
+        // We can't easily map the rows back if we didn't SELECT them first.
+        // Let's re-run as a single command to be safe and atomic.
+        await pool.query(`
+          UPDATE time_punches 
+          SET 
+            punched_at = punched_at + INTERVAL '3 hours',
+            adjustment_reason = 'Timezone Fix Applied'
           WHERE punched_at >= '2026-08-20 00:00:00' 
-          AND manual_adjustment IS NOT TRUE 
-          AND adjustment_reason IS NULL
-          LIMIT ${fixToday.rowCount}
-        )
-      `);
+            AND punched_at < '2026-08-20 23:59:59'
+            AND manual_adjustment IS NOT TRUE
+            AND sync_status = 'synced'
+            AND (
+              (NOW() AT TIME ZONE 'America/Sao_Paulo') - (punched_at AT TIME ZONE 'America/Sao_Paulo') > INTERVAL '2 hours 45 minutes'
+              OR
+              (punched_at AT TIME ZONE 'UTC')::time < '17:00:00'::time
+            )
+            AND (adjustment_reason IS NULL OR adjustment_reason != 'Timezone Fix Applied');
+        `);
+      }
     }
   } catch (err) {
     console.error("[TimezoneFix] Error:", err);
