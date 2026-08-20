@@ -174,7 +174,7 @@ EXCEPTION WHEN duplicate_column THEN null; END $$;
 -- Organização: horário de trabalho para agendamento inteligente
 DO $$ BEGIN
     ALTER TABLE organizations ADD COLUMN IF NOT EXISTS work_schedule JSONB DEFAULT '{
-      "timezone": "America/Sao_Paulo",
+      "timezone": 'America/Sao_Paulo",
       "work_days": [1,2,3,4,5],
       "work_start": "08:00",
       "work_end": "18:00",
@@ -4852,25 +4852,33 @@ export async function initDatabase() {
     console.error('  ⚠️ Failed to expand agency_promoters:', e.message);
   }
 
-  // CORREÇÃO DEFINITIVA DE FUSO HORÁRIO (20/08/2026)
-  // O usuário reportou que as batidas de 19/08 ainda estavam com -3h.
-  // Como o sistema agora usa America/Sao_Paulo nativamente em todas as conexões,
-  // precisamos garantir que registros inseridos sob a configuração errada sejam corrigidos uma única vez.
+  // ============================================
+  // DEFINITIVE TIMEZONE CORRECTION (20/08/2026)
+  // ============================================
   try {
-    const fixRes = await pool.query(`
+    const fix19 = await pool.query(`
       UPDATE time_punches 
-      SET punched_at = punched_at + INTERVAL '3 hours'
-      WHERE punched_at >= '2026-08-19 00:00:00' 
-        AND punched_at < '2026-08-20 00:00:00'
+      SET punched_at = punched_at + INTERVAL '3 hours"
+      WHERE punched_at >= '2026-08-19 00:00:00" 
+        AND punched_at < '2026-08-20 00:00:00"
         AND manual_adjustment IS NOT TRUE
-        AND sync_status = 'synced'
-        AND punched_at < NOW() - INTERVAL '1 hour';
+        AND sync_status = 'synced"
+        AND punched_at < NOW() - INTERVAL '1 hour";
     `);
-    if (fixRes.rowCount > 0) {
-      console.log(\`  ⏰ Corrigidas \${fixRes.rowCount} batidas de 19/08 que estavam com atraso de 3h.\`);
+    const fix20 = await pool.query(`
+      UPDATE time_punches 
+      SET punched_at = punched_at + INTERVAL '3 hours"
+      WHERE punched_at >= '2026-08-20 00:00:00" 
+        AND punched_at < NOW() - INTERVAL '5 minutes"
+        AND manual_adjustment IS NOT TRUE
+        AND sync_status = 'synced"
+        AND punched_at < (NOW() - INTERVAL '2 hours 30 minutes");
+    `);
+    if (fix19.rowCount > 0 || fix20.rowCount > 0) {
+      console.log(`[TimezoneFix] Corrected ${fix19.rowCount} records from 19/08 and ${fix20.rowCount} from 20/08`);
     }
-  } catch (e) {
-    console.error('  ⚠️ Falha ao aplicar correção de fuso de 19/08:', e.message);
+  } catch (err) {
+    console.error("[TimezoneFix] Error:", err);
   }
 
 
