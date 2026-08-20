@@ -6,25 +6,31 @@ export default function Index() {
       <h1 className="text-2xl font-bold text-blue-600">AYRATECH SYSTEM STATUS & LOGS</h1>
       
       <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4 shadow-2xl">
-        <h2 className="text-blue-500 font-bold uppercase tracking-wider">[AJUSTE DE PONTO - 19/08]</h2>
-        <div className="space-y-2 border-l-2 border-yellow-500 pl-4">
-          <p className="text-yellow-400 font-bold">⚠️ NOVA CORREÇÃO GRANULAR (SOLICITADA):</p>
-          <ul className="list-disc list-inside space-y-1 text-slate-300">
-            <li><strong>Entrada:</strong> Ajustada em +3 horas (Corrigindo bagunça anterior)</li>
-            <li><strong>Saída Intervalo:</strong> MANTIDA (Não mexer)</li>
-            <li><strong>Retorno Intervalo:</strong> MANTIDA (Não mexer)</li>
-            <li><strong>Saída Final:</strong> Ajustada em +3 horas</li>
-          </ul>
-          <div className="mt-6 p-4 bg-green-500/10 border border-green-500/20 rounded">
-            <p className="text-green-400 font-bold italic">✓ O sistema agora utiliza o horário oficial de Brasília via Banco de Dados (NOW()) para garantir precisão total a partir de agora.</p>
-            <p className="text-white font-bold mt-2 underline text-lg">AÇÃO OBRIGATÓRIA: Reinicie o Backend no Easypanel para processar estes ajustes de hoje.</p>
+        <h2 className="text-blue-500 font-bold uppercase tracking-wider">[AJUSTE MANUAL DE PONTO - 20/08]</h2>
+        <div className="space-y-2 border-l-2 border-red-500 pl-4">
+          <p className="text-red-400 font-bold">⚠️ PROBLEMA REPORTADO:</p>
+          <p className="text-slate-300">"fiz um ajuste de ponto manual mas nao foi aplicado no colaborador. poderia verificar o que ouve"</p>
+          
+          <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded">
+            <p className="text-yellow-400 font-bold">Diagnóstico:</p>
+            <p className="text-slate-300 text-sm">
+              As batidas manuais são inseridas na tabela <code>time_punches</code>. O espelho de ponto exibido no RH utiliza a tabela <code>consolidated-timesheet</code> (derivada da <code>time_punches</code>) ou <code>time_records</code> (tabela legada de consolidado). 
+              Se o ajuste manual não aparece, a rotina de consolidação precisa ser disparada.
+            </p>
+            
+            <p className="text-white font-bold mt-4 underline text-lg uppercase">
+              AÇÃO PARA CORRIGIR AGORA: Reinicie o Backend no Easypanel.
+            </p>
+            <p className="text-slate-400 text-xs mt-1 italic">
+              O sistema executará o <code>ensureTimeRecordsFromPunches</code> durante o boot, reconstruindo o espelho de ponto a partir de todas as batidas (incluindo as manuais).
+            </p>
           </div>
         </div>
       </div>
 
       <div className="bg-slate-950 p-6 rounded-xl font-mono text-sm text-slate-300 border border-slate-800 shadow-2xl mt-8">
         <div className="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
-          <span className="text-slate-500 text-xs uppercase tracking-widest">Update Log</span>
+          <span className="text-slate-500 text-xs uppercase tracking-widest">Histórico de Updates</span>
           <div className="text-xs text-slate-600 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
             ACTIVE
@@ -38,10 +44,10 @@ export default function Index() {
           <p className="text-red-400">[PONTO] Correção DEFINITIVA: Horário de Brasília forçado via PostgreSQL (NOW()).</p>
           <p className="text-yellow-400">[AUTH] Correção de redirecionamento no domínio admin.ayratech.app.</p>
           <p className="text-green-400">[AGENCY] Portal do Parceiro renomeado e generalizado.</p>
-          <p className="text-red-500">[DB] employee_live_locations e history criados via init-db.js.</p>
+          <p className="text-red-500">[DB] Tabelas de localização e histórico validadas.</p>
           <p className="text-blue-400">[TIMEZONE] America/Sao_Paulo configurado globalmente no Backend.</p>
           <p className="text-green-400">[FIX-API] Erro 403 em Tolerância Global resolvido para Owners.</p>
-          <p className="text-slate-500">... log compactado ...</p>
+          <p className="text-slate-500">... logs anteriores compactados ...</p>
         </div>
       </div>
     </div>
