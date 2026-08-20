@@ -4864,21 +4864,43 @@ export async function initDatabase() {
         AND sync_status = 'synced';
     `);
 
-    // 2. Identify records on 20/08 that were created BEFORE the timezone fix was finalized (between 00:00 and 17:00 UTC approx)
-    // If they show -3h, we shift them to Brasília time.
-    // We check if (NOW() - punched_at) > 3h while it should be less.
+    // 2. Identify records on 20/08 that were created BEFORE the timezone fix was finalized
+    // We increase the window and refine the detection.
     const fixToday = await pool.query(`
       UPDATE time_punches 
       SET punched_at = punched_at + INTERVAL '3 hours'
       WHERE punched_at >= '2026-08-20 00:00:00' 
-        AND punched_at < '2026-08-20 18:00:00'
+        AND punched_at < '2026-08-20 23:59:59'
         AND manual_adjustment IS NOT TRUE
         AND sync_status = 'synced'
-        AND (NOW() AT TIME ZONE 'America/Sao_Paulo')::time - (punched_at AT TIME ZONE 'America/Sao_Paulo')::time > INTERVAL '2 hours 30 minutes';
+        AND (
+          -- If the punch was recorded with -3h lag relative to current wall time (Brasilia)
+          (NOW() AT TIME ZONE 'America/Sao_Paulo') - (punched_at AT TIME ZONE 'America/Sao_Paulo') > INTERVAL '2 hours 45 minutes'
+          OR
+          -- Or if it's just very old for today and we know we had a bug
+          (punched_at AT TIME ZONE 'UTC')::time < '17:00:00'::time
+        )
+        AND NOT EXISTS (
+           SELECT 1 FROM time_punches tp2 
+           WHERE tp2.id = time_punches.id 
+           AND tp2.adjustment_reason = 'Timezone Fix Applied'
+        );
     `);
     
     if (fixToday.rowCount > 0) {
       console.log(`[TimezoneFix] Corrected ${fixToday.rowCount} records from today (20/08)`);
+      // Mark them so we don't fix twice if the server restarts
+      await pool.query(`
+        UPDATE time_punches 
+        SET adjustment_reason = 'Timezone Fix Applied'
+        WHERE id IN (
+          SELECT id FROM time_punches 
+          WHERE punched_at >= '2026-08-20 00:00:00' 
+          AND manual_adjustment IS NOT TRUE 
+          AND adjustment_reason IS NULL
+          LIMIT ${fixToday.rowCount}
+        )
+      `);
     }
   } catch (err) {
     console.error("[TimezoneFix] Error:", err);
