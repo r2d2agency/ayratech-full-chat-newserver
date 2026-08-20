@@ -831,9 +831,11 @@ router.patch('/app-punches/:id', async (req, res) => {
     const orgId = await getUserOrgId(req.userId);
     const { punched_at, punch_type, pdv_id, adjustment_reason } = req.body || {};
     if (!adjustment_reason) return res.status(400).json({ error: 'Informe o motivo do ajuste' });
+    
+    // We treat punched_at from the frontend as already in the correct local time string
     const r = await query(
       `UPDATE time_punches SET
-         punched_at = COALESCE(($1::timestamp AT TIME ZONE 'America/Sao_Paulo'), punched_at),
+         punched_at = COALESCE($1, punched_at),
          punch_type = COALESCE($2, punch_type),
          pdv_id = COALESCE($3, pdv_id),
          manual_adjustment = true,

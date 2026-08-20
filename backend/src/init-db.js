@@ -4868,8 +4868,7 @@ export async function initDatabase() {
       const manualPunches = await pool.query(`
         SELECT DISTINCT employee_id, (punched_at AT TIME ZONE 'America/Sao_Paulo')::date as record_date, organization_id
         FROM time_punches
-        WHERE (manual_adjustment = true OR punched_at > NOW() - INTERVAL '24 hours')
-          AND punched_at > NOW() - INTERVAL '30 days'
+        WHERE punched_at > NOW() - INTERVAL '30 days'
       `);
 
       for (const p of manualPunches.rows) {
