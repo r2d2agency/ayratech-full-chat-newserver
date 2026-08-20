@@ -17,13 +17,13 @@ const SystemStatus = () => {
 
         <Alert className="bg-blue-50 border-blue-200">
           <InfoIcon className="h-5 w-5 text-blue-600" />
-          <AlertTitle className="text-blue-800 font-bold">Correção de Batidas 19/08 e Sincronização de Fuso</AlertTitle>
+          <AlertTitle className="text-blue-800 font-bold">Correção de Batidas 19/08 e 20/08 (Hoje)</AlertTitle>
           <AlertDescription className="text-blue-700 space-y-2 text-sm">
-            <p className="font-bold">Problema: As batidas de 19/08 ainda estavam com atraso de 3h.</p>
-            <p>1. Implementada correção automática em 'backend/src/init-db.js' para adicionar +3h nas batidas de ontem.</p>
-            <p>2. O backend agora força o fuso 'America/Sao_Paulo' em todas as conexões, garantindo que o horário do servidor acompanhe Brasília sem avançar ou retroceder.</p>
+            <p className="font-bold">Problema: Algumas batidas de hoje (20/08) ainda registraram com atraso de 3h antes do reinício final.</p>
+            <p>1. A rotina em 'backend/src/init-db.js' foi expandida para corrigir automaticamente batidas de hoje (20/08) e de ontem (19/08).</p>
+            <p>2. O backend agora força o fuso 'America/Sao_Paulo' em todas as conexões, garantindo sincronismo total com Brasília.</p>
             <p className="font-bold text-slate-900 border-l-4 border-l-blue-600 pl-3 py-1 bg-white/50">
-              PRÓXIMO PASSO: Reinicie o Backend no Easypanel para aplicar a correção nos registros de ontem e ativar o novo sincronismo.
+              AÇÃO: Reinicie o Backend no Easypanel mais uma vez. Isso corrigirá as batidas de hoje que entraram erradas e estabilizará o sistema.
             </p>
           </AlertDescription>
         </Alert>
@@ -95,8 +95,8 @@ const SystemStatus = () => {
             <div className="flex gap-4 items-start">
               <div className="bg-slate-100 text-slate-600 rounded-full w-8 h-8 flex items-center justify-center font-bold shrink-0">3</div>
               <div>
-                <p className="font-semibold text-slate-900">Amanhã (20/08)</p>
-                <p className="text-sm text-slate-600">O sistema já está configurado para usar o horário de Brasília (UTC-3) nativamente, sem necessidade de ajustes manuais adicionais.</p>
+                <p className="font-semibold text-slate-900">Hoje (20/08)</p>
+                <p className="text-sm text-slate-600">A rotina de boot agora também corrige automaticamente as batidas de hoje que entraram com atraso antes do reinício final.</p>
               </div>
             </div>
           </CardContent>
