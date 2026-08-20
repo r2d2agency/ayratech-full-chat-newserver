@@ -17,13 +17,13 @@ const SystemStatus = () => {
 
         <Alert className="bg-blue-50 border-blue-200">
           <InfoIcon className="h-5 w-5 text-blue-600" />
-          <AlertTitle className="text-blue-800 font-bold">Correção de Batidas 19/08 e 20/08 (Hoje)</AlertTitle>
+          <AlertTitle className="text-blue-800 font-bold">Correção Definitiva de Horário (Brasília)</AlertTitle>
           <AlertDescription className="text-blue-700 space-y-2 text-sm">
-            <p className="font-bold">Problema: Algumas batidas de hoje (20/08) ainda registraram com atraso de 3h antes do reinício final.</p>
-            <p>1. A rotina em 'backend/src/init-db.js' foi expandida para corrigir automaticamente batidas de hoje (20/08) e de ontem (19/08).</p>
-            <p>2. O backend agora força o fuso 'America/Sao_Paulo' em todas as conexões, garantindo sincronismo total com Brasília.</p>
+            <p className="font-bold">O sistema agora utiliza o horário de Brasília em todos os níveis (Banco, Servidor e App).</p>
+            <p>1. Batidas de hoje (20/08) com atraso de 3h serão corrigidas automaticamente no próximo reinício.</p>
+            <p>2. O Consolidado agora lê as batidas em tempo real convertendo para Brasília.</p>
             <p className="font-bold text-slate-900 border-l-4 border-l-blue-600 pl-3 py-1 bg-white/50">
-              AÇÃO: Reinicie o Backend no Easypanel mais uma vez. Isso corrigirá as batidas de hoje que entraram erradas e estabilizará o sistema.
+              AÇÃO: Reinicie o Backend no Easypanel AGORA para aplicar a correção final das batidas de hoje.
             </p>
           </AlertDescription>
         </Alert>

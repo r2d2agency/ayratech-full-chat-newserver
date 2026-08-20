@@ -994,8 +994,14 @@ router.get('/consolidated-timesheet', async (req, res) => {
     const params = [orgId];
     let idx = 2;
     if (employee_id) { sql += ` AND tp.employee_id = $${idx++}`; params.push(employee_id); }
-    if (start_date) { sql += ` AND (tp.punched_at AT TIME ZONE 'America/Sao_Paulo')::date >= $${idx++}`; params.push(start_date); }
-    if (end_date) { sql += ` AND (tp.punched_at AT TIME ZONE 'America/Sao_Paulo')::date <= $${idx++}`; params.push(end_date); }
+    
+    // Default to today if no dates provided to ensure something appears
+    const sd = start_date || new Date().toISOString().slice(0, 10);
+    const ed = end_date || new Date().toISOString().slice(0, 10);
+    
+    sql += ` AND (tp.punched_at AT TIME ZONE 'America/Sao_Paulo')::date >= $${idx++}`; params.push(sd);
+    sql += ` AND (tp.punched_at AT TIME ZONE 'America/Sao_Paulo')::date <= $${idx++}`; params.push(ed);
+    
     sql += ` GROUP BY tp.employee_id, e.full_name, e.cpf, e.position, e.work_schedule, (tp.punched_at AT TIME ZONE 'America/Sao_Paulo')::date
              ORDER BY (tp.punched_at AT TIME ZONE 'America/Sao_Paulo')::date DESC, e.full_name`;
     const result = await query(sql, params);
