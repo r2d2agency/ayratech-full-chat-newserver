@@ -809,11 +809,12 @@ router.post('/app-punches', async (req, res) => {
     const { employee_id, punch_type, punched_at, pdv_id, justification, adjustment_reason } = req.body || {};
     if (!employee_id || !punch_type || !punched_at) return res.status(400).json({ error: 'employee_id, punch_type e punched_at são obrigatórios' });
     const reason = adjustment_reason || justification || 'Ajuste manual pelo RH';
+    // We treat punched_at from the frontend as already in the correct local time string
     const r = await query(
       `INSERT INTO time_punches
         (organization_id, employee_id, punch_type, punched_at, pdv_id, geo_status, is_offline, sync_status,
          justification, manual_adjustment, adjustment_reason, adjusted_by, adjusted_at)
-       VALUES ($1,$2,$3,($4::timestamp AT TIME ZONE 'America/Sao_Paulo'),$5,'manual',false,'synced',$6,true,$6,$7,NOW())
+       VALUES ($1,$2,$3,$4,$5,'manual',false,'synced',$6,true,$6,$7,NOW())
        RETURNING *`,
       [orgId, employee_id, punch_type, punched_at, pdv_id || null, reason, req.userId]
     );
