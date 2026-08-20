@@ -17,10 +17,12 @@ const SystemStatus = () => {
 
         <Alert className="bg-blue-50 border-blue-200">
           <InfoIcon className="h-5 w-5 text-blue-600" />
-          <AlertTitle className="text-blue-800 font-bold">ATENÇÃO: Ação Necessária para Consolidar Pontos</AlertTitle>
-          <AlertDescription className="text-blue-700">
-            Identificamos que o espelho de ponto consolidado não está refletindo as 4 batidas corretamente após os ajustes manuais. 
-            <strong> Para resolver isso agora, você DEVE reiniciar o container do Backend no Easypanel.</strong>
+          <AlertTitle className="text-blue-800 font-bold">Ação Final OBRIGATÓRIA para Corrigir Gustavo e Ronaldo</AlertTitle>
+          <AlertDescription className="text-blue-700 space-y-2">
+            <p>Removi a última barreira que impedia o ajuste manual correto.</p>
+            <p className="font-bold">1. Reinicie o Backend no Easypanel (agora!).</p>
+            <p>2. No RH, apague as batidas duplicadas de hoje.</p>
+            <p>3. Refaça o ajuste manual (ex: 17:44) — agora ele ficará gravado exatamente como você digitar.</p>
           </AlertDescription>
         </Alert>
 
