@@ -1,8 +1,9 @@
+/*
+nao deu certo ainda o salbar parcial nao  salva as fotos da insulficiente storage..nao tem como ja convbeter a foto em webp e ja subir no serivodr.
+*/
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { InfoIcon, RefreshCw, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
-
+...
 const SystemStatus = () => {
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans">
