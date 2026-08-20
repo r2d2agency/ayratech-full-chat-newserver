@@ -2,7 +2,6 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon, RefreshCw, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 const SystemStatus = () => {
   return (
@@ -13,7 +12,7 @@ const SystemStatus = () => {
             <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Status do Sistema Ayratech</h1>
             <p className="text-slate-500 mt-1">Monitoramento de Sincronização e Ponto</p>
           </div>
-          <Badge className="bg-green-500">Sistema Online</Badge>
+          <span className="px-2 py-1 rounded-full text-xs font-bold text-white bg-green-500">Sistema Online</span>
         </header>
 
         <Alert className="bg-blue-50 border-blue-200">
@@ -84,7 +83,7 @@ const SystemStatus = () => {
             <div className="flex gap-4 items-start border-b pb-4">
               <div className="bg-slate-100 text-slate-600 rounded-full w-8 h-8 flex items-center justify-center font-bold shrink-0">2</div>
               <div>
-                <p className="font-semibold text-slate-900">Verifique o RH > Ponto</p>
+                <p className="font-semibold text-slate-900">Verifique o RH {'>'} Ponto</p>
                 <p className="text-sm text-slate-600">Após o reinício, as 4 batidas (Entrada, Intervalo, Retorno, Saída) devem aparecer corretamente no espelho do colaborador.</p>
               </div>
             </div>
@@ -101,11 +100,5 @@ const SystemStatus = () => {
     </div>
   );
 };
-
-const Badge = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <span className={`px-2 py-1 rounded-full text-xs font-bold text-white ${className}`}>
-    {children}
-  </span>
-);
 
 export default SystemStatus;
