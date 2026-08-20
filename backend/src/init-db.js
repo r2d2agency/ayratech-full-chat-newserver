@@ -4852,45 +4852,28 @@ export async function initDatabase() {
     console.error('  ⚠️ Failed to expand agency_promoters:', e.message);
   }
 
-  // One-time historical repair for clock-out punches saved three hours behind
-  // on 18/08/2026. This is idempotent: after the update no matching 14h rows remain.
+  // Repair idempotente: batidas que foram empurradas para o futuro por ajustes
+  // de fuso anteriores (ex.: registros de 19/08 que caíram em 20/08).
+  // Volta 3h por vez enquanto a batida estiver no futuro. Não afeta batidas válidas.
   try {
-    const repairedPunches = await pool.query(`
-      UPDATE time_punches
-      SET punched_at = punched_at + INTERVAL '3 hours'
-      WHERE punch_type = 'saida'
-        AND (punched_at AT TIME ZONE 'America/Sao_Paulo')::date = DATE '2026-08-18'
-        AND EXTRACT(HOUR FROM punched_at AT TIME ZONE 'America/Sao_Paulo') = 14
-      RETURNING id
-    `);
-    if (repairedPunches.rowCount > 0) {
-      console.log(`  ✅ Corrigidas ${repairedPunches.rowCount} batidas de saída de 14h para 17h`);
-    }
-    } catch (e) {
-      console.error('  ⚠️ Falha ao corrigir batidas históricas de saída:', e.message);
-    }
-  
-    // Final normalization for 19/08/2026 and safety for future dates
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      
-      // Fix entrance/exit shifts for today (Aug 19) specifically requested
-      // and ensure entries use DB time correctly for future.
-      const fixPunches = await pool.query(`
+    let totalFixed = 0;
+    for (let i = 0; i < 8; i++) {
+      const res = await pool.query(`
         UPDATE time_punches
-        SET punched_at = punched_at + INTERVAL '3 hours'
-        WHERE (punched_at AT TIME ZONE 'America/Sao_Paulo')::date = $1
-          AND punch_type IN ('entrada', 'saida')
-          AND created_at > NOW() - INTERVAL '24 hours'
-          AND manual_adjustment = false
-      `, [today]);
-
-      if (fixPunches.rowCount > 0) {
-        console.log(`  ✅ Ajuste Granular 19/08: ${fixPunches.rowCount} batidas (+3h)`);
-      }
-    } catch (e) {
-      console.error('  ⚠️ Falha ao ajustar batidas específicas:', e.message);
+        SET punched_at = punched_at - INTERVAL '3 hours'
+        WHERE punched_at > NOW() + INTERVAL '5 minutes'
+      `);
+      if (!res.rowCount) break;
+      totalFixed += res.rowCount;
     }
+    if (totalFixed > 0) {
+      console.log(`  ✅ Corrigidas ${totalFixed} batidas que estavam no futuro (fuso)`);
+    }
+  } catch (e) {
+    console.error('  ⚠️ Falha ao corrigir batidas no futuro:', e.message);
+  }
+
+
   
   // Synchronize time_records from time_punches for manual adjustments
   try {
