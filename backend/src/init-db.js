@@ -4899,9 +4899,9 @@ export async function initDatabase() {
       // For simplicity in init, we reconstruct recent records (last 30 days) 
       // where manual adjustments were made but maybe not consolidated
       const manualPunches = await pool.query(`
-        SELECT DISTINCT employee_id, (punched_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date as record_date, organization_id
+        SELECT DISTINCT employee_id, (punched_at AT TIME ZONE 'America/Sao_Paulo')::date as record_date, organization_id
         FROM time_punches
-        WHERE manual_adjustment = true 
+        WHERE (manual_adjustment = true OR punched_at > NOW() - INTERVAL '24 hours')
           AND punched_at > NOW() - INTERVAL '30 days'
       `);
 
@@ -4911,7 +4911,7 @@ export async function initDatabase() {
           SELECT punch_type, punched_at 
           FROM time_punches 
           WHERE employee_id = $1 
-            AND (punched_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = $2
+            AND (punched_at AT TIME ZONE 'America/Sao_Paulo')::date = $2
           ORDER BY punched_at
         `, [p.employee_id, p.record_date]);
 
