@@ -4901,6 +4901,79 @@ export async function initDatabase() {
       console.error('  ⚠️ Falha ao ajustar batidas específicas de hoje:', e.message);
     }
   
+  // Synchronize time_records from time_punches for manual adjustments
+  try {
+    const ensureTimeRecordsFromPunches = async () => {
+      // Find all punches that don't have a matching time_record or might be stale
+      // For simplicity in init, we reconstruct recent records (last 30 days) 
+      // where manual adjustments were made but maybe not consolidated
+      const manualPunches = await pool.query(`
+        SELECT DISTINCT employee_id, (punched_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date as record_date, organization_id
+        FROM time_punches
+        WHERE manual_adjustment = true 
+          AND punched_at > NOW() - INTERVAL '30 days'
+      `);
+
+      for (const p of manualPunches.rows) {
+        // Fetch all punches for this employee on this date
+        const dayPunches = await pool.query(`
+          SELECT punch_type, punched_at 
+          FROM time_punches 
+          WHERE employee_id = $1 
+            AND (punched_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = $2
+          ORDER BY punched_at
+        `, [p.employee_id, p.record_date]);
+
+        if (dayPunches.rows.length === 0) continue;
+
+        const punches = dayPunches.rows;
+        const entry1 = punches.find(x => x.punch_type === 'entrada')?.punched_at;
+        const exit1 = punches.find(x => x.punch_type === 'saida_intervalo')?.punched_at;
+        const entry2 = punches.find(x => x.punch_type === 'retorno_intervalo')?.punched_at;
+        const exit2 = punches.find(x => x.punch_type === 'saida')?.punched_at;
+
+        const formatTime = (ts) => ts ? new Date(ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }) : null;
+
+        let total_ms = 0;
+        if (entry1 && exit1) total_ms += (new Date(exit1) - new Date(entry1));
+        if (entry2 && exit2) total_ms += (new Date(exit2) - new Date(entry2));
+        if (total_ms === 0 && entry1 && exit2) total_ms = (new Date(exit2) - new Date(entry1));
+
+        const total_hours = total_ms / (1000 * 60 * 60);
+        const overtime_hours = Math.max(0, total_hours - 8);
+
+        await pool.query(`
+          INSERT INTO time_records (organization_id, employee_id, record_date, entry1, exit1, entry2, exit2, total_hours, overtime_hours, status, updated_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'normal', NOW())
+          ON CONFLICT (employee_id, record_date) DO UPDATE SET
+            entry1 = EXCLUDED.entry1,
+            exit1 = EXCLUDED.exit1,
+            entry2 = EXCLUDED.entry2,
+            exit2 = EXCLUDED.exit2,
+            total_hours = EXCLUDED.total_hours,
+            overtime_hours = EXCLUDED.overtime_hours,
+            updated_at = NOW()
+        `, [
+          p.organization_id, 
+          p.employee_id, 
+          p.record_date, 
+          formatTime(entry1), 
+          formatTime(exit1), 
+          formatTime(entry2), 
+          formatTime(exit2), 
+          total_hours, 
+          overtime_hours
+        ]);
+      }
+      if (manualPunches.rowCount > 0) {
+        console.log(`  🔧 Reconsolidado espelho para ${manualPunches.rowCount} dias com ajustes manuais`);
+      }
+    };
+    await ensureTimeRecordsFromPunches();
+  } catch (e) {
+    console.error('  ⚠️ Falha ao reconsolidar ajustes manuais:', e.message);
+  }
+
   // Initialize Network Portal data
   await step46NetworkPortal();
   
