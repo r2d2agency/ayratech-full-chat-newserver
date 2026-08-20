@@ -4852,9 +4852,27 @@ export async function initDatabase() {
     console.error('  ⚠️ Failed to expand agency_promoters:', e.message);
   }
 
-  // NOTA: não aplicamos mais nenhum ajuste automático de fuso nas batidas.
-  // Todas as gravações usam explicitamente America/Sao_Paulo, e ajustes
-  // automáticos no boot desfaziam correções manuais feitas pelo RH.
+  // CORREÇÃO DEFINITIVA DE FUSO HORÁRIO (20/08/2026)
+  // O usuário reportou que as batidas de 19/08 ainda estavam com -3h.
+  // Como o sistema agora usa America/Sao_Paulo nativamente em todas as conexões,
+  // precisamos garantir que registros inseridos sob a configuração errada sejam corrigidos uma única vez.
+  try {
+    const fixRes = await pool.query(`
+      UPDATE time_punches 
+      SET punched_at = punched_at + INTERVAL '3 hours'
+      WHERE punched_at >= '2026-08-19 00:00:00' 
+        AND punched_at < '2026-08-20 00:00:00'
+        AND manual_adjustment IS NOT TRUE
+        AND sync_status = 'synced'
+        AND punched_at < NOW() - INTERVAL '1 hour';
+    `);
+    if (fixRes.rowCount > 0) {
+      console.log(\`  ⏰ Corrigidas \${fixRes.rowCount} batidas de 19/08 que estavam com atraso de 3h.\`);
+    }
+  } catch (e) {
+    console.error('  ⚠️ Falha ao aplicar correção de fuso de 19/08:', e.message);
+  }
+
 
 
 
