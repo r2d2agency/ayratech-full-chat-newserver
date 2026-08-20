@@ -95,8 +95,8 @@ const SystemStatus = () => {
             <div className="flex gap-4 items-start">
               <div className="bg-slate-100 text-slate-600 rounded-full w-8 h-8 flex items-center justify-center font-bold shrink-0">3</div>
               <div>
-                <p className="font-semibold text-slate-900">Amanhã (20/08)</p>
-                <p className="text-sm text-slate-600">O sistema já está configurado para usar o horário de Brasília (UTC-3) nativamente, sem necessidade de ajustes manuais adicionais.</p>
+                <p className="font-semibold text-slate-900">Hoje (20/08)</p>
+                <p className="text-sm text-slate-600">A rotina de boot agora também corrige automaticamente as batidas de hoje que entraram com atraso antes do reinício final.</p>
               </div>
             </div>
           </CardContent>
