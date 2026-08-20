@@ -688,6 +688,8 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
 
     // Use Brazil/Sao Paulo timezone for "now"
     const nowLocal = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    // CRITICAL: Ensure we use the server's local time (which is set to America/Sao_Paulo in db.js)
+    // or the offline time if applicable.
     const punchedAt = is_offline && offline_local_time ? new Date(offline_local_time) : nowLocal;
 
     const result = await query(
