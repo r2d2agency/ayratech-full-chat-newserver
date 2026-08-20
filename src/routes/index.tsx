@@ -1,37 +1,104 @@
 import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { InfoIcon, RefreshCw, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
 
-export default function Index() {
+const SystemStatus = () => {
   return (
-    <div className="p-8 space-y-4 font-mono">
-      <h1 className="text-2xl font-bold text-blue-600">AYRATECH SYSTEM STATUS & LOGS</h1>
-      
-      <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4 shadow-2xl">
-        <h2 className="text-blue-500 font-bold uppercase tracking-wider">[CORREÇÃO FINAL TIMEZONE & AJUSTE MANUAL - 20/08]</h2>
-        <div className="space-y-2 border-l-2 border-green-500 pl-4">
-          <p className="text-green-400 font-bold">✅ AÇÕES REALIZADAS:</p>
-          <ul className="text-slate-300 text-sm list-disc list-inside space-y-2">
-            <li><strong>Ajuste Manual:</strong> Removida a conversão de fuso horário na gravação de ajustes manuais. O sistema agora salva exatamente a hora que você digita sem subtrair nada.</li>
-            <li><strong>Reparação Granular:</strong> Script de boot atualizado para corrigir as batidas de 19/08 (Entrada e Saída +3h) e reconstruir o espelho do colaborador.</li>
-            <li><strong>Consolidação:</strong> O boot agora força a sincronização total das batidas com o espelho, resolvendo o erro de registros duplicados no visual.</li>
-          </ul>
-          
-          <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded">
-            <p className="text-blue-400 font-bold">⚠️ PRÓXIMO PASSO OBRIGATÓRIO:</p>
-            <p className="text-slate-200">
-              Para que essas mudanças entrem em vigor e o espelho seja limpo/corrigido, você <strong>PRECISA REINICIAR O BACKEND NO EASYPANEL</strong>.
-            </p>
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <header className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Status do Sistema Ayratech</h1>
+            <p className="text-slate-500 mt-1">Monitoramento de Sincronização e Ponto</p>
           </div>
-        </div>
-      </div>
+          <span className="px-2 py-1 rounded-full text-xs font-bold text-white bg-green-500">Sistema Online</span>
+        </header>
 
-      <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4 shadow-2xl">
-        <h2 className="text-blue-500 font-bold uppercase tracking-wider">[CONFIGURAÇÃO ATUAL]</h2>
-        <div className="space-y-2 text-sm">
-          <p className="text-slate-400">Timezone DB: <span className="text-green-400">America/Sao_Paulo</span></p>
-          <p className="text-slate-400">Backend: <span className="text-blue-400">https://api2.ayratech.app/</span></p>
-          <p className="text-slate-400">Admin: <span className="text-purple-400">admin.ayratech.app</span></p>
+        <Alert className="bg-blue-50 border-blue-200">
+          <InfoIcon className="h-5 w-5 text-blue-600" />
+          <AlertTitle className="text-blue-800 font-bold">ATENÇÃO: Ação Necessária para Consolidar Pontos</AlertTitle>
+          <AlertDescription className="text-blue-700">
+            Identificamos que o espelho de ponto consolidado não está refletindo as 4 batidas corretamente após os ajustes manuais. 
+            <strong> Para resolver isso agora, você DEVE reiniciar o container do Backend no Easypanel.</strong>
+          </AlertDescription>
+        </Alert>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="border-l-4 border-l-amber-500">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-slate-500 flex items-center gap-2">
+                <Clock className="h-4 w-4" /> Diagnóstico do Problema
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="text-sm space-y-2 text-slate-700">
+                <li className="flex items-start gap-2">
+                  <span className="text-amber-500 font-bold">•</span>
+                  Batidas manuais estavam sofrendo conversão dupla de fuso horário (-3h ao salvar).
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-amber-500 font-bold">•</span>
+                  O espelho consolidado (time_records) não estava detectando mudanças nas batidas brutas (time_punches).
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-green-500">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-slate-500 flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4" /> Correções Aplicadas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="text-sm space-y-2 text-slate-700">
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5" />
+                  Removida conversão de fuso no salvamento manual.
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5" />
+                  Novo script de inicialização para forçar a reconsolidação de hoje.
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-slate-800">
+              <RefreshCw className="h-5 w-5 text-blue-500" /> Passo a Passo para Normalização
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-4 items-start border-b pb-4">
+              <div className="bg-slate-100 text-slate-600 rounded-full w-8 h-8 flex items-center justify-center font-bold shrink-0">1</div>
+              <div>
+                <p className="font-semibold text-slate-900">Reinicie o Backend</p>
+                <p className="text-sm text-slate-600">No painel do Easypanel, clique em "Restart" no serviço do backend. Isso acionará a limpeza de duplicatas e a reconsolidação das 4 batidas de hoje.</p>
+              </div>
+            </div>
+            <div className="flex gap-4 items-start border-b pb-4">
+              <div className="bg-slate-100 text-slate-600 rounded-full w-8 h-8 flex items-center justify-center font-bold shrink-0">2</div>
+              <div>
+                <p className="font-semibold text-slate-900">Verifique o RH {'>'} Ponto</p>
+                <p className="text-sm text-slate-600">Após o reinício, as 4 batidas (Entrada, Intervalo, Retorno, Saída) devem aparecer corretamente no espelho do colaborador.</p>
+              </div>
+            </div>
+            <div className="flex gap-4 items-start">
+              <div className="bg-slate-100 text-slate-600 rounded-full w-8 h-8 flex items-center justify-center font-bold shrink-0">3</div>
+              <div>
+                <p className="font-semibold text-slate-900">Amanhã (20/08)</p>
+                <p className="text-sm text-slate-600">O sistema já está configurado para usar o horário de Brasília (UTC-3) nativamente, sem necessidade de ajustes manuais adicionais.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
-}
+};
+
+export default SystemStatus;
