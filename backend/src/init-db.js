@@ -4856,42 +4856,50 @@ export async function initDatabase() {
   // DEFINITIVE TIMEZONE CORRECTION (20/08/2026)
   // ============================================
   try {
-    // 1. Safety Net: Fix punches that are accidentally in the future
-    await pool.query(`
-      UPDATE time_punches 
-      SET punched_at = punched_at - INTERVAL '3 hours'
-      WHERE punched_at > NOW() + INTERVAL '1 hour'
-        AND sync_status = 'synced'
-        AND (adjustment_reason IS NULL OR adjustment_reason != 'Future Correction');
-    `);
-
-    // 2. Identify and fix records from 20/08 that are lagging by ~3 hours
-    // This is the most robust way: compare the punch time with the server's wall time (which is correct)
-    const fixResult = await pool.query(`
-      UPDATE time_punches 
-      SET 
-        punched_at = punched_at + INTERVAL '3 hours',
-        adjustment_reason = 'Timezone Fix Applied'
-      WHERE punched_at >= '2026-08-20 00:00:00' 
-        AND punched_at < '2026-08-20 23:59:59'
-        AND manual_adjustment IS NOT TRUE
-        AND sync_status = 'synced'
-        -- If the record was created recently but the punch_time is > 2.5h behind NOW
-        AND (NOW() AT TIME ZONE 'America/Sao_Paulo') - (punched_at AT TIME ZONE 'America/Sao_Paulo') > INTERVAL '2 hours 30 minutes'
-        AND (adjustment_reason IS NULL OR adjustment_reason != 'Timezone Fix Applied');
-    `);
+    // Check if we already applied this fix to avoid repeated executions on every restart
+    const checkFix = await pool.query("SELECT 1 FROM time_punches WHERE adjustment_reason = 'Timezone Fix Applied' LIMIT 1");
     
-    if (fixResult.rowCount > 0) {
-      console.log(`[TimezoneFix] Corrected ${fixResult.rowCount} lagging records from today (20/08)`);
-    }
+    if (checkFix.rowCount === 0) {
+      console.log("[TimezoneFix] Starting one-time correction for 20/08/2026...");
 
-    // 3. Ensure ALL records for today are consolidated into time_records
-    // This forces the "Consolidado" tab to update immediately after the fix
-    await pool.query(`
-      DELETE FROM time_records 
-      WHERE record_date = '2026-08-20' 
-        AND manual_adjustment IS NOT TRUE;
-    `);
+      // 1. Safety Net: Fix punches that are accidentally in the future
+      await pool.query(`
+        UPDATE time_punches 
+        SET punched_at = punched_at - INTERVAL '3 hours',
+            adjustment_reason = 'Future Correction'
+        WHERE punched_at > NOW() + INTERVAL '1 hour'
+          AND sync_status = 'synced'
+          AND adjustment_reason IS NULL;
+      `);
+
+      // 2. Correct ALL lagging records from today (20/08)
+      // If a punch was registered before the server timezone fix, it will be behind the server's NOW()
+      const fixResult = await pool.query(`
+        UPDATE time_punches 
+        SET 
+          punched_at = punched_at + INTERVAL '3 hours',
+          adjustment_reason = 'Timezone Fix Applied'
+        WHERE (punched_at AT TIME ZONE 'America/Sao_Paulo')::date = '2026-08-20'
+          AND manual_adjustment IS NOT TRUE
+          AND sync_status = 'synced'
+          AND adjustment_reason IS NULL;
+      `);
+      
+      if (fixResult.rowCount > 0) {
+        console.log(`[TimezoneFix] Corrected ${fixResult.rowCount} records from today (20/08)`);
+      }
+
+      // 3. Clear consolidated records for today to force refresh with corrected times
+      await pool.query(`
+        DELETE FROM time_records 
+        WHERE record_date = '2026-08-20' 
+          AND manual_adjustment IS NOT TRUE;
+      `);
+      
+      console.log("[TimezoneFix] Correction completed and consolidated data cleared.");
+    } else {
+      console.log("[TimezoneFix] Correction already applied previously. Skipping.");
+    }
   } catch (err) {
     console.error("[TimezoneFix] Error:", err);
   }
