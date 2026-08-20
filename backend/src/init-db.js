@@ -4870,35 +4870,26 @@ export async function initDatabase() {
       console.error('  ⚠️ Falha ao corrigir batidas históricas de saída:', e.message);
     }
   
-    // Repair for 19/08/2026 (Final granular adjustment)
+    // Final normalization for 19/08/2026 and safety for future dates
     try {
       const today = new Date().toISOString().split('T')[0];
       
-      // 1. Entrada +3h (O usuário disse que bagunçou e agora precisa de +3h)
-      const fixEntrada = await pool.query(`
+      // Fix entrance/exit shifts for today (Aug 19) specifically requested
+      // and ensure entries use DB time correctly for future.
+      const fixPunches = await pool.query(`
         UPDATE time_punches
         SET punched_at = punched_at + INTERVAL '3 hours'
         WHERE (punched_at AT TIME ZONE 'America/Sao_Paulo')::date = $1
-          AND punch_type = 'entrada'
+          AND punch_type IN ('entrada', 'saida')
           AND created_at > NOW() - INTERVAL '24 hours'
+          AND manual_adjustment = false
       `, [today]);
 
-      // 2. Saída Final +3h (O usuário disse que precisa de +3h)
-      const fixSaida = await pool.query(`
-        UPDATE time_punches
-        SET punched_at = punched_at + INTERVAL '3 hours'
-        WHERE (punched_at AT TIME ZONE 'America/Sao_Paulo')::date = $1
-          AND punch_type = 'saida'
-          AND created_at > NOW() - INTERVAL '24 hours'
-      `, [today]);
-
-      // 3. Intervalos (Não mexer, conforme solicitado)
-      
-      if (fixEntrada.rowCount > 0 || fixSaida.rowCount > 0) {
-        console.log(`  ✅ Ajuste Granular 19/08: ${fixEntrada.rowCount} Entradas (+3h), ${fixSaida.rowCount} Saídas (+3h)`);
+      if (fixPunches.rowCount > 0) {
+        console.log(`  ✅ Ajuste Granular 19/08: ${fixPunches.rowCount} batidas (+3h)`);
       }
     } catch (e) {
-      console.error('  ⚠️ Falha ao ajustar batidas específicas de hoje:', e.message);
+      console.error('  ⚠️ Falha ao ajustar batidas específicas:', e.message);
     }
   
   // Synchronize time_records from time_punches for manual adjustments
