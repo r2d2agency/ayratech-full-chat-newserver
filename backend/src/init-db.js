@@ -4852,26 +4852,10 @@ export async function initDatabase() {
     console.error('  ⚠️ Failed to expand agency_promoters:', e.message);
   }
 
-  // Repair idempotente: batidas que foram empurradas para o futuro por ajustes
-  // de fuso anteriores (ex.: registros de 19/08 que caíram em 20/08).
-  // Volta 3h por vez enquanto a batida estiver no futuro. Não afeta batidas válidas.
-  try {
-    let totalFixed = 0;
-    for (let i = 0; i < 8; i++) {
-      const res = await pool.query(`
-        UPDATE time_punches
-        SET punched_at = punched_at - INTERVAL '3 hours'
-        WHERE punched_at > NOW() + INTERVAL '5 minutes'
-      `);
-      if (!res.rowCount) break;
-      totalFixed += res.rowCount;
-    }
-    if (totalFixed > 0) {
-      console.log(`  ✅ Corrigidas ${totalFixed} batidas que estavam no futuro (fuso)`);
-    }
-  } catch (e) {
-    console.error('  ⚠️ Falha ao corrigir batidas no futuro:', e.message);
-  }
+  // NOTA: não aplicamos mais nenhum ajuste automático de fuso nas batidas.
+  // Todas as gravações usam explicitamente America/Sao_Paulo, e ajustes
+  // automáticos no boot desfaziam correções manuais feitas pelo RH.
+
 
 
   
