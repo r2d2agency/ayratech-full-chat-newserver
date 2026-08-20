@@ -4856,26 +4856,29 @@ export async function initDatabase() {
   // DEFINITIVE TIMEZONE CORRECTION (20/08/2026)
   // ============================================
   try {
-    const fix19 = await pool.query(`
+    // 1. Fix punches that are clearly ahead of current time due to cumulative shifts (Safety Net)
+    await pool.query(`
       UPDATE time_punches 
-      SET punched_at = punched_at + INTERVAL '3 hours'
-      WHERE punched_at >= '2026-08-19 00:00:00' 
-        AND punched_at < '2026-08-20 00:00:00'
-        AND manual_adjustment IS NOT TRUE
-        AND sync_status = 'synced'
-        AND punched_at < NOW() - INTERVAL '1 hour';
+      SET punched_at = punched_at - INTERVAL '3 hours'
+      WHERE punched_at > NOW() + INTERVAL '1 hour'
+        AND sync_status = 'synced';
     `);
-    const fix20 = await pool.query(`
+
+    // 2. Identify records on 20/08 that were created BEFORE the timezone fix was finalized (between 00:00 and 17:00 UTC approx)
+    // If they show -3h, we shift them to Brasília time.
+    // We check if (NOW() - punched_at) > 3h while it should be less.
+    const fixToday = await pool.query(`
       UPDATE time_punches 
       SET punched_at = punched_at + INTERVAL '3 hours'
       WHERE punched_at >= '2026-08-20 00:00:00' 
-        AND punched_at < NOW() - INTERVAL '5 minutes'
+        AND punched_at < '2026-08-20 18:00:00'
         AND manual_adjustment IS NOT TRUE
         AND sync_status = 'synced'
-        AND punched_at < (NOW() - INTERVAL '2 hours 30 minutes');
+        AND (NOW() AT TIME ZONE 'America/Sao_Paulo')::time - (punched_at AT TIME ZONE 'America/Sao_Paulo')::time > INTERVAL '2 hours 30 minutes';
     `);
-    if (fix19.rowCount > 0 || fix20.rowCount > 0) {
-      console.log(`[TimezoneFix] Corrected ${fix19.rowCount} records from 19/08 and ${fix20.rowCount} from 20/08`);
+    
+    if (fixToday.rowCount > 0) {
+      console.log(`[TimezoneFix] Corrected ${fixToday.rowCount} records from today (20/08)`);
     }
   } catch (err) {
     console.error("[TimezoneFix] Error:", err);
