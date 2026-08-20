@@ -17,14 +17,17 @@ const SystemStatus = () => {
 
         <Alert className="bg-blue-50 border-blue-200">
           <InfoIcon className="h-5 w-5 text-blue-600" />
-          <AlertTitle className="text-blue-800 font-bold">Ação Final OBRIGATÓRIA para Corrigir Gustavo e Ronaldo</AlertTitle>
-          <AlertDescription className="text-blue-700 space-y-2">
-            <p>Removi a última barreira que impedia o ajuste manual correto.</p>
-            <p className="font-bold">1. Reinicie o Backend no Easypanel (agora!).</p>
-            <p>2. No RH, apague as batidas duplicadas de hoje.</p>
-            <p>3. Refaça o ajuste manual (ex: 17:44) — agora ele ficará gravado exatamente como você digitar.</p>
+          <AlertTitle className="text-blue-800 font-bold">Correção de Batidas 19/08 e Sincronização de Fuso</AlertTitle>
+          <AlertDescription className="text-blue-700 space-y-2 text-sm">
+            <p className="font-bold">Problema: As batidas de 19/08 ainda estavam com atraso de 3h.</p>
+            <p>1. Implementada correção automática em 'backend/src/init-db.js' para adicionar +3h nas batidas de ontem.</p>
+            <p>2. O backend agora força o fuso 'America/Sao_Paulo' em todas as conexões, garantindo que o horário do servidor acompanhe Brasília sem avançar ou retroceder.</p>
+            <p className="font-bold text-slate-900 border-l-4 border-l-blue-600 pl-3 py-1 bg-white/50">
+              PRÓXIMO PASSO: Reinicie o Backend no Easypanel para aplicar a correção nos registros de ontem e ativar o novo sincronismo.
+            </p>
           </AlertDescription>
         </Alert>
+
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card className="border-l-4 border-l-amber-500">
