@@ -686,19 +686,25 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
       if (justification) geo_status = 'excecao';
     }
 
+    // CRITICAL FIX: Explicitly force America/Sao_Paulo session and fetch DB NOW()
+    await query("SET timezone = 'America/Sao_Paulo'");
+    const nowBrResult = await query("SELECT NOW() as now_br");
+    const nowBr = nowBrResult.rows[0].now_br;
+
     // Use Brazil/Sao Paulo timezone for "now"
-    const nowLocal = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-    // CRITICAL: Ensure we use the server's local time (which is set to America/Sao_Paulo in db.js)
-    // or the offline time if applicable.
-    const punchedAt = is_offline && offline_local_time ? new Date(offline_local_time) : nowLocal;
+    const punchedAt = is_offline && offline_local_time ? new Date(offline_local_time) : nowBr;
 
     const result = await query(
-      `INSERT INTO time_punches (organization_id, employee_id, punch_type, punched_at, latitude, longitude, accuracy_meters, pdv_id, distance_from_pdv, geo_status, device_info, ip_address, is_offline, offline_local_time, sync_status, justification)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
+      `INSERT INTO time_punches (
+        organization_id, employee_id, punch_type, punched_at, latitude, longitude, accuracy_meters, 
+        pdv_id, distance_from_pdv, geo_status, device_info, ip_address, is_offline, 
+        offline_local_time, sync_status, justification, adjustment_reason
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16, 'Live BR Time Fix') RETURNING *`,
       [req.organizationId, req.employeeId, punch_type, punchedAt,
         latitude, longitude, accuracy_meters, pdv_id || null, distance, geo_status,
         req.headers['user-agent'], req.ip, is_offline || false, offline_local_time || null,
-        is_offline ? 'synced' : 'synced', justification || null]
+        'synced', justification || null]
     );
 
     if (geo_status === 'fora_area' || geo_status === 'excecao') {
