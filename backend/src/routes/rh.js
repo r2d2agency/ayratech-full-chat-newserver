@@ -813,7 +813,7 @@ router.post('/app-punches', async (req, res) => {
       `INSERT INTO time_punches
         (organization_id, employee_id, punch_type, punched_at, pdv_id, geo_status, is_offline, sync_status,
          justification, manual_adjustment, adjustment_reason, adjusted_by, adjusted_at)
-       VALUES ($1,$2,$3,$4::timestamp,$5,'manual',false,'synced',$6,true,$6,$7,NOW())
+       VALUES ($1,$2,$3,($4::timestamp AT TIME ZONE 'America/Sao_Paulo'),$5,'manual',false,'synced',$6,true,$6,$7,NOW())
        RETURNING *`,
       [orgId, employee_id, punch_type, punched_at, pdv_id || null, reason, req.userId]
     );
