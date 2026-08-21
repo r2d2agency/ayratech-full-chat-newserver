@@ -976,9 +976,10 @@ function RouteFormDialog({ open, route, onClose, pdvs, employees, onSave, onDele
   const [pdvIds, setPdvIds] = useState<string[]>([]);
   const isCreating = !route;
   const { data: brands = [] } = useBrands();
-  // Em criação, usa o primeiro PDV selecionado para o filtro de marcas do PDV
-  const primaryPdvId = isCreating ? (pdvIds[0] || '') : (form.pdv_id || '');
-  const { data: pdvBrands = [] } = usePdvBrands(primaryPdvId);
+  // Em criação, usa todos os PDVs selecionados para buscar a união das marcas vinculadas
+  const selectedPdvIds = isCreating ? pdvIds : (form.pdv_id ? [form.pdv_id] : []);
+  const { data: pdvBrands = [] } = usePdvBrands(selectedPdvIds);
+  const primaryPdvId = selectedPdvIds[0] || '';
   
   // Use currently configuring brand, or first brand, or form brand
   const activeBrandId = configuringBrandId || (multiBrands.length > 0 ? multiBrands[0].brand_id : form.brand_id);
