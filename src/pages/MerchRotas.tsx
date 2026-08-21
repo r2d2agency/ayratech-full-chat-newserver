@@ -1499,6 +1499,7 @@ function RouteFormDialog({ open, route, onClose, pdvs, employees, onSave, onDele
                     ) : <div className="p-2 text-xs text-muted-foreground text-center">Sem marcas disponíveis</div>}
                   </SelectContent>
                 </Select>
+                </div>
               )}
             </div>
 
