@@ -1,6 +1,6 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { HelpCircle, Users, Clock, Building2, ShieldCheck, MapPin, Monitor, FileText } from "lucide-react";
+import { HelpCircle, Users, Clock, Building2, ShieldCheck, MapPin, Monitor, FileText, Package } from "lucide-react";
 
 const helpItems = [
   {
