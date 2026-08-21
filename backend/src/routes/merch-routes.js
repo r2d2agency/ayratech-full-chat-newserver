@@ -693,7 +693,7 @@ router.post('/routes', async (req, res) => {
     // Encoding: Sun=0, Mon=1..Sat=6 (matches JS getUTCDay)
     const brandWeekdays = {}; // brand_id -> Set<number> (empty set = applies to all dates)
     if (hasBrandsArray && recurrence_type === 'weekly') {
-      for (const mb of multiBrands) {
+      for (const mb of filteredMultiBrands) {
         const wds = new Set(Array.isArray(mb.weekdays) ? mb.weekdays.map(Number) : []);
         // A marca também precisa rodar nos dias exigidos por qualquer um dos seus checklists
         const entries = brandChecklists[mb.brand_id] || [];
