@@ -1219,6 +1219,8 @@ function RouteFormDialog({ open, route, onClose, pdvs, employees, onSave, onDele
       const isLinkedToPdv = pdvBrands.some((pb: any) => pb.brand_id === b.id);
       if (!isLinkedToPdv) return false;
     }
+    // IMPORTANTE: Se o usuário fez o mix de produtos mas esqueceu o vínculo direto Brand-PDV,
+    // a marca pode não aparecer aqui. Verifique o cadastro da marca > PDVs Vinculados.
     return !multiBrands.some(mb => mb.brand_id === b.id);
   });
 
