@@ -283,6 +283,16 @@ router.put('/brands/:id', async (req, res) => {
          WHERE brand_id = $1 AND route_id IN (SELECT id FROM merch_routes WHERE organization_id = $2 AND visit_date >= CURRENT_DATE)`,
         [req.params.id, req.orgId]
       );
+
+      // 3. Deleta rotas futuras que ficaram sem nenhuma marca
+      await query(
+        `DELETE FROM merch_routes 
+         WHERE organization_id = $1 
+           AND visit_date >= CURRENT_DATE 
+           AND brand_id IS NULL 
+           AND NOT EXISTS (SELECT 1 FROM route_brands WHERE route_id = merch_routes.id)`,
+        [req.orgId]
+      );
     }
 
     const r = await query(
