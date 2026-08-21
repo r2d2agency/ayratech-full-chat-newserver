@@ -1,6 +1,6 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { HelpCircle, Users, Clock, Building2, ShieldCheck, MapPin, Monitor, FileText } from "lucide-react";
+import { HelpCircle, Users, Clock, Building2, ShieldCheck, MapPin, Monitor, FileText, Package } from "lucide-react";
 
 const helpItems = [
   {
@@ -45,6 +45,12 @@ const helpItems = [
     description: "Como realizar o fechamento mensal ou individual dos registros de ponto.",
     icon: FileText,
     content: "1. Conferência: Acesse 'RH > Ponto', selecione o período e o colaborador. Verifique divergências (ícone amarelo/vermelho).\n2. Ajustes: Se necessário, use o botão 'Ajuste Manual' para corrigir marcações.\n3. Exportação: Clique em 'Exportar XLS' para gerar o espelho de ponto consolidado. O sistema calcula automaticamente horas extras e faltas com base na jornada cadastrada.\n4. Holerite: Após a conferência, você pode importar o holerite em 'RH > Holerites' para assinatura digital."
+  },
+  {
+    title: "Marcas não aparecem na Rota",
+    description: "Por que uma marca recém cadastrada não aparece para criar rotas?",
+    icon: Package,
+    content: "Para que uma marca apareça na criação de rotas, ela DEVE estar vinculada ao PDV selecionado.\n1. Acesse Merchandising > Marcas.\n2. Edite a marca desejada.\n3. Vá na aba 'PDVs Vinculados' e adicione o PDV.\n4. Certifique-se também de que o mix de produtos para esse PDV foi configurado."
   }
 ];
 

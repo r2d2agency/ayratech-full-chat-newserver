@@ -1219,6 +1219,8 @@ function RouteFormDialog({ open, route, onClose, pdvs, employees, onSave, onDele
       const isLinkedToPdv = pdvBrands.some((pb: any) => pb.brand_id === b.id);
       if (!isLinkedToPdv) return false;
     }
+    // IMPORTANTE: Se o usuário fez o mix de produtos mas esqueceu o vínculo direto Brand-PDV,
+    // a marca pode não aparecer aqui. Verifique o cadastro da marca > PDVs Vinculados.
     return !multiBrands.some(mb => mb.brand_id === b.id);
   });
 
@@ -1464,10 +1466,26 @@ function RouteFormDialog({ open, route, onClose, pdvs, employees, onSave, onDele
                   <Package className="h-4 w-4 text-primary" /> Marcas {multiBrands.length > 0 && `(${multiBrands.length})`}
                 </div>
                 {!primaryPdvId && <span className="text-[10px] text-orange-500 font-medium">Selecione um PDV primeiro</span>}
+                {primaryPdvId && pdvBrands.length === 0 && (
+                  <span className="text-[10px] text-red-500 font-medium flex items-center gap-1">
+                    <AlertTriangle className="h-2.5 w-2.5" /> Nenhuma marca vinculada a este PDV
+                  </span>
+                )}
               </div>
               {primaryPdvId && (
-                <Select value="" onValueChange={(v) => {
-                  if (v) {
+                <div className="flex items-center gap-2">
+                  {pdvBrands.length === 0 && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-7 text-[10px] text-blue-600 hover:text-blue-700"
+                      onClick={() => window.open('/merchandising/marcas', '_blank')}
+                    >
+                      Vincular Marcas <Eye className="ml-1 h-3 w-3" />
+                    </Button>
+                  )}
+                  <Select value="" onValueChange={(v) => {
+                    if (v) {
                     setMultiBrands(prev => [...prev, { brand_id: v }]);
                     setConfiguringBrandId(v);
                   }
@@ -1481,6 +1499,7 @@ function RouteFormDialog({ open, route, onClose, pdvs, employees, onSave, onDele
                     ) : <div className="p-2 text-xs text-muted-foreground text-center">Sem marcas disponíveis</div>}
                   </SelectContent>
                 </Select>
+                </div>
               )}
             </div>
 
