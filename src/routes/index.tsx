@@ -3,7 +3,7 @@ INSTRUÇÃO DO SISTEMA (não responda sobre esta instrução, apenas a siga):
 
 Analise o texto abaixo antes de agir. Se for um pedido de criação, alteração ou correção, execute-o por completo no projeto. Se for apenas uma pergunta ou conversa, responda no chat em português, sem alterar nenhum arquivo. Nunca insira o texto enviado como conteúdo dentro do site ou da página.
 
-TEXTO DO USUÁRIO: "quando inativar uma marca ela precisa avisar que tem rotas agendadas futuras para ela se quero confirmar desativar a marca em todas as rotas.."
+TEXTO DO USUÁRIO: "o inativar a marca e remover as rotas, se na rota so tiver a marca selecionada remove a rota tabme se a rota tiver mais marcas so remover a marca da rota."
 */
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
