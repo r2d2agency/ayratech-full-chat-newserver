@@ -1422,6 +1422,30 @@ router.post('/routes/:id/duplicate', async (req, res) => {
     if (!original.rows.length) return res.status(404).json({ error: 'Rota não encontrada' });
 
     const o = original.rows[0];
+
+    // Check if the brand(s) are still active before duplicating
+    const brandIds = new Set();
+    if (o.brand_id) brandIds.add(o.brand_id);
+    const rbRes = await query(`SELECT brand_id FROM route_brands WHERE route_id = $1`, [o.id]);
+    for (const row of rbRes.rows) brandIds.add(row.brand_id);
+
+    if (brandIds.size > 0) {
+      const activeRes = await query(`SELECT id FROM merch_brands WHERE id = ANY($1::uuid[]) AND status = 'active'`, [Array.from(brandIds)]);
+      const activeSet = new Set(activeRes.rows.map(r => r.id));
+      
+      if (o.brand_id && !activeSet.has(o.brand_id) && rbRes.rows.length === 0) {
+        return res.status(400).json({ error: 'Não é possível duplicar: a marca desta rota está inativa.' });
+      }
+      
+      // Filter out inactive brands from route_brands duplication (simplified logic for duplicate)
+      if (rbRes.rows.length > 0) {
+        const activeBrandIds = rbRes.rows.map(r => r.brand_id).filter(id => activeSet.has(id));
+        if (activeBrandIds.length === 0) {
+          return res.status(400).json({ error: 'Não é possível duplicar: todas as marcas desta rota estão inativas.' });
+        }
+      }
+    }
+
     const newDate = req.body.visit_date || o.visit_date;
 
     const result = await query(
@@ -1433,15 +1457,32 @@ router.post('/routes/:id/duplicate', async (req, res) => {
        o.priority, o.visit_type, o.notes, req.userId]
     );
 
+    const newRouteId = result.rows[0].id;
+
     // Copy product executions
     const execs = await query('SELECT product_id, category_id FROM route_product_executions WHERE route_id=$1', [req.params.id]);
     for (const e of execs.rows) {
       await query('INSERT INTO route_product_executions (route_id, product_id, category_id) VALUES ($1,$2,$3)',
-        [result.rows[0].id, e.product_id, e.category_id]);
+        [newRouteId, e.product_id, e.category_id]);
+    }
+    
+    // Copy route_brands (only active ones)
+    for (const rb of rbRes.rows) {
+      // We check activeSet here
+      // (Actually we already fetched activeSet above)
+      const brandIdsArr = Array.from(brandIds);
+      const activeRes = await query(`SELECT id FROM merch_brands WHERE id = ANY($1::uuid[]) AND status = 'active'`, [brandIdsArr]);
+      const activeSet = new Set(activeRes.rows.map(r => r.id));
+
+      if (activeSet.has(rb.brand_id)) {
+        await query(`INSERT INTO route_brands (route_id, brand_id, checklist_id, sort_order)
+                     SELECT $1, brand_id, checklist_id, sort_order FROM route_brands WHERE id = $2`, 
+                     [newRouteId, rb.id]);
+      }
     }
 
     res.json(result.rows[0]);
-  } catch (err) { logError('routes.duplicate', err); res.status(500).json({ error: 'Erro' }); }
+  } catch (err) { logError('routes.duplicate', err); res.status(500).json({ error: 'Erro ao duplicar rota' }); }
 });
 
 // Get route detail with executions
