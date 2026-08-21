@@ -1217,7 +1217,7 @@ function RouteFormDialog({ open, route, onClose, pdvs, employees, onSave, onDele
     if (b.status === 'inactive') return false;
     
     // Filtro de marca por PDV
-    const shouldFilterByPdv = isCreating ? pdvIds.length === 1 : !!form.pdv_id;
+    const shouldFilterByPdv = isCreating ? pdvIds.length > 0 : !!form.pdv_id;
     if (shouldFilterByPdv && primaryPdvId) {
       // Se pdvBrands for vazio, forçamos o filtro a falhar para mostrar o aviso visual
       const isLinkedToPdv = pdvBrands.some((pb: any) => pb.brand_id === b.id);
