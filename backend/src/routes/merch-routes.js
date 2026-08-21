@@ -643,6 +643,31 @@ router.post('/routes', async (req, res) => {
       await ensureRouteBrandsTables();
     }
 
+    // Determine brands to include (exclude inactive ones)
+    const brandIds = new Set();
+    if (primaryBrandId) brandIds.add(primaryBrandId);
+    if (Array.isArray(multiBrands)) {
+      for (const mb of multiBrands) if (mb.brand_id) brandIds.add(mb.brand_id);
+    }
+
+    const activeBrandsRes = await query(
+      `SELECT id FROM merch_brands WHERE id = ANY($1::uuid[]) AND status = 'active'`,
+      [Array.from(brandIds)]
+    );
+    const activeBrandIds = new Set(activeBrandsRes.rows.map(r => r.id));
+
+    if (primaryBrandId && !activeBrandIds.has(primaryBrandId)) {
+      return res.status(400).json({ error: 'A marca principal está inativa e não pode ser usada em novos roteiros.' });
+    }
+
+    let filteredMultiBrands = multiBrands;
+    if (Array.isArray(multiBrands)) {
+      filteredMultiBrands = multiBrands.filter(mb => activeBrandIds.has(mb.brand_id));
+      if (filteredMultiBrands.length === 0) {
+        return res.status(400).json({ error: 'Nenhuma das marcas selecionadas está ativa.' });
+      }
+    }
+
     // Resolve effective checklist for this brand when not explicitly passed
     let effectiveChecklistId = checklist_id || null;
     if (!effectiveChecklistId && primaryBrandId && !isMultiBrand) {
