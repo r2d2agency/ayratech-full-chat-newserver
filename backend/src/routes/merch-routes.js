@@ -913,7 +913,18 @@ router.put('/routes/:id', async (req, res) => {
     delete req.body._scope;
 
     // Multi-brand sync (replace route_brands when brands array is provided)
-    const brandsPayload = Array.isArray(req.body.brands) ? req.body.brands : null;
+    let brandsPayload = Array.isArray(req.body.brands) ? req.body.brands : null;
+    if (brandsPayload) {
+      const bIds = brandsPayload.map(b => b.brand_id).filter(Boolean);
+      if (bIds.length > 0) {
+        const activeRes = await query(`SELECT id FROM merch_brands WHERE id = ANY($1::uuid[]) AND status = 'active'`, [bIds]);
+        const activeSet = new Set(activeRes.rows.map(r => r.id));
+        brandsPayload = brandsPayload.filter(b => activeSet.has(b.brand_id));
+      }
+      if (brandsPayload.length === 0) {
+        return res.status(400).json({ error: 'Nenhuma das marcas selecionadas está ativa.' });
+      }
+    }
     delete req.body.brands;
     if (brandsPayload) {
       try {
