@@ -1212,15 +1212,16 @@ function RouteFormDialog({ open, route, onClose, pdvs, employees, onSave, onDele
 
   const availableBrands = (brands || []).filter((b: any) => {
     if (!b?.id) return false;
-    // Se em criação com múltiplos PDVs, não filtra por PDV (marcas comuns podem variar);
-    // caso contrário, mantém o filtro do PDV primário.
+    
+    // Filtro de marca por PDV
     const shouldFilterByPdv = isCreating ? pdvIds.length === 1 : !!form.pdv_id;
-    if (shouldFilterByPdv && primaryPdvId && pdvBrands.length > 0) {
+    if (shouldFilterByPdv && primaryPdvId) {
+      // Se pdvBrands for vazio, forçamos o filtro a falhar para mostrar o aviso visual
       const isLinkedToPdv = pdvBrands.some((pb: any) => pb.brand_id === b.id);
       if (!isLinkedToPdv) return false;
     }
-    // IMPORTANTE: Se o usuário fez o mix de produtos mas esqueceu o vínculo direto Brand-PDV,
-    // a marca pode não aparecer aqui. Verifique o cadastro da marca > PDVs Vinculados.
+
+    // Não permitir duplicados no formulário
     return !multiBrands.some(mb => mb.brand_id === b.id);
   });
 

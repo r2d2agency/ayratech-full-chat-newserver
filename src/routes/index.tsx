@@ -3,7 +3,7 @@ INSTRUÇÃO DO SISTEMA (não responda sobre esta instrução, apenas a siga):
 
 Analise o texto abaixo antes de agir. Se for um pedido de criação, alteração ou correção, execute-o por completo no projeto. Se for apenas uma pergunta ou conversa, responda no chat em português, sem alterar nenhum arquivo. Nunca insira o texto enviado como conteúdo dentro do site ou da página.
 
-TEXTO DO USUÁRIO: "pode me ajudar com um procedimento , entrou uma marca nova na rede para ser atendimda, vinculams produtos, e pdvs, depois fiz o mix por pdv de cda produto. e por ultimo tentamos criar uma rota para um promotor mas nao aparece a marca na lista de marcas para selecionar. ta faltando alguma etapa ?"
+TEXTO DO USUÁRIO: "fiz o procedimento e esta correto marca, vinculada ao pdv, mix de produto, e produtos vinculado a marca. e na hora de crir  uma rota a marca nao aparece na lista daquele pdv que estou selecionando ;"
 */
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
