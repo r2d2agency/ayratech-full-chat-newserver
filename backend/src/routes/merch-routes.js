@@ -778,9 +778,9 @@ router.post('/routes', async (req, res) => {
       const dWeekday = new Date(d + 'T12:00:00Z').getUTCDay(); // 0=Sun..6=Sat
 
       // For multi-brand weekly: determine which brands apply on this date
-      let applicableBrands = isMultiBrand ? multiBrands : null;
+      let applicableBrands = isMultiBrand ? filteredMultiBrands : null;
       if (isMultiBrand && recurrence_type === 'weekly') {
-        applicableBrands = multiBrands.filter(mb => {
+        applicableBrands = filteredMultiBrands.filter(mb => {
           const set = brandWeekdays[mb.brand_id];
           if (!set || set.size === 0) {
             // No per-brand weekdays -> applies on all generated dates (already filtered by global)
