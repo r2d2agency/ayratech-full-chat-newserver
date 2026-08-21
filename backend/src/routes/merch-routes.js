@@ -819,7 +819,7 @@ router.post('/routes', async (req, res) => {
       const routeId = result.rows[0].id;
 
       if (isMultiBrand) {
-        const brandsForThisDate = applicableBrands || multiBrands;
+        const brandsForThisDate = applicableBrands || filteredMultiBrands;
         let insertedBrands = 0;
         for (let i = 0; i < brandsForThisDate.length; i++) {
           const mb = brandsForThisDate[i];
