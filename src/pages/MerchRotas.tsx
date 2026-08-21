@@ -976,9 +976,10 @@ function RouteFormDialog({ open, route, onClose, pdvs, employees, onSave, onDele
   const [pdvIds, setPdvIds] = useState<string[]>([]);
   const isCreating = !route;
   const { data: brands = [] } = useBrands();
-  // Em criação, usa o primeiro PDV selecionado para o filtro de marcas do PDV
-  const primaryPdvId = isCreating ? (pdvIds[0] || '') : (form.pdv_id || '');
-  const { data: pdvBrands = [] } = usePdvBrands(primaryPdvId);
+  // Em criação, usa todos os PDVs selecionados para buscar a união das marcas vinculadas
+  const selectedPdvIds = isCreating ? pdvIds : (form.pdv_id ? [form.pdv_id] : []);
+  const { data: pdvBrands = [] } = usePdvBrands(selectedPdvIds);
+  const primaryPdvId = selectedPdvIds[0] || '';
   
   // Use currently configuring brand, or first brand, or form brand
   const activeBrandId = configuringBrandId || (multiBrands.length > 0 ? multiBrands[0].brand_id : form.brand_id);
@@ -1217,11 +1218,10 @@ function RouteFormDialog({ open, route, onClose, pdvs, employees, onSave, onDele
     if (b.status === 'inactive') return false;
     
     // Filtro de marca por PDV
-    const shouldFilterByPdv = isCreating ? pdvIds.length > 0 : !!form.pdv_id;
-    if (shouldFilterByPdv && primaryPdvId) {
-      // Se pdvBrands for vazio, forçamos o filtro a falhar para mostrar o aviso visual
-      const isLinkedToPdv = pdvBrands.some((pb: any) => pb.brand_id === b.id);
-      if (!isLinkedToPdv) return false;
+    if (selectedPdvIds.length > 0) {
+      // A marca deve estar vinculada a pelo menos um dos PDVs selecionados
+      const isLinkedToAnySelectedPdv = pdvBrands.some((pb: any) => pb.brand_id === b.id);
+      if (!isLinkedToAnySelectedPdv) return false;
     }
 
     // Não permitir duplicados no formulário

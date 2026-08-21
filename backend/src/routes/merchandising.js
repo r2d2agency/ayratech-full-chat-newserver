@@ -1039,14 +1039,15 @@ router.get('/brand-pdvs/:brandId', async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
-router.get('/pdv-brands/:pdvId', async (req, res) => {
+router.get('/pdv-brands/:pdvIds', async (req, res) => {
   try {
     await ensureMerchandisingInfra();
+    const ids = req.params.pdvIds.split(',');
     const r = await query(
-      `SELECT pb.*, b.name as brand_name, b.logo_url, b.segment
+      `SELECT DISTINCT pb.brand_id, b.name as brand_name, b.logo_url, b.segment
        FROM merch_pdv_brands pb JOIN merch_brands b ON b.id = pb.brand_id
-       WHERE pb.pdv_id=$1 AND pb.organization_id=$2 ORDER BY b.name`,
-      [req.params.pdvId, req.orgId]
+       WHERE pb.pdv_id = ANY($1::uuid[]) AND pb.organization_id=$2 ORDER BY b.name`,
+      [ids, req.orgId]
     );
     res.json(r.rows);
   } catch (e) { res.status(500).json({ error: e.message }); }

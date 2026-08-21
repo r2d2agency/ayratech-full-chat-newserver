@@ -206,11 +206,12 @@ export function useImportProducts() {
 }
 
 // ===== PDV BRANDS =====
-export function usePdvBrands(pdvId?: string) {
+export function usePdvBrands(pdvId?: string | string[]) {
+  const ids = Array.isArray(pdvId) ? pdvId.join(',') : pdvId;
   return useQuery({
-    queryKey: ['merch-pdv-brands', pdvId],
-    queryFn: () => api<any[]>(`/api/merchandising/pdv-brands/${pdvId}`),
-    enabled: !!pdvId,
+    queryKey: ['merch-pdv-brands', ids],
+    queryFn: () => api<any[]>(`/api/merchandising/pdv-brands/${ids}`),
+    enabled: !!ids,
   });
 }
 
