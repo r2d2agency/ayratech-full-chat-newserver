@@ -683,10 +683,10 @@ router.post('/routes', async (req, res) => {
     }
 
     // Checklists por marca (podem ser vários, cada um com sua recorrência)
-    const hasBrandsArray = Array.isArray(multiBrands) && multiBrands.length > 0;
+    const hasBrandsArray = Array.isArray(filteredMultiBrands) && filteredMultiBrands.length > 0;
     const brandChecklists = {}; // brand_id -> [{ checklist_id, weekdays[] }]
     if (hasBrandsArray) {
-      for (const mb of multiBrands) brandChecklists[mb.brand_id] = normalizeBrandChecklists(mb);
+      for (const mb of filteredMultiBrands) brandChecklists[mb.brand_id] = normalizeBrandChecklists(mb);
     }
 
     // Per-brand weekdays (for weekly recurrence — applies for single or multi-brand)
