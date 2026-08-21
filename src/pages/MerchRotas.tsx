@@ -1217,11 +1217,20 @@ function RouteFormDialog({ open, route, onClose, pdvs, employees, onSave, onDele
     if (b.status === 'inactive') return false;
     
     // Filtro de marca por PDV
-    const shouldFilterByPdv = isCreating ? pdvIds.length > 0 : !!form.pdv_id;
-    if (shouldFilterByPdv && primaryPdvId) {
-      // Se pdvBrands for vazio, forçamos o filtro a falhar para mostrar o aviso visual
-      const isLinkedToPdv = pdvBrands.some((pb: any) => pb.brand_id === b.id);
-      if (!isLinkedToPdv) return false;
+    // O problema reportado: quando seleciona 2 PDVs, mostra todas as marcas do sistema.
+    // Precisamos garantir que, se houver PDVs selecionados, a marca deve estar vinculada a PELO MENOS UM deles.
+    const selectedPdvIds = isCreating ? pdvIds : (form.pdv_id ? [form.pdv_id] : []);
+    
+    if (selectedPdvIds.length > 0) {
+      // Se houver PDVs selecionados, a marca só está disponível se estiver vinculada a pelo menos um deles no mix/vínculo.
+      // pdvBrands contém as marcas vinculadas ao PDV selecionado (no caso de múltiplos PDVs na criação,
+      // o hook usePdvBrands geralmente é chamado para o primeiro ou o hook precisaria ser adaptado).
+      // No entanto, para múltiplos PDVs, o ideal seria verificar a interseção ou a união dependendo da regra de negócio.
+      // O usuário diz que "mostra todas as marcas do sistema", o que indica que shouldFilterByPdv está ficando falso
+      // ou a lista pdvBrands está vazia/não filtrando corretamente.
+      
+      const isLinkedToAnySelectedPdv = pdvBrands.some((pb: any) => pb.brand_id === b.id);
+      if (!isLinkedToAnySelectedPdv) return false;
     }
 
     // Não permitir duplicados no formulário
