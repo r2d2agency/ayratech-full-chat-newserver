@@ -88,7 +88,7 @@ export default function MerchMarcas() {
     [brandPdvs, pdvSearch]
   );
 
-  const openNew = () => { setForm({ ...emptyBrand }); setEditingId(null); setDialogOpen(true); };
+  const openNew = () => { setForm({ ...emptyBrand }); setEditingId(null); setSelectedIds(new Set()); setDialogOpen(true); };
   const openEdit = (b: any) => { setForm({ ...b }); setEditingId(b.id); setDialogOpen(true); };
 
   const handleSave = async () => {
