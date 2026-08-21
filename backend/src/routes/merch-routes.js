@@ -713,7 +713,7 @@ router.post('/routes', async (req, res) => {
     if (hasBrandsArray && recurrence_type === 'weekly') {
       const union = new Set();
       let anyBrandWithoutWeekdays = false;
-      for (const mb of multiBrands) {
+      for (const mb of filteredMultiBrands) {
         const set = brandWeekdays[mb.brand_id];
         if (!set || set.size === 0) { anyBrandWithoutWeekdays = true; }
         else { for (const w of set) union.add(w); }
