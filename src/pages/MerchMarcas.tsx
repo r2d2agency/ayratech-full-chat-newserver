@@ -297,7 +297,7 @@ export default function MerchMarcas() {
                       </Button>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={b.status === 'active' ? 'default' : 'secondary'}>
+                      <Badge variant={b.status === 'active' ? 'default' : 'secondary'} className={b.status === 'inactive' ? 'opacity-70 grayscale' : ''}>
                         {b.status === 'active' ? 'Ativo' : 'Inativo'}
                       </Badge>
                     </TableCell>

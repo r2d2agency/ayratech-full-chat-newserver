@@ -191,6 +191,8 @@ DO $$ BEGIN
     ALTER TABLE organizations ADD COLUMN IF NOT EXISTS facial_clock_in_required BOOLEAN DEFAULT false;
     ALTER TABLE organizations ADD COLUMN IF NOT EXISTS facial_clock_in_notify_missing BOOLEAN DEFAULT false;
     ALTER TABLE organizations ADD COLUMN IF NOT EXISTS footer_text TEXT;
+    -- Cleanup: Inactivate brands without active routes if requested or just ensure status column exists correctly
+    ALTER TABLE merch_brands ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active';
 EXCEPTION WHEN duplicate_column THEN null; END $$;
 
 
