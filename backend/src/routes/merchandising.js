@@ -251,9 +251,40 @@ router.post('/brands', async (req, res) => {
   } catch (e) { logError('create brand', e); res.status(500).json({ error: e.message }); }
 });
 
+router.get('/brands/:id/check-future-routes', async (req, res) => {
+  try {
+    const r = await query(
+      `SELECT COUNT(*)::int as count FROM merch_routes 
+       WHERE organization_id=$1 
+         AND visit_date >= CURRENT_DATE
+         AND (brand_id = $2 OR EXISTS (SELECT 1 FROM route_brands WHERE route_id = merch_routes.id AND brand_id = $2))`,
+      [req.orgId, req.params.id]
+    );
+    res.json({ future_count: r.rows[0]?.count || 0 });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 router.put('/brands/:id', async (req, res) => {
   try {
     const { name, internal_code, razao_social, cnpj, logo_url, description, segment, responsible, phone, email, status, notes, street, number, neighborhood, city, zip, show_routes, show_photos, show_stock, show_damages, show_stockouts } = req.body;
+    
+    // Se estiver inativando a marca, remove ela de rotas futuras
+    if (status === 'inactive') {
+      // 1. Remove como marca principal de rotas futuras (set null)
+      await query(
+        `UPDATE merch_routes SET brand_id = NULL 
+         WHERE brand_id = $1 AND organization_id = $2 AND visit_date >= CURRENT_DATE`,
+        [req.params.id, req.orgId]
+      );
+      
+      // 2. Remove de multi-marcas de rotas futuras
+      await query(
+        `DELETE FROM route_brands 
+         WHERE brand_id = $1 AND route_id IN (SELECT id FROM merch_routes WHERE organization_id = $2 AND visit_date >= CURRENT_DATE)`,
+        [req.params.id, req.orgId]
+      );
+    }
+
     const r = await query(
       `UPDATE merch_brands SET name=$1, internal_code=COALESCE(NULLIF($2,''), internal_code), razao_social=$3, cnpj=$4, logo_url=$5, description=$6, segment=$7, responsible=$8, phone=$9, email=$10, status=$11, notes=$12, street=$13, number=$14, neighborhood=$15, city=$16, zip=$17, show_routes=$18, show_photos=$19, show_stock=$20, show_damages=$21, show_stockouts=$22, updated_at=NOW() WHERE id=$23 AND organization_id=$24 RETURNING *`,
       [name, internal_code || '', razao_social, cnpj, logo_url, description, segment, responsible, phone, email, status, notes, street, number, neighborhood, city, zip, show_routes ?? true, show_photos ?? true, show_stock ?? true, show_damages ?? true, show_stockouts ?? true, req.params.id, req.orgId]
