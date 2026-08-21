@@ -19,7 +19,7 @@ import { BrandImportDialog } from "@/components/merchandising/BrandImportDialog"
 import { BrandAccessDialog } from "@/components/merchandising/BrandAccessDialog";
 import { BrandPdvLinkImportDialog } from "@/components/merchandising/BrandPdvLinkImportDialog";
 import { Plus, Search, Pencil, Trash2, Building2, Store, ArrowRight, ArrowLeft, Upload, Download, Link2, LayoutDashboard, KeyRound } from "lucide-react";
-import { getAuthToken } from "@/lib/api";
+import { getAuthToken, api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -94,6 +94,16 @@ export default function MerchMarcas() {
   const handleSave = async () => {
     if (!form.name) { toast.error('Nome é obrigatório'); return; }
     try {
+      if (editingId && form.status === 'inactive') {
+        const check = await api<{ future_count: number }>(`/api/merchandising/brands/${editingId}/check-future-routes`);
+        if (check.future_count > 0) {
+          const confirmInactivate = confirm(
+            `Esta marca possui ${check.future_count} rota(s) agendada(s) para o futuro. Deseja realmente inativá-la e remover esta marca de todas estas rotas?`
+          );
+          if (!confirmInactivate) return;
+        }
+      }
+
       if (editingId) {
         await updateBrand.mutateAsync({ id: editingId, ...form });
         toast.success('Marca atualizada');

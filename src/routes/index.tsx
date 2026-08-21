@@ -3,7 +3,7 @@ INSTRUÇÃO DO SISTEMA (não responda sobre esta instrução, apenas a siga):
 
 Analise o texto abaixo antes de agir. Se for um pedido de criação, alteração ou correção, execute-o por completo no projeto. Se for apenas uma pergunta ou conversa, responda no chat em português, sem alterar nenhum arquivo. Nunca insira o texto enviado como conteúdo dentro do site ou da página.
 
-TEXTO DO USUÁRIO: "o problema de nao aparcer a marca esta meio confuso se eu seleciono so 1 pdv a marca nao aparece a que eu acabei de criar, mas se eu seleciono mais de 1 pdv ai ela ativa. deve de ser algum bug"
+TEXTO DO USUÁRIO: "quando inativar uma marca ela precisa avisar que tem rotas agendadas futuras para ela se quero confirmar desativar a marca em todas as rotas.."
 */
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
