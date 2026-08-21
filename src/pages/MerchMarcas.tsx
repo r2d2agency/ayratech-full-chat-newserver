@@ -19,7 +19,7 @@ import { BrandImportDialog } from "@/components/merchandising/BrandImportDialog"
 import { BrandAccessDialog } from "@/components/merchandising/BrandAccessDialog";
 import { BrandPdvLinkImportDialog } from "@/components/merchandising/BrandPdvLinkImportDialog";
 import { Plus, Search, Pencil, Trash2, Building2, Store, ArrowRight, ArrowLeft, Upload, Download, Link2, LayoutDashboard, KeyRound } from "lucide-react";
-import { getAuthToken } from "@/lib/api";
+import { getAuthToken, api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
