@@ -643,6 +643,31 @@ router.post('/routes', async (req, res) => {
       await ensureRouteBrandsTables();
     }
 
+    // Determine brands to include (exclude inactive ones)
+    const brandIds = new Set();
+    if (primaryBrandId) brandIds.add(primaryBrandId);
+    if (Array.isArray(multiBrands)) {
+      for (const mb of multiBrands) if (mb.brand_id) brandIds.add(mb.brand_id);
+    }
+
+    const activeBrandsRes = await query(
+      `SELECT id FROM merch_brands WHERE id = ANY($1::uuid[]) AND status = 'active'`,
+      [Array.from(brandIds)]
+    );
+    const activeBrandIds = new Set(activeBrandsRes.rows.map(r => r.id));
+
+    if (primaryBrandId && !activeBrandIds.has(primaryBrandId)) {
+      return res.status(400).json({ error: 'A marca principal está inativa e não pode ser usada em novos roteiros.' });
+    }
+
+    let filteredMultiBrands = multiBrands;
+    if (Array.isArray(multiBrands)) {
+      filteredMultiBrands = multiBrands.filter(mb => activeBrandIds.has(mb.brand_id));
+      if (filteredMultiBrands.length === 0) {
+        return res.status(400).json({ error: 'Nenhuma das marcas selecionadas está ativa.' });
+      }
+    }
+
     // Resolve effective checklist for this brand when not explicitly passed
     let effectiveChecklistId = checklist_id || null;
     if (!effectiveChecklistId && primaryBrandId && !isMultiBrand) {
@@ -658,17 +683,17 @@ router.post('/routes', async (req, res) => {
     }
 
     // Checklists por marca (podem ser vários, cada um com sua recorrência)
-    const hasBrandsArray = Array.isArray(multiBrands) && multiBrands.length > 0;
+    const hasBrandsArray = Array.isArray(filteredMultiBrands) && filteredMultiBrands.length > 0;
     const brandChecklists = {}; // brand_id -> [{ checklist_id, weekdays[] }]
     if (hasBrandsArray) {
-      for (const mb of multiBrands) brandChecklists[mb.brand_id] = normalizeBrandChecklists(mb);
+      for (const mb of filteredMultiBrands) brandChecklists[mb.brand_id] = normalizeBrandChecklists(mb);
     }
 
     // Per-brand weekdays (for weekly recurrence — applies for single or multi-brand)
     // Encoding: Sun=0, Mon=1..Sat=6 (matches JS getUTCDay)
     const brandWeekdays = {}; // brand_id -> Set<number> (empty set = applies to all dates)
     if (hasBrandsArray && recurrence_type === 'weekly') {
-      for (const mb of multiBrands) {
+      for (const mb of filteredMultiBrands) {
         const wds = new Set(Array.isArray(mb.weekdays) ? mb.weekdays.map(Number) : []);
         // A marca também precisa rodar nos dias exigidos por qualquer um dos seus checklists
         const entries = brandChecklists[mb.brand_id] || [];
@@ -688,7 +713,7 @@ router.post('/routes', async (req, res) => {
     if (hasBrandsArray && recurrence_type === 'weekly') {
       const union = new Set();
       let anyBrandWithoutWeekdays = false;
-      for (const mb of multiBrands) {
+      for (const mb of filteredMultiBrands) {
         const set = brandWeekdays[mb.brand_id];
         if (!set || set.size === 0) { anyBrandWithoutWeekdays = true; }
         else { for (const w of set) union.add(w); }
@@ -753,9 +778,9 @@ router.post('/routes', async (req, res) => {
       const dWeekday = new Date(d + 'T12:00:00Z').getUTCDay(); // 0=Sun..6=Sat
 
       // For multi-brand weekly: determine which brands apply on this date
-      let applicableBrands = isMultiBrand ? multiBrands : null;
+      let applicableBrands = isMultiBrand ? filteredMultiBrands : null;
       if (isMultiBrand && recurrence_type === 'weekly') {
-        applicableBrands = multiBrands.filter(mb => {
+        applicableBrands = filteredMultiBrands.filter(mb => {
           const set = brandWeekdays[mb.brand_id];
           if (!set || set.size === 0) {
             // No per-brand weekdays -> applies on all generated dates (already filtered by global)
@@ -794,7 +819,7 @@ router.post('/routes', async (req, res) => {
       const routeId = result.rows[0].id;
 
       if (isMultiBrand) {
-        const brandsForThisDate = applicableBrands || multiBrands;
+        const brandsForThisDate = applicableBrands || filteredMultiBrands;
         let insertedBrands = 0;
         for (let i = 0; i < brandsForThisDate.length; i++) {
           const mb = brandsForThisDate[i];
@@ -888,7 +913,18 @@ router.put('/routes/:id', async (req, res) => {
     delete req.body._scope;
 
     // Multi-brand sync (replace route_brands when brands array is provided)
-    const brandsPayload = Array.isArray(req.body.brands) ? req.body.brands : null;
+    let brandsPayload = Array.isArray(req.body.brands) ? req.body.brands : null;
+    if (brandsPayload) {
+      const bIds = brandsPayload.map(b => b.brand_id).filter(Boolean);
+      if (bIds.length > 0) {
+        const activeRes = await query(`SELECT id FROM merch_brands WHERE id = ANY($1::uuid[]) AND status = 'active'`, [bIds]);
+        const activeSet = new Set(activeRes.rows.map(r => r.id));
+        brandsPayload = brandsPayload.filter(b => activeSet.has(b.brand_id));
+      }
+      if (brandsPayload.length === 0) {
+        return res.status(400).json({ error: 'Nenhuma das marcas selecionadas está ativa.' });
+      }
+    }
     delete req.body.brands;
     if (brandsPayload) {
       try {
@@ -1386,6 +1422,30 @@ router.post('/routes/:id/duplicate', async (req, res) => {
     if (!original.rows.length) return res.status(404).json({ error: 'Rota não encontrada' });
 
     const o = original.rows[0];
+
+    // Check if the brand(s) are still active before duplicating
+    const brandIds = new Set();
+    if (o.brand_id) brandIds.add(o.brand_id);
+    const rbRes = await query(`SELECT brand_id FROM route_brands WHERE route_id = $1`, [o.id]);
+    for (const row of rbRes.rows) brandIds.add(row.brand_id);
+
+    if (brandIds.size > 0) {
+      const activeRes = await query(`SELECT id FROM merch_brands WHERE id = ANY($1::uuid[]) AND status = 'active'`, [Array.from(brandIds)]);
+      const activeSet = new Set(activeRes.rows.map(r => r.id));
+      
+      if (o.brand_id && !activeSet.has(o.brand_id) && rbRes.rows.length === 0) {
+        return res.status(400).json({ error: 'Não é possível duplicar: a marca desta rota está inativa.' });
+      }
+      
+      // Filter out inactive brands from route_brands duplication (simplified logic for duplicate)
+      if (rbRes.rows.length > 0) {
+        const activeBrandIds = rbRes.rows.map(r => r.brand_id).filter(id => activeSet.has(id));
+        if (activeBrandIds.length === 0) {
+          return res.status(400).json({ error: 'Não é possível duplicar: todas as marcas desta rota estão inativas.' });
+        }
+      }
+    }
+
     const newDate = req.body.visit_date || o.visit_date;
 
     const result = await query(
@@ -1397,15 +1457,32 @@ router.post('/routes/:id/duplicate', async (req, res) => {
        o.priority, o.visit_type, o.notes, req.userId]
     );
 
+    const newRouteId = result.rows[0].id;
+
     // Copy product executions
     const execs = await query('SELECT product_id, category_id FROM route_product_executions WHERE route_id=$1', [req.params.id]);
     for (const e of execs.rows) {
       await query('INSERT INTO route_product_executions (route_id, product_id, category_id) VALUES ($1,$2,$3)',
-        [result.rows[0].id, e.product_id, e.category_id]);
+        [newRouteId, e.product_id, e.category_id]);
+    }
+    
+    // Copy route_brands (only active ones)
+    for (const rb of rbRes.rows) {
+      // We check activeSet here
+      // (Actually we already fetched activeSet above)
+      const brandIdsArr = Array.from(brandIds);
+      const activeRes = await query(`SELECT id FROM merch_brands WHERE id = ANY($1::uuid[]) AND status = 'active'`, [brandIdsArr]);
+      const activeSet = new Set(activeRes.rows.map(r => r.id));
+
+      if (activeSet.has(rb.brand_id)) {
+        await query(`INSERT INTO route_brands (route_id, brand_id, checklist_id, sort_order)
+                     SELECT $1, brand_id, checklist_id, sort_order FROM route_brands WHERE id = $2`, 
+                     [newRouteId, rb.id]);
+      }
     }
 
     res.json(result.rows[0]);
-  } catch (err) { logError('routes.duplicate', err); res.status(500).json({ error: 'Erro' }); }
+  } catch (err) { logError('routes.duplicate', err); res.status(500).json({ error: 'Erro ao duplicar rota' }); }
 });
 
 // Get route detail with executions

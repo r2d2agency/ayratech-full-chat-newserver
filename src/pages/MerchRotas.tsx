@@ -1213,6 +1213,9 @@ function RouteFormDialog({ open, route, onClose, pdvs, employees, onSave, onDele
   const availableBrands = (brands || []).filter((b: any) => {
     if (!b?.id) return false;
     
+    // Regra: Marcas inativas não devem aparecer para seleção em roteiros
+    if (b.status === 'inactive') return false;
+    
     // Filtro de marca por PDV
     const shouldFilterByPdv = isCreating ? pdvIds.length === 1 : !!form.pdv_id;
     if (shouldFilterByPdv && primaryPdvId) {
