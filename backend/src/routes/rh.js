@@ -308,7 +308,18 @@ const EMPLOYEE_UPDATABLE_COLS = new Set([
   'status','photo_url','home_latitude','home_longitude','facial_required','punch_tolerance_minutes'
 ]);
 
+let EMPLOYEE_TABLE_COLS_CACHE = null;
+async function getEmployeeTableColumns() {
+  if (EMPLOYEE_TABLE_COLS_CACHE) return EMPLOYEE_TABLE_COLS_CACHE;
+  const res = await query(
+    `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees'`
+  );
+  EMPLOYEE_TABLE_COLS_CACHE = new Set(res.rows.map((r) => r.column_name));
+  return EMPLOYEE_TABLE_COLS_CACHE;
+}
+
 function emptyToNull(value) {
+
   if (value === undefined || value === null) return null;
   if (typeof value === 'string' && value.trim() === '') return null;
   return value;
@@ -518,30 +529,41 @@ router.post('/employees', async (req, res) => {
       if (geo) { d.home_latitude = geo.lat; d.home_longitude = geo.lng; }
     }
 
+    // INSERT dinâmico: usa somente colunas que realmente existem na tabela employees
+    const tableCols = await getEmployeeTableColumns();
+
+    const insertData = {
+      organization_id: orgId,
+      created_by: req.userId,
+      salary_items: JSON.stringify(d.salary_items || []),
+      benefits: JSON.stringify(d.benefits || []),
+    };
+
+    for (const col of EMPLOYEE_UPDATABLE_COLS) {
+      if (d[col] !== undefined) insertData[col] = d[col];
+    }
+    // pdv_id e branch_id apontam para a mesma unidade
+    const unitId = d.pdv_id || d.branch_id || null;
+    if (unitId) {
+      insertData.pdv_id = unitId;
+      insertData.branch_id = unitId;
+    }
+
+    const cols = [];
+    const placeholders = [];
+    const values = [];
+    for (const [k, v] of Object.entries(insertData)) {
+      if (!tableCols.has(k)) continue;
+      cols.push(k);
+      values.push(v === undefined ? null : v);
+      placeholders.push(`$${values.length}`);
+    }
+
     const result = await query(
-      `INSERT INTO employees (organization_id, full_name, social_name, cpf, rg, rg_issuer, birth_date, gender, marital_status, email, phone, phone2,
-        address, address_number, complement, neighborhood, city, state, zip_code,
-        registration_number, worker_profile, employment_type, position, role_level,
-        branch_id, department_id, cost_center_id, direct_manager_id,
-        admission_date, contract_end_date, salary, work_schedule,
-        bank_name, bank_agency, bank_account, bank_account_type, pix_key, pix_key_type,
-        ctps_number, ctps_series, pis_pasep, voter_id, voter_zone, voter_section, skin_color,
-        cnpj, company_name, status, photo_url, created_by,
-        salary_items, benefits, home_latitude, home_longitude, facial_required, punch_tolerance_minutes, pdv_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44,$45,$46,$47,$48,$49,$50,$51,$52,$53,$54,$55,$56,$25)
-
-       RETURNING *`,
-      [orgId, d.full_name, d.social_name, d.cpf, d.rg, d.rg_issuer, d.birth_date, d.gender, d.marital_status, d.email, d.phone, d.phone2,
-        d.address, d.address_number, d.complement, d.neighborhood, d.city, d.state, d.zip_code,
-        d.registration_number, d.worker_profile, d.employment_type, d.position, d.role_level,
-        d.branch_id, d.department_id, d.cost_center_id, d.direct_manager_id,
-        d.admission_date, d.contract_end_date, d.salary, d.work_schedule,
-        d.bank_name, d.bank_agency, d.bank_account, d.bank_account_type, d.pix_key, d.pix_key_type,
-        d.ctps_number, d.ctps_series, d.pis_pasep, d.voter_id, d.voter_zone, d.voter_section, d.skin_color,
-        d.cnpj, d.company_name, d.status, d.photo_url, req.userId,
-        JSON.stringify(d.salary_items), JSON.stringify(d.benefits), d.home_latitude, d.home_longitude, d.facial_required, d.punch_tolerance_minutes]
-
+      `INSERT INTO employees (${cols.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`,
+      values
     );
+
 
     // Auto-sync schedule if a branch/HQ is linked on creation
     if (result.rows[0] && d.branch_id) {
@@ -561,9 +583,16 @@ router.post('/employees', async (req, res) => {
 
   } catch (err) {
     logError('rh.employees.create', err, { body: req.body });
-    const message = err?.detail || err?.message || 'Erro ao criar colaborador';
-    res.status(400).json({ error: message });
+    const message = err?.message || 'Erro ao criar colaborador';
+    res.status(400).json({
+      error: message,
+      details: err?.detail || null,
+      code: err?.code || null,
+      column: err?.column || null,
+      constraint: err?.constraint || null,
+    });
   }
+
 });
 
 // Update employee
