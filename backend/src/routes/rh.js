@@ -583,9 +583,16 @@ router.post('/employees', async (req, res) => {
 
   } catch (err) {
     logError('rh.employees.create', err, { body: req.body });
-    const message = err?.detail || err?.message || 'Erro ao criar colaborador';
-    res.status(400).json({ error: message });
+    const message = err?.message || 'Erro ao criar colaborador';
+    res.status(400).json({
+      error: message,
+      details: err?.detail || null,
+      code: err?.code || null,
+      column: err?.column || null,
+      constraint: err?.constraint || null,
+    });
   }
+
 });
 
 // Update employee
