@@ -485,7 +485,8 @@ router.post('/employees', async (req, res) => {
           let pi = 1;
           const skipKeys = ['organization_id', 'created_by', 'salary_items', 'benefits'];
           for (const [k, v] of Object.entries(d)) {
-            if (skipKeys.includes(k) || v === null || v === undefined || v === '') continue;
+            if (skipKeys.includes(k) || !EMPLOYEE_UPDATABLE_COLS.has(k)) continue;
+            if (v === null || v === undefined || v === '') continue;
             updateFields.push(`${k} = $${pi++}`);
             updateValues.push(v);
           }
