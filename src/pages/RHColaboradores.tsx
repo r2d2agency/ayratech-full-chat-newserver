@@ -148,6 +148,29 @@ const EMPTY_FORM = {
   benefits: [] as { type: string; description: string; value: string; employer_cost: string }[],
 };
 
+function extractApiErrorMessage(error: any) {
+  return error?.message || error?.response?.error || error?.response?.details || "Erro ao salvar";
+}
+
+function buildCreateEmployeePayload(form: any) {
+  return {
+    full_name: form.full_name?.trim(),
+    cpf: form.cpf || undefined,
+    email: form.email || undefined,
+    phone: form.phone || undefined,
+    registration_number: form.registration_number || undefined,
+    worker_profile: form.worker_profile || "operacional",
+    employment_type: form.employment_type || "clt",
+    position: form.position || undefined,
+    department_id: form.department_id || undefined,
+    branch_id: form.branch_id || undefined,
+    admission_date: form.admission_date || undefined,
+    status: form.status || "ativo",
+    facial_required: form.facial_required,
+    punch_tolerance_minutes: form.punch_tolerance_minutes ?? undefined,
+  };
+}
+
 // ============ CPF Validation ============
 function validateCPF(cpf: string): boolean {
   const cleaned = cpf.replace(/\D/g, "");
@@ -202,6 +225,7 @@ export default function RHColaboradores() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<any>({ ...EMPTY_FORM });
   const [showSensitive, setShowSensitive] = useState(false);
+  const [showAdvancedTabs, setShowAdvancedTabs] = useState(false);
   const [cpfError, setCpfError] = useState("");
   const [cepLoading, setCepLoading] = useState(false);
   const [importExportOpen, setImportExportOpen] = useState(false);
@@ -303,7 +327,13 @@ export default function RHColaboradores() {
     }
   };
 
-  const openNew = () => { setForm({ ...EMPTY_FORM }); setEditId(null); setCpfError(""); setDialogOpen(true); };
+  const openNew = () => {
+    setForm({ ...EMPTY_FORM });
+    setEditId(null);
+    setShowAdvancedTabs(false);
+    setCpfError("");
+    setDialogOpen(true);
+  };
   const openEdit = (emp: any) => {
     setForm({
       ...emp,
@@ -315,6 +345,7 @@ export default function RHColaboradores() {
       benefits: emp.benefits || [],
     });
     setEditId(emp.id);
+    setShowAdvancedTabs(true);
     setCpfError("");
     setDialogOpen(true);
   };
@@ -327,12 +358,12 @@ export default function RHColaboradores() {
         await updateMut.mutateAsync({ id: editId, ...form });
         toast({ title: "Colaborador atualizado!" });
       } else {
-        await createMut.mutateAsync(form);
+        await createMut.mutateAsync(buildCreateEmployeePayload(form));
         toast({ title: "Colaborador cadastrado!" });
       }
       setDialogOpen(false);
-    } catch {
-      toast({ title: "Erro ao salvar", variant: "destructive" });
+    } catch (error: any) {
+      toast({ title: "Erro ao salvar", description: extractApiErrorMessage(error), variant: "destructive" });
     }
   };
 
@@ -527,19 +558,38 @@ export default function RHColaboradores() {
               </div>
             )}
           </DialogHeader>
+          {!editId && (
+            <div className="mt-2 rounded-lg border bg-muted/40 p-3 text-sm">
+              <p className="font-medium">Cadastro rapido</p>
+              <p className="text-muted-foreground">
+                Preencha so o basico para liberar o colaborador. Os dados de remuneracao, documentos e banco podem ser completados depois.
+              </p>
+            </div>
+          )}
           <Tabs defaultValue="pessoal">
-            <TabsList className="grid grid-cols-5 w-full">
+            <div className="flex items-center gap-2">
+              <TabsList className={`grid w-full ${editId || showAdvancedTabs ? "grid-cols-5" : "grid-cols-2"}`}>
               <TabsTrigger value="pessoal">Pessoal</TabsTrigger>
               <TabsTrigger value="profissional">Profissional</TabsTrigger>
-              <TabsTrigger value="remuneracao" className="gap-1"><DollarSign className="h-3 w-3" />Remuneração</TabsTrigger>
-              <TabsTrigger value="documentos">Documentos</TabsTrigger>
-              <TabsTrigger value="bancario">Bancário</TabsTrigger>
-            </TabsList>
+              {(editId || showAdvancedTabs) && (
+                <>
+                  <TabsTrigger value="remuneracao" className="gap-1"><DollarSign className="h-3 w-3" />Remuneração</TabsTrigger>
+                  <TabsTrigger value="documentos">Documentos</TabsTrigger>
+                  <TabsTrigger value="bancario">Bancário</TabsTrigger>
+                </>
+              )}
+              </TabsList>
+              {!editId && !showAdvancedTabs && (
+                <Button type="button" variant="outline" size="sm" onClick={() => setShowAdvancedTabs(true)}>
+                  Cadastro completo
+                </Button>
+              )}
+            </div>
 
             <TabsContent value="pessoal" className="space-y-3 mt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div><Label>Nome Completo *</Label><Input value={form.full_name} onChange={e => setField("full_name", e.target.value)} /></div>
-                <div><Label>Nome Social</Label><Input value={form.social_name} onChange={e => setField("social_name", e.target.value)} /></div>
+                {(editId || showAdvancedTabs) && <div><Label>Nome Social</Label><Input value={form.social_name} onChange={e => setField("social_name", e.target.value)} /></div>}
                 <div>
                   <Label>CPF</Label>
                   <Input
@@ -551,15 +601,17 @@ export default function RHColaboradores() {
                   />
                   {cpfError && <p className="text-xs text-destructive mt-1">{cpfError}</p>}
                 </div>
-                <div><Label>RG</Label><Input value={form.rg} onChange={e => setField("rg", e.target.value)} /></div>
-                <div>
-                  <Label>Data de Nascimento</Label>
-                  <Input type="date" value={form.birth_date} onChange={e => setField("birth_date", e.target.value)} />
-                  {form.birth_date && (
-                    <p className="text-xs text-muted-foreground mt-1">{calcAge(form.birth_date)}</p>
-                  )}
-                </div>
-                <div><Label>Gênero</Label>
+                {(editId || showAdvancedTabs) && <div><Label>RG</Label><Input value={form.rg} onChange={e => setField("rg", e.target.value)} /></div>}
+                {(editId || showAdvancedTabs) && (
+                  <div>
+                    <Label>Data de Nascimento</Label>
+                    <Input type="date" value={form.birth_date} onChange={e => setField("birth_date", e.target.value)} />
+                    {form.birth_date && (
+                      <p className="text-xs text-muted-foreground mt-1">{calcAge(form.birth_date)}</p>
+                    )}
+                  </div>
+                )}
+                {(editId || showAdvancedTabs) && <div><Label>Gênero</Label>
                   <Select value={form.gender} onValueChange={v => setField("gender", v)}>
                     <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
                     <SelectContent>
@@ -569,7 +621,7 @@ export default function RHColaboradores() {
                       <SelectItem value="nao_informar">Prefiro não informar</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
+                </div>}
                 <div><Label>E-mail</Label><Input type="email" value={form.email} onChange={e => setField("email", e.target.value)} /></div>
                 <div><Label>Telefone</Label><Input placeholder="(00) 00000-0000" value={form.phone} onChange={e => {
                   let v = e.target.value.replace(/\D/g, "").slice(0, 11);
@@ -580,33 +632,34 @@ export default function RHColaboradores() {
                 }} /></div>
               </div>
 
-              {/* Endereço com CEP auto-fill */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                  <Label>CEP</Label>
-                  <div className="relative">
-                    <Input
-                      value={form.zip_code}
-                      onChange={e => {
-                        const formatted = formatCEP(e.target.value);
-                        setField("zip_code", formatted);
-                        if (formatted.replace(/\D/g, "").length === 8) {
-                          lookupCEP(formatted);
-                        }
-                      }}
-                      placeholder="00000-000"
-                      maxLength={9}
-                    />
-                    {cepLoading && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
+              {(editId || showAdvancedTabs) && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <Label>CEP</Label>
+                    <div className="relative">
+                      <Input
+                        value={form.zip_code}
+                        onChange={e => {
+                          const formatted = formatCEP(e.target.value);
+                          setField("zip_code", formatted);
+                          if (formatted.replace(/\D/g, "").length === 8) {
+                            lookupCEP(formatted);
+                          }
+                        }}
+                        placeholder="00000-000"
+                        maxLength={9}
+                      />
+                      {cepLoading && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
+                    </div>
                   </div>
+                  <div className="md:col-span-2"><Label>Endereço</Label><Input value={form.address} onChange={e => setField("address", e.target.value)} /></div>
+                  <div><Label>Número</Label><Input value={form.address_number} onChange={e => setField("address_number", e.target.value)} /></div>
+                  <div><Label>Complemento</Label><Input value={form.complement} onChange={e => setField("complement", e.target.value)} /></div>
+                  <div><Label>Bairro</Label><Input value={form.neighborhood} onChange={e => setField("neighborhood", e.target.value)} /></div>
+                  <div><Label>Cidade</Label><Input value={form.city} onChange={e => setField("city", e.target.value)} /></div>
+                  <div><Label>Estado</Label><Input value={form.state} onChange={e => setField("state", e.target.value)} maxLength={2} /></div>
                 </div>
-                <div className="md:col-span-2"><Label>Endereço</Label><Input value={form.address} onChange={e => setField("address", e.target.value)} /></div>
-                <div><Label>Número</Label><Input value={form.address_number} onChange={e => setField("address_number", e.target.value)} /></div>
-                <div><Label>Complemento</Label><Input value={form.complement} onChange={e => setField("complement", e.target.value)} /></div>
-                <div><Label>Bairro</Label><Input value={form.neighborhood} onChange={e => setField("neighborhood", e.target.value)} /></div>
-                <div><Label>Cidade</Label><Input value={form.city} onChange={e => setField("city", e.target.value)} /></div>
-                <div><Label>Estado</Label><Input value={form.state} onChange={e => setField("state", e.target.value)} maxLength={2} /></div>
-              </div>
+              )}
             </TabsContent>
 
             <TabsContent value="profissional" className="space-y-3 mt-4">
@@ -763,85 +816,80 @@ export default function RHColaboradores() {
                 </div>
                 <div><Label>Salário Mensal (R$)</Label><Input type="number" value={form.salary} onChange={e => setField("salary", e.target.value)} /></div>
 
-                {/* ====== ESCALA VINCULADA ====== */}
-                <div className="col-span-2 space-y-2 p-4 rounded-lg border bg-primary/5">
-                  <Label className="text-sm font-semibold flex items-center gap-2"><Calendar className="h-4 w-4" /> Escala Vinculada (Ponto)</Label>
-                  <p className="text-xs text-muted-foreground">Define os horários usados pelo sistema de ponto. A jornada abaixo é apenas um demonstrativo/salarial.</p>
-                  <div className="flex gap-2 items-end">
-                    <div className="flex-1">
-                      <Select value={scheduleId || "__none__"} onValueChange={setScheduleId}>
-                        <SelectTrigger><SelectValue placeholder="Sem escala vinculada" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">Sem escala vinculada</SelectItem>
-                          {schedules.filter((s: any) => s.active).map((s: any) => (
-                            <SelectItem key={s.id} value={s.id}>
-                              {s.name} — {s.schedule_type} ({(s.entry_time || '').slice(0,5)}-{(s.exit_time || '').slice(0,5)})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      disabled={!editId || !scheduleId || scheduleId === "__none__" || scheduleId === currentSchedule?.schedule_id || assignScheduleMut.isPending}
-                      onClick={async () => {
-                        if (!editId) return;
-                        try {
-                          // Step 1: Link the schedule
-                          await assignScheduleMut.mutateAsync({ employee_id: editId, schedule_id: scheduleId });
-                          
-                          // Step 2: Sync work journey (Jornada) with the scale
-                          const updatedEmployee = await syncScheduleMut.mutateAsync({ id: editId, schedule_id: scheduleId });
-                          
-                          // Step 3: Update local form state
-                          if (updatedEmployee && updatedEmployee.work_schedule) {
-                            setForm((p: any) => ({
-                              ...p,
-                              work_schedule: parseSchedule(updatedEmployee.work_schedule)
-                            }));
-                          }
-                          
-                          toast({ title: "Escala vinculada e jornada sincronizada!" });
-                        } catch (err) {
-                          toast({ title: "Erro ao vincular e sincronizar", variant: "destructive" });
-                        }
-                      }}
-                    >
-                      Vincular e Sincronizar
-                    </Button>
-                  </div>
-                  {currentSchedule && (
-                    <p className="text-xs text-muted-foreground">
-                      Atual: <b>{currentSchedule.schedule_name}</b> — desde {String(currentSchedule.start_date || '').slice(0,10)}
-                    </p>
-                  )}
-                  {!editId && <p className="text-xs text-amber-600">Salve o colaborador antes de vincular uma escala.</p>}
-                </div>
-
-                {/* ====== JORNADA DE TRABALHO DETALHADA ====== */}
-                <div className="col-span-2 space-y-3 p-4 rounded-lg border bg-muted/30">
-                  <Label className="text-sm font-semibold flex items-center gap-2"><Calendar className="h-4 w-4" /> Jornada de Trabalho</Label>
-                  {(() => {
-                    const sched = form.work_schedule && typeof form.work_schedule === "object" ? form.work_schedule : parseSchedule(form.work_schedule);
-                    const updateSched = (patch: any) => setField("work_schedule", { ...sched, ...patch });
-                    const toggleDay = (day: string) => updateSched({ days: { ...sched.days, [day]: !sched.days[day] } });
-
-                    const stats = calcScheduleHours(sched);
-                    const hourlyRate = stats.monthlyHours > 0 && form.salary ? parseFloat(form.salary) / stats.monthlyHours : 0;
-
-                    return (
-                      <>
-                        {/* Individual Days Toggle */}
-                        <div className="flex items-center gap-2 mb-4">
-                          <Switch 
-                            checked={sched.useIndividualDays || false} 
-                            onCheckedChange={v => updateSched({ useIndividualDays: v })}
-                          />
-                          <Label className="text-xs cursor-pointer" onClick={() => updateSched({ useIndividualDays: !sched.useIndividualDays })}>
-                            Personalizar horários por dia da semana
-                          </Label>
+                {(editId || showAdvancedTabs) && (
+                  <>
+                    <div className="col-span-2 space-y-2 p-4 rounded-lg border bg-primary/5">
+                      <Label className="text-sm font-semibold flex items-center gap-2"><Calendar className="h-4 w-4" /> Escala Vinculada (Ponto)</Label>
+                      <p className="text-xs text-muted-foreground">Define os horários usados pelo sistema de ponto. A jornada abaixo é apenas um demonstrativo/salarial.</p>
+                      <div className="flex gap-2 items-end">
+                        <div className="flex-1">
+                          <Select value={scheduleId || "__none__"} onValueChange={setScheduleId}>
+                            <SelectTrigger><SelectValue placeholder="Sem escala vinculada" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">Sem escala vinculada</SelectItem>
+                              {schedules.filter((s: any) => s.active).map((s: any) => (
+                                <SelectItem key={s.id} value={s.id}>
+                                  {s.name} — {s.schedule_type} ({(s.entry_time || '').slice(0,5)}-{(s.exit_time || '').slice(0,5)})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={!editId || !scheduleId || scheduleId === "__none__" || scheduleId === currentSchedule?.schedule_id || assignScheduleMut.isPending}
+                          onClick={async () => {
+                            if (!editId) return;
+                            try {
+                              await assignScheduleMut.mutateAsync({ employee_id: editId, schedule_id: scheduleId });
+                              const updatedEmployee = await syncScheduleMut.mutateAsync({ id: editId, schedule_id: scheduleId });
+
+                              if (updatedEmployee && updatedEmployee.work_schedule) {
+                                setForm((p: any) => ({
+                                  ...p,
+                                  work_schedule: parseSchedule(updatedEmployee.work_schedule)
+                                }));
+                              }
+
+                              toast({ title: "Escala vinculada e jornada sincronizada!" });
+                            } catch (err) {
+                              toast({ title: "Erro ao vincular e sincronizar", variant: "destructive" });
+                            }
+                          }}
+                        >
+                          Vincular e Sincronizar
+                        </Button>
+                      </div>
+                      {currentSchedule && (
+                        <p className="text-xs text-muted-foreground">
+                          Atual: <b>{currentSchedule.schedule_name}</b> — desde {String(currentSchedule.start_date || '').slice(0,10)}
+                        </p>
+                      )}
+                      {!editId && <p className="text-xs text-amber-600">Salve o colaborador antes de vincular uma escala.</p>}
+                    </div>
+
+                    <div className="col-span-2 space-y-3 p-4 rounded-lg border bg-muted/30">
+                      <Label className="text-sm font-semibold flex items-center gap-2"><Calendar className="h-4 w-4" /> Jornada de Trabalho</Label>
+                      {(() => {
+                        const sched = form.work_schedule && typeof form.work_schedule === "object" ? form.work_schedule : parseSchedule(form.work_schedule);
+                        const updateSched = (patch: any) => setField("work_schedule", { ...sched, ...patch });
+                        const toggleDay = (day: string) => updateSched({ days: { ...sched.days, [day]: !sched.days[day] } });
+
+                        const stats = calcScheduleHours(sched);
+                        const hourlyRate = stats.monthlyHours > 0 && form.salary ? parseFloat(form.salary) / stats.monthlyHours : 0;
+
+                        return (
+                          <>
+                            <div className="flex items-center gap-2 mb-4">
+                              <Switch
+                                checked={sched.useIndividualDays || false}
+                                onCheckedChange={v => updateSched({ useIndividualDays: v })}
+                              />
+                              <Label className="text-xs cursor-pointer" onClick={() => updateSched({ useIndividualDays: !sched.useIndividualDays })}>
+                                Personalizar horários por dia da semana
+                              </Label>
+                            </div>
 
                         {/* Days of week toggles */}
                         <div className="flex flex-wrap gap-2">
@@ -917,10 +965,12 @@ export default function RHColaboradores() {
                             <p className="text-sm font-semibold text-primary">R$ {hourlyRate.toFixed(2)}</p>
                           </div>
                         </div>
-                      </>
-                    );
-                  })()}
-                </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </>
+                )}
 
                 <div><Label>Data de Admissão</Label><Input type="date" value={form.admission_date} onChange={e => setField("admission_date", e.target.value)} /></div>
                 <div><Label>Supervisor / Responsável</Label>
@@ -970,8 +1020,8 @@ export default function RHColaboradores() {
               </div>
             </TabsContent>
 
-            {/* ===== ABA REMUNERAÇÃO ===== */}
-            <TabsContent value="remuneracao" className="space-y-4 mt-4">
+            {(editId || showAdvancedTabs) && (
+              <TabsContent value="remuneracao" className="space-y-4 mt-4">
               {/* Composição Salarial */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -1139,9 +1189,11 @@ export default function RHColaboradores() {
                   </div>
                 </div>
               )}
-            </TabsContent>
+              </TabsContent>
+            )}
 
-            <TabsContent value="documentos" className="space-y-4 mt-4">
+            {(editId || showAdvancedTabs) && (
+              <TabsContent value="documentos" className="space-y-4 mt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div><Label>CTPS Número</Label><Input value={form.ctps_number} onChange={e => setField("ctps_number", e.target.value)} /></div>
                 <div><Label>PIS/PASEP</Label><Input value={form.pis_pasep} onChange={e => setField("pis_pasep", e.target.value)} /></div>
@@ -1165,9 +1217,11 @@ export default function RHColaboradores() {
                   </p>
                 )}
               </div>
-            </TabsContent>
+              </TabsContent>
+            )}
 
-            <TabsContent value="bancario" className="space-y-3 mt-4">
+            {(editId || showAdvancedTabs) && (
+              <TabsContent value="bancario" className="space-y-3 mt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div><Label>Banco</Label><Input value={form.bank_name} onChange={e => setField("bank_name", e.target.value)} /></div>
                 <div><Label>Agência</Label><Input value={form.bank_agency} onChange={e => setField("bank_agency", e.target.value)} /></div>
@@ -1208,7 +1262,8 @@ export default function RHColaboradores() {
                   </div>
                 </div>
               </div>
-            </TabsContent>
+              </TabsContent>
+            )}
           </Tabs>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>

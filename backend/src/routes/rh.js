@@ -325,6 +325,13 @@ function emptyToNull(value) {
   return value;
 }
 
+function parseOptionalInteger(value) {
+  const normalized = emptyToNull(value);
+  if (normalized === null) return null;
+  const parsed = Number.parseInt(String(normalized), 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function normalizeEmployeePayload(body = {}) {
   const workSchedule = body.work_schedule
     ? (typeof body.work_schedule === 'object' ? JSON.stringify(body.work_schedule) : String(body.work_schedule))
@@ -402,7 +409,7 @@ function normalizeEmployeePayload(body = {}) {
     benefits: Array.isArray(body.benefits) ? body.benefits : [],
     home_latitude: emptyToNull(body.home_latitude) ? Number(body.home_latitude) : null,
     home_longitude: emptyToNull(body.home_longitude) ? Number(body.home_longitude) : null,
-    punch_tolerance_minutes: body.punch_tolerance_minutes !== undefined ? parseInt(body.punch_tolerance_minutes) : null,
+    punch_tolerance_minutes: parseOptionalInteger(body.punch_tolerance_minutes),
   };
 }
 
