@@ -308,7 +308,18 @@ const EMPLOYEE_UPDATABLE_COLS = new Set([
   'status','photo_url','home_latitude','home_longitude','facial_required','punch_tolerance_minutes'
 ]);
 
+let EMPLOYEE_TABLE_COLS_CACHE = null;
+async function getEmployeeTableColumns() {
+  if (EMPLOYEE_TABLE_COLS_CACHE) return EMPLOYEE_TABLE_COLS_CACHE;
+  const res = await query(
+    `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees'`
+  );
+  EMPLOYEE_TABLE_COLS_CACHE = new Set(res.rows.map((r) => r.column_name));
+  return EMPLOYEE_TABLE_COLS_CACHE;
+}
+
 function emptyToNull(value) {
+
   if (value === undefined || value === null) return null;
   if (typeof value === 'string' && value.trim() === '') return null;
   return value;
