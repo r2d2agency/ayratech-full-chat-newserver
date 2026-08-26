@@ -153,22 +153,56 @@ function extractApiErrorMessage(error: any) {
 }
 
 function buildCreateEmployeePayload(form: any) {
-  return {
+  const payload = {
     full_name: form.full_name?.trim(),
+    social_name: form.social_name || undefined,
     cpf: form.cpf || undefined,
+    rg: form.rg || undefined,
+    birth_date: form.birth_date || undefined,
+    gender: form.gender || undefined,
     email: form.email || undefined,
     phone: form.phone || undefined,
+    address: form.address || undefined,
+    address_number: form.address_number || undefined,
+    complement: form.complement || undefined,
+    neighborhood: form.neighborhood || undefined,
+    city: form.city || undefined,
+    state: form.state || undefined,
+    zip_code: form.zip_code || undefined,
     registration_number: form.registration_number || undefined,
     worker_profile: form.worker_profile || "operacional",
     employment_type: form.employment_type || "clt",
     position: form.position || undefined,
+    salary: form.salary || undefined,
     department_id: form.department_id || undefined,
     branch_id: form.branch_id || undefined,
+    direct_manager_id: form.direct_manager_id || undefined,
     admission_date: form.admission_date || undefined,
+    work_schedule: form.work_schedule,
+    bank_name: form.bank_name || undefined,
+    bank_agency: form.bank_agency || undefined,
+    bank_account: form.bank_account || undefined,
+    bank_account_type: form.bank_account_type || undefined,
+    pix_key: form.pix_key || undefined,
+    pix_key_type: form.pix_key_type || undefined,
+    ctps_number: form.ctps_number || undefined,
+    pis_pasep: form.pis_pasep || undefined,
+    cnpj: form.cnpj || undefined,
+    company_name: form.company_name || undefined,
     status: form.status || "ativo",
     facial_required: form.facial_required,
     punch_tolerance_minutes: form.punch_tolerance_minutes ?? undefined,
+    salary_items: Array.isArray(form.salary_items) ? form.salary_items : [],
+    benefits: Array.isArray(form.benefits) ? form.benefits : [],
   };
+
+  Object.keys(payload).forEach((key) => {
+    if (payload[key] === undefined) {
+      delete payload[key];
+    }
+  });
+
+  return payload;
 }
 
 // ============ CPF Validation ============
