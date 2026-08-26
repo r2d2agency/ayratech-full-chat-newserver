@@ -2547,13 +2547,15 @@ router.get('/facial-recognition/employees', async (req, res) => {
   try {
     await ensureFacialRecognitionInfra();
     await ensureFaceEnrollColumn();
+    await ensureEmployeeExtraColumns();
     const orgId = req.query.org_id || await getUserOrgId(req.userId);
     if (!orgId) return res.json([]);
 
     const { filter } = req.query; // 'all' | 'enrolled' | 'pending'
     let sql = `SELECT e.id, e.full_name, e.photo_url, e.cpf, e.position, e.status,
                       e.face_descriptor IS NOT NULL as face_enrolled,
-                      e.face_photo_url, e.face_enrolled_at
+                      e.face_photo_url, e.face_enrolled_at,
+                      COALESCE(e.facial_required, true) as facial_verification_enabled
                FROM employees e
                WHERE e.organization_id = $1 AND ${ACTIVE_EMPLOYEE_STATUS_SQL}`;
 
@@ -2622,6 +2624,41 @@ router.delete('/facial-recognition/enroll/:employeeId', async (req, res) => {
   } catch (err) {
     logError('rh.facial.remove', err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Toggle per-employee facial verification override
+router.put('/facial-recognition/toggle-verification/:employeeId', async (req, res) => {
+  try {
+    await ensureEmployeeExtraColumns();
+    const orgId = req.body.organization_id || await getUserOrgId(req.userId);
+    if (!orgId) return res.status(400).json({ error: 'Organização não encontrada' });
+
+    const { employeeId } = req.params;
+    const enabled = req.body?.enabled !== false;
+
+    const result = await query(
+      `UPDATE employees
+          SET facial_required = $1,
+              updated_at = NOW()
+        WHERE id = $2
+          AND organization_id = $3
+        RETURNING id, full_name, facial_required`,
+      [enabled, employeeId, orgId]
+    );
+
+    if (!result.rows[0]) {
+      return res.status(404).json({ error: 'Colaborador não encontrado' });
+    }
+
+    res.json({
+      success: true,
+      employee: result.rows[0],
+      facial_verification_enabled: enabled,
+    });
+  } catch (err) {
+    logError('rh.facial.toggle-verification', err, { employee_id: req.params.employeeId, body: req.body });
+    res.status(500).json({ error: err.message || 'Erro ao atualizar verificação facial' });
   }
 });
 
