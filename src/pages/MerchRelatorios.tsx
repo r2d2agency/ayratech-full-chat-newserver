@@ -20,13 +20,15 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useBrands } from "@/hooks/use-merchandising";
 import { useEmployees } from "@/hooks/use-rh";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import {
   useMerchDashboard, useMerchReportPDV, useMerchReportBrand,
   useMerchReportPromoter, useMerchReportProduct, useMerchReportCategory,
   useMerchRoutesTimeline, useMerchRankingIssues, useMerchAnalytical,
+  useMerchInactivityReport, useMerchInactivityConfig,
 } from "@/hooks/use-merch-analytics";
+import { useToast } from "@/hooks/use-toast";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell,
 } from "recharts";
@@ -34,6 +36,7 @@ import {
   BarChart3, Store, Building2, Package, User, Layers, Route, AlertTriangle,
   TrendingUp, TrendingDown, Camera, DollarSign, ShoppingCart, Clock, Target,
   Download, FileSpreadsheet, Sparkles, Filter, Calendar, FileText, CheckCircle2, XCircle, CalendarClock,
+  Settings, TimerReset,
 } from "lucide-react";
 import { AiAnalysisChat } from "@/components/merch/AiAnalysisChat";
 import { format, subDays, startOfWeek, startOfMonth } from "date-fns";
@@ -72,6 +75,7 @@ async function fetchTabData(tab: string, filters: any): Promise<any[]> {
     produto: `/api/merch-analytics/report/product?${qs}`,
     categoria: `/api/merch-analytics/report/category?${qs}`,
     avarias: `/api/merch-analytics/report/stockouts?${qs}`,
+    inatividade: `/api/merch-analytics/inactivity/report?${qs}`,
     analitico: `/api/merch-analytics/analytical?${qs}`,
   };
   const url = endpointMap[tab] || endpointMap.pdv;
@@ -82,7 +86,7 @@ async function fetchTabData(tab: string, filters: any): Promise<any[]> {
 function tabLabel(tab: string): string {
   const map: Record<string, string> = {
     dashboard: 'Dashboard', pdv: 'PDVs', marca: 'Marcas', promotor: 'Promotores',
-    produto: 'Produtos', categoria: 'Categorias', avarias: 'Rupturas/Avarias', analitico: 'Analítico',
+    produto: 'Produtos', categoria: 'Categorias', avarias: 'Rupturas/Avarias', inatividade: 'Inatividade', analitico: 'Analítico',
   };
   return map[tab] || tab;
 }
@@ -123,6 +127,12 @@ const COLUMN_LABELS: Record<string, Record<string, string>> = {
     visit_date: 'Data', pdv_name: 'PDV', brand_name: 'Marca', promoter_name: 'Promotor',
     product_name: 'Produto', sku: 'SKU', type: 'Tipo', qty_store: 'Qtd. Loja',
     qty_stock: 'Qtd. Depósito', total: 'Total', reason: 'Motivo',
+  },
+  inatividade: {
+    visit_date: 'Data', promoter_name: 'Promotor', pdv_name: 'PDV', brand_name: 'Marca',
+    checkin_at: 'Check-in', last_photo_at: 'Última Foto', inactivity_minutes: 'Min. Inativo',
+    minutes_since_checkin: 'Min. Desde Check-in', has_photo_after_checkin: 'Tem Foto', severity: 'Severidade',
+    is_alert: 'Em Alerta',
   },
 };
 
@@ -401,6 +411,7 @@ function ExportDialog({ open, onOpenChange, tab, filters }: { open: boolean; onO
 export default function MerchRelatorios() {
   const [tab, setTab] = useState('dashboard');
   const [aiOpen, setAiOpen] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
   const [period, setPeriod] = useState('month');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -409,10 +420,14 @@ export default function MerchRelatorios() {
   const [promoterFilter, setPromoterFilter] = useState('');
   const [groupPdv, setGroupPdv] = useState(true);
   const [exportOpen, setExportOpen] = useState(false);
+  const [configForm, setConfigForm] = useState({ enabled: true, threshold_minutes: 20 });
 
+  const { toast } = useToast();
+  const qc = useQueryClient();
   const { data: brands = [] } = useBrands();
   const { data: employees = [] } = useEmployees();
   const { data: pdvs = [] } = useQuery({ queryKey: ['rh-pdvs-list'], queryFn: () => api<any[]>('/api/promotor/rh/pdvs') });
+  const { data: inactivityConfig } = useMerchInactivityConfig();
 
   const dateRange = useMemo(() => {
     if (period === 'custom' && dateFrom && dateTo) return { from: dateFrom, to: dateTo };
@@ -428,6 +443,37 @@ export default function MerchRelatorios() {
     group_pdv: tab === 'produto' && groupPdv ? '1' : undefined,
   }), [dateRange, brandFilter, pdvFilter, promoterFilter, tab, groupPdv]);
 
+  useEffect(() => {
+    if (inactivityConfig) {
+      setConfigForm({
+        enabled: inactivityConfig.enabled !== false,
+        threshold_minutes: Number(inactivityConfig.threshold_minutes || 20),
+      });
+    }
+  }, [inactivityConfig]);
+
+  async function saveInactivityConfig() {
+    try {
+      const payload = {
+        enabled: configForm.enabled,
+        threshold_minutes: Math.max(1, Number(configForm.threshold_minutes) || 20),
+      };
+      await api('/api/merch-analytics/inactivity/config', { method: 'PUT', body: payload });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['merch-analytics-inactivity-config'] }),
+        qc.invalidateQueries({ queryKey: ['merch-analytics-inactivity-report'] }),
+      ]);
+      toast({ title: 'Configuração de inatividade salva' });
+      setConfigOpen(false);
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao salvar configuração',
+        description: error?.message || 'Não foi possível salvar o timer de inatividade.',
+        variant: 'destructive',
+      });
+    }
+  }
+
   return (
     <MainLayout>
       <div className="space-y-4">
@@ -437,6 +483,9 @@ export default function MerchRelatorios() {
             Relatórios Inteligentes
           </h1>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setConfigOpen(true)}>
+              <Settings className="h-4 w-4 mr-1" />Configurar Inatividade
+            </Button>
             <Button variant="outline" size="sm" onClick={() => window.location.href = '/merch/relatorios/programacao'}>
               <Calendar className="h-4 w-4 mr-1" />Programar envios / Personalizar PDF
             </Button>
@@ -517,6 +566,7 @@ export default function MerchRelatorios() {
             <TabsTrigger value="promotor"><User className="h-4 w-4 mr-1" />Promotor</TabsTrigger>
             <TabsTrigger value="produto"><Package className="h-4 w-4 mr-1" />Produto</TabsTrigger>
             <TabsTrigger value="categoria"><Layers className="h-4 w-4 mr-1" />Categoria</TabsTrigger>
+            <TabsTrigger value="inatividade"><TimerReset className="h-4 w-4 mr-1" />Inatividade</TabsTrigger>
             <TabsTrigger value="avarias"><AlertTriangle className="h-4 w-4 mr-1" />Avarias/Rupturas</TabsTrigger>
           </TabsList>
 
@@ -529,9 +579,49 @@ export default function MerchRelatorios() {
             <ProdutoTab filters={filters} groupPdv={groupPdv} onGroupPdvChange={setGroupPdv} />
           </TabsContent>
           <TabsContent value="categoria"><CategoriaTab filters={filters} /></TabsContent>
+          <TabsContent value="inatividade"><InatividadeTab filters={filters} onOpenConfig={() => setConfigOpen(true)} /></TabsContent>
           <TabsContent value="avarias"><AvariasTab filters={filters} /></TabsContent>
         </Tabs>
       </div>
+      <Dialog open={configOpen} onOpenChange={setConfigOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Configuração de Inatividade</DialogTitle>
+            <DialogDescription>
+              Define em quantos minutos sem foto após o check-in a rota entra em alerta.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <p className="text-sm font-medium">Alertas ativos</p>
+                <p className="text-xs text-muted-foreground">Desative se quiser acompanhar sem gerar alerta operacional.</p>
+              </div>
+              <Switch
+                checked={configForm.enabled}
+                onCheckedChange={(value) => setConfigForm((prev) => ({ ...prev, enabled: value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Minutos para considerar inatividade</Label>
+              <Input
+                type="number"
+                min={1}
+                max={720}
+                value={configForm.threshold_minutes}
+                onChange={(e) => setConfigForm((prev) => ({ ...prev, threshold_minutes: Number(e.target.value) || 1 }))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Exemplo: `20` significa que, após 20 minutos sem nova foto, a rota entra em alerta.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfigOpen(false)}>Cancelar</Button>
+            <Button onClick={saveInactivityConfig}>Salvar configuração</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <ExportDialog open={exportOpen} onOpenChange={setExportOpen} tab={tab} filters={filters} />
       <AiAnalysisChat open={aiOpen} onOpenChange={setAiOpen} filters={filters} />
     </MainLayout>
@@ -977,6 +1067,137 @@ function CategoriaTab({ filters }: { filters: any }) {
                 </TableRow>
               ))}
               {rows.length === 0 && <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Sem dados</TableCell></TableRow>}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ===== Inatividade Tab =====
+function InatividadeTab({ filters, onOpenConfig }: { filters: any; onOpenConfig: () => void }) {
+  const { data, isLoading } = useMerchInactivityReport(filters);
+  const summary = data?.summary || {};
+  const rows = data?.rows || [];
+  const config = data?.config || { enabled: true, threshold_minutes: 20 };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <KPICard
+          title="Rotas Monitoradas"
+          value={summary.monitored_routes || 0}
+          icon={Route}
+          subtitle="Check-in aberto no momento"
+        />
+        <KPICard
+          title="Rotas em Alerta"
+          value={summary.alert_routes || 0}
+          icon={AlertTriangle}
+          subtitle={config.enabled ? "Acima do limite configurado" : "Alertas desativados"}
+          color="destructive"
+        />
+        <KPICard
+          title="Timer Configurado"
+          value={`${summary.threshold_minutes || config.threshold_minutes || 20} min`}
+          icon={TimerReset}
+          subtitle="Tempo sem foto para alertar"
+        />
+        <KPICard
+          title="Maior Inatividade"
+          value={`${summary.max_inactivity_minutes || 0} min`}
+          icon={Clock}
+          subtitle={`Média atual ${summary.avg_inactivity_minutes || 0} min`}
+        />
+      </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-sm">Relatório de Inatividade em Campo</CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">
+                Após o check-in, o sistema mede o tempo desde a última foto registrada na rota.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant={config.enabled ? "default" : "secondary"}>
+                {config.enabled ? "Monitoramento ativo" : "Alertas desativados"}
+              </Badge>
+              <Button variant="outline" size="sm" onClick={onOpenConfig}>
+                <Settings className="h-4 w-4 mr-1" />Configurar Timer
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Promotor</TableHead>
+                <TableHead>PDV</TableHead>
+                <TableHead>Marca</TableHead>
+                <TableHead className="text-center">Check-in</TableHead>
+                <TableHead className="text-center">Última Foto</TableHead>
+                <TableHead className="text-center">Inatividade</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((row: any) => {
+                const statusLabel = !config.enabled
+                  ? 'Monitorando'
+                  : row.is_alert
+                    ? (row.severity === 'critical' ? 'Crítico' : 'Em alerta')
+                    : 'Dentro do limite';
+                const badgeVariant = !config.enabled
+                  ? 'secondary'
+                  : row.is_alert
+                    ? 'destructive'
+                    : 'outline';
+
+                return (
+                  <TableRow key={row.route_id}>
+                    <TableCell className="font-medium">{row.promoter_name || 'Sem promotor'}</TableCell>
+                    <TableCell>
+                      <div>
+                        <div>{row.pdv_name || 'Sem PDV'}</div>
+                        {(row.pdv_city || row.pdv_state) && (
+                          <div className="text-xs text-muted-foreground">{[row.pdv_city, row.pdv_state].filter(Boolean).join(' / ')}</div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>{row.brand_name || 'Sem marca'}</TableCell>
+                    <TableCell className="text-center">
+                      {row.checkin_at ? new Date(row.checkin_at).toLocaleString('pt-BR') : '—'}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {row.last_photo_at ? new Date(row.last_photo_at).toLocaleString('pt-BR') : (
+                        <span className="text-muted-foreground">Sem foto</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center font-semibold">{row.inactivity_minutes || 0} min</TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant={badgeVariant as any}>{statusLabel}</Badge>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {!isLoading && rows.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    Nenhuma rota com check-in aberto encontrada para os filtros selecionados.
+                  </TableCell>
+                </TableRow>
+              )}
+              {isLoading && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    Carregando relatório de inatividade...
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

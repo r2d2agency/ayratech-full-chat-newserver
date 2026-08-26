@@ -82,6 +82,21 @@ export function useMerchAlerts() {
   });
 }
 
+export function useMerchInactivityReport(filters?: DashboardFilters) {
+  const qs = buildQS(filters);
+  return useQuery({
+    queryKey: ['merch-analytics-inactivity-report', qs],
+    queryFn: () => api<{ summary: any; rows: any[]; config: any }>(`/api/merch-analytics/inactivity/report${qs}`),
+  });
+}
+
+export function useMerchInactivityConfig() {
+  return useQuery({
+    queryKey: ['merch-analytics-inactivity-config'],
+    queryFn: () => api<any>(`/api/merch-analytics/inactivity/config`),
+  });
+}
+
 export function useMerchAnalytical(filters?: DashboardFilters) {
   const qs = buildQS(filters);
   return useQuery({

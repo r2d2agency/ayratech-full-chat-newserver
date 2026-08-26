@@ -43,6 +43,43 @@ async function ensureTables() {
   )`);
 }
 
+async function ensureOrganizationSettingsTable() {
+  await query(`CREATE TABLE IF NOT EXISTS organization_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL,
+    setting_key TEXT NOT NULL,
+    config JSONB DEFAULT '{}',
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(organization_id, setting_key)
+  )`);
+}
+
+function normalizePositiveInt(value, fallback) {
+  const parsed = parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+async function getInactivityConfig(orgId) {
+  const defaults = {
+    enabled: true,
+    threshold_minutes: 20,
+  };
+
+  if (!orgId) return defaults;
+
+  await ensureOrganizationSettingsTable();
+  const result = await query(
+    `SELECT config FROM organization_settings WHERE organization_id = $1 AND setting_key = 'merch_inactivity_config'`,
+    [orgId]
+  );
+
+  const stored = result.rows[0]?.config || {};
+  return {
+    enabled: stored.enabled !== false,
+    threshold_minutes: normalizePositiveInt(stored.threshold_minutes, defaults.threshold_minutes),
+  };
+}
+
 // Helper: build date filter
 function buildDateFilter(params, paramIdx, dateFrom, dateTo, dateCol = 'r.visit_date') {
   let sql = '';
@@ -689,6 +726,148 @@ router.get('/alerts', authenticate, async (req, res) => {
     )).rows;
     res.json(rows);
   } catch (err) { logError('merch-analytics.alerts', err); res.status(500).json({ error: 'Erro' }); }
+});
+
+router.get('/inactivity/config', authenticate, async (req, res) => {
+  try {
+    const orgInfo = await getOrgInfo(req.userId);
+    const orgId = orgInfo?.organization_id;
+    if (!orgId) return res.status(403).json({ error: 'Sem organização' });
+
+    const config = await getInactivityConfig(orgId);
+    res.json(config);
+  } catch (err) {
+    logError('merch-analytics.inactivity-config.get', err);
+    res.status(500).json({ error: 'Erro ao carregar configuração de inatividade' });
+  }
+});
+
+router.put('/inactivity/config', authenticate, async (req, res) => {
+  try {
+    const orgInfo = await getOrgInfo(req.userId);
+    const orgId = orgInfo?.organization_id;
+    if (!orgId) return res.status(403).json({ error: 'Sem organização' });
+
+    const payload = {
+      enabled: req.body?.enabled !== false,
+      threshold_minutes: Math.min(720, Math.max(1, normalizePositiveInt(req.body?.threshold_minutes, 20))),
+    };
+
+    await ensureOrganizationSettingsTable();
+    await query(
+      `INSERT INTO organization_settings (organization_id, setting_key, config, updated_at)
+       VALUES ($1, 'merch_inactivity_config', $2, NOW())
+       ON CONFLICT (organization_id, setting_key) DO UPDATE
+       SET config = $2, updated_at = NOW()`,
+      [orgId, JSON.stringify(payload)]
+    );
+
+    res.json({ success: true, config: payload });
+  } catch (err) {
+    logError('merch-analytics.inactivity-config.put', err);
+    res.status(500).json({ error: 'Erro ao salvar configuração de inatividade' });
+  }
+});
+
+router.get('/inactivity/report', authenticate, async (req, res) => {
+  try {
+    const orgInfo = await getOrgInfo(req.userId);
+    const orgId = orgInfo?.organization_id;
+    if (!orgId) return res.status(403).json({ error: 'Sem organização' });
+
+    let { brand_id } = req.query;
+    if (orgInfo.brand_id) brand_id = orgInfo.brand_id;
+
+    const config = await getInactivityConfig(orgId);
+    const params = [orgId];
+    const { filters } = buildRouteFiltersFromQuery({ ...req.query, brand_id }, params, 2);
+
+    const rows = (await query(`
+      WITH active_routes AS (
+        SELECT
+          r.id AS route_id,
+          r.visit_date,
+          r.status,
+          r.checkin_at,
+          r.checkout_at,
+          r.completed_at,
+          r.promoter_id,
+          r.pdv_id,
+          r.brand_id,
+          COALESCE(p.name, '') AS pdv_name,
+          COALESCE(p.city, '') AS pdv_city,
+          COALESCE(p.state, '') AS pdv_state,
+          COALESCE(e.full_name, '') AS promoter_name,
+          COALESCE(b.name, '') AS brand_name
+        FROM merch_routes r
+        LEFT JOIN pdvs p ON p.id = r.pdv_id
+        LEFT JOIN employees e ON e.id = r.promoter_id
+        LEFT JOIN merch_brands b ON b.id = r.brand_id
+        WHERE r.organization_id = $1
+          AND r.checkin_at IS NOT NULL
+          AND r.checkout_at IS NULL
+          AND r.completed_at IS NULL
+          AND r.status = 'in_progress'
+          ${filters}
+      )
+      SELECT
+        ar.*,
+        last_photo.last_photo_at,
+        ROUND(EXTRACT(EPOCH FROM (NOW() - COALESCE(last_photo.last_photo_at, ar.checkin_at))) / 60.0)::int AS inactivity_minutes,
+        ROUND(EXTRACT(EPOCH FROM (NOW() - ar.checkin_at)) / 60.0)::int AS minutes_since_checkin
+      FROM active_routes ar
+      LEFT JOIN LATERAL (
+        SELECT MAX(COALESCE(rp.captured_at, rp.created_at)) AS last_photo_at
+        FROM route_photos rp
+        WHERE rp.route_id = ar.route_id
+          AND rp.photo_url IS NOT NULL
+          AND rp.photo_url NOT LIKE 'blob:%'
+          AND rp.photo_url NOT LIKE 'local-file:%'
+          AND COALESCE(rp.captured_at, rp.created_at) >= ar.checkin_at
+      ) last_photo ON TRUE
+      ORDER BY inactivity_minutes DESC, ar.checkin_at ASC
+    `, params)).rows;
+
+    const threshold = config.threshold_minutes;
+    const normalizedRows = rows.map((row) => {
+      const inactivityMinutes = parseInt(row.inactivity_minutes, 10) || 0;
+      const minutesSinceCheckin = parseInt(row.minutes_since_checkin, 10) || 0;
+      const isAlert = config.enabled && inactivityMinutes >= threshold;
+      const severity = !config.enabled
+        ? 'disabled'
+        : inactivityMinutes >= threshold * 2
+          ? 'critical'
+          : inactivityMinutes >= threshold
+            ? 'high'
+            : 'normal';
+
+      return {
+        ...row,
+        inactivity_minutes: inactivityMinutes,
+        minutes_since_checkin: minutesSinceCheckin,
+        is_alert: isAlert,
+        severity,
+        has_photo_after_checkin: Boolean(row.last_photo_at),
+      };
+    });
+
+    const alertRows = normalizedRows.filter((row) => row.is_alert);
+    const summary = {
+      monitored_routes: normalizedRows.length,
+      alert_routes: alertRows.length,
+      threshold_minutes: threshold,
+      enabled: config.enabled,
+      max_inactivity_minutes: normalizedRows.length ? Math.max(...normalizedRows.map((row) => row.inactivity_minutes || 0)) : 0,
+      avg_inactivity_minutes: normalizedRows.length
+        ? Math.round(normalizedRows.reduce((sum, row) => sum + (row.inactivity_minutes || 0), 0) / normalizedRows.length)
+        : 0,
+    };
+
+    res.json({ summary, rows: normalizedRows, config });
+  } catch (err) {
+    logError('merch-analytics.inactivity-report', err);
+    res.status(500).json({ error: 'Erro ao gerar relatório de inatividade' });
+  }
 });
 
 // ===== Analytical Report (same content as PDF) =====
