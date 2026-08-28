@@ -1351,7 +1351,7 @@ export default function PromotorRota() {
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      {hasBeforeUnlock && !isExtraGroup && (
+                      {!isExtraGroup && (
                         <Button
                           size="sm"
                           variant="ghost"
