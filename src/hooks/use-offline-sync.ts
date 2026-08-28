@@ -287,6 +287,73 @@ export function useOfflineSync() {
         setSyncProgress(p => ({ ...p, done: p.done + 1 }));
         logger.info('[OfflineSync] Chamada API concluída', { url: call.url });
       } catch (err: any) {
+        const status = (err as any)?.status;
+        const response = (err as any)?.response || {};
+        const errorCode = response?.error_code || response?.code || (typeof response?.error === 'string' ? null : null);
+        const details = response?.details || {};
+        const isGeoError =
+          response?.error === 'outside_geofence' ||
+          errorCode === 'GEO_OUT_OF_RANGE' ||
+          (typeof err?.message === 'string' && (
+            err.message.includes('fora da área permitida') ||
+            err.message.includes('GEO_OUT_OF_RANGE') ||
+            err.message.includes('outside_geofence')
+          ));
+
+        if (isGeoError && (call.url.includes('/promotor/routes/') && call.url.endsWith('/checkin'))) {
+          const placeType = details.place_type === 'sede' ? 'Sede' : (details.place_name || 'PDV');
+          const modeLabel = details.mode === 'polygon'
+            ? 'polígono geográfico (perímetro)'
+            : (details.radius_meters != null ? `raio de ${Number(details.radius_meters)} m` : 'raio de alcance');
+          const distText = details.distance_meters != null
+            ? ` — você está a ~${details.distance_meters >= 1000
+                ? `${(details.distance_meters/1000).toFixed(1).replace('.',',')} km`
+                : `${details.distance_meters} m`} do local`
+            : '';
+          const fullMsg = `${response?.message || `Você precisa estar no ${placeType} para fazer check-in.`}${distText}`;
+          try {
+            const { toast } = await import('sonner');
+            toast.error('📍 Fora da área permitida', { description: fullMsg, richColors: true, duration: 10000 });
+            toast.error(`Área permitida: ${placeType}`, {
+              description: `Verificação: ${modeLabel}. Aproxime-se do local para habilitar o check-in.`,
+              richColors: true,
+              duration: 10000,
+            });
+          } catch {}
+          await db.pending_api_calls.delete(call.id!);
+          setSyncProgress(p => ({ ...p, failed: p.failed + 1 }));
+          continue;
+        }
+
+        if (isGeoError && call.url.endsWith('/api/promotor/punch')) {
+          const placeType = details.place_type === 'sede' ? 'Sede cadastrada' : (details.place_name
+            ? `PDV (${details.place_name})`
+            : 'PDV ou Sede selecionada');
+          const modeLabel = details.mode === 'polygon'
+            ? 'polígono geográfico (perímetro)'
+            : (details.radius_meters != null ? `raio de ${Number(details.radius_meters)} m` : 'raio de alcance');
+          const distText = details.distance_meters != null
+            ? ` — você está a ~${details.distance_meters >= 1000
+                ? `${(details.distance_meters/1000).toFixed(1).replace('.',',')} km`
+                : `${details.distance_meters} m`} do local`
+            : '';
+          const fullMsg = `${response?.message || `Você precisa estar no ${placeType} dentro da área permitida para bater o ponto.`}${distText}`;
+          try {
+            const { toast } = await import('sonner');
+            toast.error('📍 Fora da área permitida', { description: fullMsg, richColors: true, duration: 11000 });
+            toast.error(`Área permitida: ${placeType}`, {
+              description: details.mode_hint
+                ? `${details.mode_hint} Aproxime-se para registrar.`
+                : `Verificação: ${modeLabel}. Aproxime-se do local para habilitar o registro.${details.accept_justification ? ' Caso esteja impossibilitado, envie justificativa.' : ''}`,
+              richColors: true,
+              duration: 11000,
+            });
+          } catch {}
+          await db.pending_api_calls.delete(call.id!);
+          setSyncProgress(p => ({ ...p, failed: p.failed + 1 }));
+          continue;
+        }
+
         logger.error('[OfflineSync] Erro na chamada API', { id: call.id, error: err.message, url: call.url });
         await db.pending_api_calls.update(call.id!, { status: 'failed', error: err.message });
         setSyncProgress(p => ({ ...p, failed: p.failed + 1 }));

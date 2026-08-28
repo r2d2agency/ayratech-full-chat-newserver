@@ -18,7 +18,7 @@ import { PromotorLayout } from "./PromotorLayout";
 import {
   Clock, FileText, Bell, MapPin, Wifi, WifiOff, Navigation, AlertTriangle, CheckCircle2,
   Loader2, ShieldAlert, Timer, ChevronRight, PlayCircle, Package, Store, ScanFace,
-  Download, Check, QrCode, Camera
+  Download, Check, QrCode, Camera, X
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -152,6 +152,8 @@ export default function PromotorHome() {
   const [qrLoading, setQrLoading] = useState(false);
   const [isPreloading, setIsPreloading] = useState(false);
   const [preloadProgress, setPreloadProgress] = useState(0);
+  const [punchGeoError, setPunchGeoError] = useState<{ title: string; message: string; details: any } | null>(null);
+  const [pdvCheckinGeoError, setPdvCheckinGeoError] = useState<{ title: string; message: string; details: any } | null>(null);
   const pdvCheckinRunningRef = useRef(false);
   const queryClient = useQueryClient();
 
@@ -235,6 +237,7 @@ export default function PromotorHome() {
     }
     pdvCheckinRunningRef.current = true;
     setPdvCheckinLoading(true);
+    setPdvCheckinGeoError(null);
     try {
       logger.info('[handlePdvCheckin] Iniciando check-in da loja', { pdvId });
       
@@ -325,6 +328,37 @@ export default function PromotorHome() {
 
       if (!response.ok) {
         logger.warn('[handlePdvCheckin] API retornou erro', { result, pdvId, status: response.status });
+        const errorCode = result?.error_code || result?.error || '';
+        const details = result?.details || {};
+        if (result?.error === 'outside_geofence' || errorCode === 'GEO_OUT_OF_RANGE') {
+          const placeType = details.place_type === 'sede' ? 'Sede' : (details.place_name || 'PDV');
+          const modeLabel = details.mode === 'polygon' ? 'polígono geográfico (perímetro)' : `raio de ${details.radius_meters != null ? `${Number(details.radius_meters)} m` : 'alcance'}`;
+          const distText = details.distance_meters != null
+            ? ` — você está a ~${details.distance_meters >= 1000
+                ? `${(details.distance_meters/1000).toFixed(1).replace('.',',')} km`
+                : `${details.distance_meters} m`} do local`
+            : '';
+          const fullMsg = `${result?.message || `Você precisa estar no ${placeType} para fazer check-in.`}${distText}`;
+          const hintMsg = details.mode_hint
+            ? `${details.mode_hint} Aproxime-se para concluir o check-in.`
+            : `Verificação: ${modeLabel}. Aproxime-se do local para habilitar o check-in.${details.accept_justification ? ' Caso esteja impossibilitado, envie uma justificativa.' : ''}`;
+          setPdvCheckinGeoError({ title: '📍 Fora da área permitida', message: fullMsg, details: { ...details, hint: hintMsg, placeType } });
+          toast({
+            title: `📍 Fora da área permitida`,
+            description: fullMsg,
+            variant: 'destructive',
+            duration: 9000,
+          });
+          toast({
+            title: `Área permitida: ${placeType}`,
+            description: hintMsg,
+            variant: 'destructive',
+            duration: 9000,
+          });
+          const explicit = new Error(fullMsg);
+          (explicit as any)._geoHandled = true;
+          throw explicit;
+        }
         throw new Error(result?.error || result?.message || 'Erro ao realizar check-in');
       }
 
@@ -343,16 +377,18 @@ export default function PromotorHome() {
       
     } catch (err: any) {
       logger.error('[handlePdvCheckin] Erro fatal no check-in', { message: err.message, pdvId }, err);
-      toast({ 
-        title: 'Erro no check-in', 
-        description: err.message || 'Erro desconhecido', 
-        variant: 'destructive' 
-      });
+      if (!err?._geoHandled) {
+        toast({ 
+          title: 'Erro no check-in', 
+          description: err.message || 'Erro desconhecido', 
+          variant: 'destructive' 
+        });
+      }
     } finally {
       setPdvCheckinLoading(false);
       pdvCheckinRunningRef.current = false;
     }
-  }, [pdvCheckinPhoto, todayRoutes, navigate, toast, isOnline, queueApiCall, queryClient]);
+  }, [pdvCheckinPhoto, todayRoutes, navigate, toast, isOnline, queueApiCall, queryClient, setPdvCheckinGeoError]);
 
   const handlePdvCheckout = useCallback(async (pdvId: string) => {
     setPdvCheckoutLoading(true);
@@ -525,6 +561,7 @@ export default function PromotorHome() {
       return;
     }
     setPunchLoading(true);
+    setPunchGeoError(null);
     try {
       const pdvId = dailyAssignment?.pdv_id || availablePdvs[0]?.id;
       const punchType = getNextPunchType();
@@ -559,7 +596,49 @@ export default function PromotorHome() {
       await punch.mutateAsync(body);
       toast({ title: 'Ponto registrado!', description: PUNCH_LABELS[punchType] });
     } catch (err: any) {
-      if (err.message?.includes('horário de trabalho') || err.message?.includes('OUTSIDE_SCHEDULE')) {
+      const resp = (err as any)?.response || null;
+      const errorCode = (err as any)?.status
+        ? (resp as any)?.error_code || (resp as any)?.details?.error_code
+        : (err?.message?.includes('GEO_OUT_OF_RANGE') || err?.message?.includes('fora da área permitida') || resp?.error_code === 'GEO_OUT_OF_RANGE' || resp?.error === 'outside_geofence')
+          ? 'GEO_OUT_OF_RANGE'
+          : ((resp as any)?.error_code || (resp as any)?.code || '');
+      const details = resp?.details || {};
+      if (errorCode === 'GEO_OUT_OF_RANGE' || resp?.error === 'outside_geofence') {
+        const placeType = details.place_type === 'sede' ? 'Sede cadastrada' : (details.place_name
+          ? `PDV (${details.place_name})`
+          : 'PDV ou Sede selecionada');
+        const modeLabel = details.mode === 'polygon'
+          ? 'polígono geográfico (perímetro)'
+          : (details.radius_meters != null ? `raio de ${Number(details.radius_meters)} m` : 'raio de alcance');
+        const distText = details.distance_meters != null
+          ? ` — você está a ~${details.distance_meters >= 1000
+              ? `${(details.distance_meters/1000).toFixed(1).replace('.',',')} km`
+              : `${details.distance_meters} m`} do local`
+          : '';
+        const title = resp?.title || `📍 Fora da área permitida`;
+        const primaryMsg = resp?.message || err?.message || `Você precisa estar no ${placeType} dentro da área permitida para bater o ponto.`;
+        const msgWithDist = distText && !primaryMsg.includes('você está a ~')
+          ? `${primaryMsg}${distText}`
+          : primaryMsg;
+        const hintMsg = details.mode_hint
+          ? `${details.mode_hint} Aproxime-se para registrar.`
+          : `Verificação: ${modeLabel}. Aproxime-se do local para habilitar o registro.${details.accept_justification ? ' Caso esteja impossibilitado, envie justificativa.' : ''}`;
+        setPunchGeoError({ title, message: msgWithDist, details: { ...details, hint: hintMsg, placeType } });
+        toast({
+          title: title,
+          description: msgWithDist,
+          variant: 'destructive',
+          duration: 11000,
+        });
+        toast({
+          title: `Área permitida: ${placeType}`,
+          description: hintMsg,
+          variant: 'destructive',
+          duration: 11000,
+        });
+        return;
+      }
+      if (err.message?.includes('horário de trabalho') || err.message?.includes('OUTSIDE_SCHEDULE') || errorCode === 'OUTSIDE_SCHEDULE') {
         setOvertimeDialog(true);
       }
       toast({ title: 'Erro ao registrar ponto', description: err.message, variant: 'destructive' });
@@ -996,6 +1075,71 @@ export default function PromotorHome() {
             {/* PUNCH BUTTON - prominent when no routes */}
             <Card className="overflow-hidden">
               <CardContent className="p-0">
+                {punchGeoError && (
+                  <div className="border-b border-destructive/30 bg-destructive/8 p-4 space-y-2">
+                    <div className="flex items-start gap-3">
+                      <div className="shrink-0 w-10 h-10 rounded-full bg-destructive/15 flex items-center justify-center">
+                        <AlertTriangle className="h-5 w-5 text-destructive" />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <h4 className="text-sm font-bold text-destructive leading-tight">
+                          {punchGeoError.title}
+                        </h4>
+                        <p className="text-[13px] font-medium leading-relaxed">
+                          {punchGeoError.message}
+                        </p>
+                        <p className="text-[12px] text-destructive/90 leading-relaxed">
+                          {punchGeoError.details?.hint}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="shrink-0 -mt-1 -mr-1 h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+                        onClick={() => setPunchGeoError(null)}
+                        aria-label="Fechar aviso"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {!!punchGeoError.details?.distance_meters && (
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <div className="rounded-lg border border-destructive/20 bg-background/70 p-2">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Distância do local</p>
+                          <p className="text-sm font-bold mt-0.5">
+                            {punchGeoError.details.distance_meters >= 1000
+                              ? `${(punchGeoError.details.distance_meters / 1000).toFixed(1).replace('.',',')} km`
+                              : `${punchGeoError.details.distance_meters} m`}
+                          </p>
+                        </div>
+                        <div className="rounded-lg border border-destructive/20 bg-background/70 p-2">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Tipo de verificação</p>
+                          <p className="text-sm font-bold mt-0.5">
+                            {punchGeoError.details?.mode === 'polygon' ? 'Polígono (perímetro)' : `Raio (${punchGeoError.details?.radius_meters != null ? `${Number(punchGeoError.details.radius_meters)} m` : 'configurado'})`}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="w-full h-9 mt-1"
+                      onClick={() => {
+                        if (navigator.geolocation) {
+                          navigator.geolocation.getCurrentPosition(
+                            (p) => setCurrentPos({ lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy }),
+                            () => {},
+                            { enableHighAccuracy: true, timeout: 6000 }
+                          );
+                        }
+                        setPunchGeoError(null);
+                        void handlePunch();
+                      }}
+                    >
+                      <MapPin className="h-4 w-4 mr-1.5" /> Aproxime-se e tentar novamente
+                    </Button>
+                  </div>
+                )}
                 <Button
                   onClick={() => void handlePunch()}
                   disabled={punchLoading || gpsStatus !== 'active' || (!canPunch && isOutsideSchedule)}
@@ -1076,6 +1220,71 @@ export default function PromotorHome() {
         {hasRoutesToday && (
         <Card className="overflow-hidden">
           <CardContent className="p-0">
+            {punchGeoError && (
+              <div className="border-b border-destructive/30 bg-destructive/8 p-4 space-y-2">
+                <div className="flex items-start gap-3">
+                  <div className="shrink-0 w-10 h-10 rounded-full bg-destructive/15 flex items-center justify-center">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <h4 className="text-sm font-bold text-destructive leading-tight">
+                      {punchGeoError.title}
+                    </h4>
+                    <p className="text-[13px] font-medium leading-relaxed">
+                      {punchGeoError.message}
+                    </p>
+                    <p className="text-[12px] text-destructive/90 leading-relaxed">
+                      {punchGeoError.details?.hint}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 -mt-1 -mr-1 h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+                    onClick={() => setPunchGeoError(null)}
+                    aria-label="Fechar aviso"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                {!!punchGeoError.details?.distance_meters && (
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div className="rounded-lg border border-destructive/20 bg-background/70 p-2">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Distância do local</p>
+                      <p className="text-sm font-bold mt-0.5">
+                        {punchGeoError.details.distance_meters >= 1000
+                          ? `${(punchGeoError.details.distance_meters / 1000).toFixed(1).replace('.',',')} km`
+                          : `${punchGeoError.details.distance_meters} m`}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-destructive/20 bg-background/70 p-2">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Tipo de verificação</p>
+                      <p className="text-sm font-bold mt-0.5">
+                        {punchGeoError.details?.mode === 'polygon' ? 'Polígono (perímetro)' : `Raio (${punchGeoError.details?.radius_meters != null ? `${Number(punchGeoError.details.radius_meters)} m` : 'configurado'})`}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="w-full h-9 mt-1"
+                  onClick={() => {
+                    if (navigator.geolocation) {
+                      navigator.geolocation.getCurrentPosition(
+                        (p) => setCurrentPos({ lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy }),
+                        () => {},
+                        { enableHighAccuracy: true, timeout: 6000 }
+                      );
+                    }
+                    setPunchGeoError(null);
+                    void handlePunch();
+                  }}
+                >
+                  <MapPin className="h-4 w-4 mr-1.5" /> Aproxime-se e tentar novamente
+                </Button>
+              </div>
+            )}
             {isFacialActive && (
               <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 border-b text-xs text-primary">
                 <ScanFace className="h-4 w-4" />
@@ -1183,7 +1392,7 @@ export default function PromotorHome() {
       </Dialog>
 
       {/* PDV Check-in Dialog */}
-      <Dialog open={showPdvCheckin} onOpenChange={(open) => { if (!open) { setShowPdvCheckin(false); setActionPdv(null); } }}>
+      <Dialog open={showPdvCheckin} onOpenChange={(open) => { if (!open) { setShowPdvCheckin(false); setActionPdv(null); setPdvCheckinGeoError(null); } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1200,12 +1409,75 @@ export default function PromotorHome() {
               </CardContent>
             </Card>
 
+            {pdvCheckinGeoError && (
+              <Card className="border-destructive/60 bg-destructive/5 shadow-sm">
+                <CardContent className="p-3 space-y-2">
+                  <div className="flex items-start gap-2.5">
+                    <div className="shrink-0 w-9 h-9 rounded-full bg-destructive/15 flex items-center justify-center">
+                      <AlertTriangle className="h-4.5 w-4.5 text-destructive" />
+                    </div>
+                    <div className="flex-1 space-y-0.5">
+                      <h5 className="text-sm font-bold text-destructive leading-tight">
+                        {pdvCheckinGeoError.title}
+                      </h5>
+                      <p className="text-[13px] font-medium leading-relaxed">
+                        {pdvCheckinGeoError.message}
+                      </p>
+                      <p className="text-[12px] text-destructive/90 leading-relaxed">
+                        {pdvCheckinGeoError.details?.hint}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="shrink-0 -mt-1 -mr-1 h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+                      onClick={() => setPdvCheckinGeoError(null)}
+                      aria-label="Fechar aviso"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  {!!pdvCheckinGeoError.details?.distance_meters && (
+                    <div className="grid grid-cols-2 gap-2 pt-0.5">
+                      <div className="rounded-md border border-destructive/20 bg-background/70 p-1.5">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Distância</p>
+                        <p className="text-xs font-bold mt-0.5">
+                          {pdvCheckinGeoError.details.distance_meters >= 1000
+                            ? `${(pdvCheckinGeoError.details.distance_meters / 1000).toFixed(1).replace('.',',')} km`
+                            : `${pdvCheckinGeoError.details.distance_meters} m`}
+                        </p>
+                      </div>
+                      <div className="rounded-md border border-destructive/20 bg-background/70 p-1.5">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Verificação</p>
+                        <p className="text-xs font-bold mt-0.5">
+                          {pdvCheckinGeoError.details?.mode === 'polygon' ? 'Polígono' : `Raio (${pdvCheckinGeoError.details?.radius_meters != null ? `${Number(pdvCheckinGeoError.details.radius_meters)} m` : 'config'})`}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="w-full h-8 mt-0.5 text-xs"
+                    onClick={() => {
+                      setPdvCheckinGeoError(null);
+                      setPdvCheckinPhoto('');
+                    }}
+                  >
+                    <MapPin className="h-3.5 w-3.5 mr-1.5" /> Aproxime-se e tente novamente
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             <div className="space-y-2">
               <Label className="text-xs">Foto da Fachada (obrigatória)</Label>
               {pdvCheckinPhoto ? (
                 <div className="space-y-2">
                   <LocalImage src={pdvCheckinPhoto} alt="Check-in" className="w-full rounded-lg border max-h-48 object-cover" />
-                  <p className="text-xs text-muted-foreground text-center">Registrando check-in...</p>
+                  <p className="text-xs text-muted-foreground text-center">
+                    {pdvCheckinLoading ? 'Registrando check-in...' : 'Foto registrada. Enviando...'}
+                  </p>
                 </div>
               ) : (
                 <CameraCapture
@@ -1222,7 +1494,7 @@ export default function PromotorHome() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowPdvCheckin(false); setActionPdv(null); }} disabled={pdvCheckinLoading}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { setShowPdvCheckin(false); setActionPdv(null); setPdvCheckinGeoError(null); }} disabled={pdvCheckinLoading}>Cancelar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -458,8 +458,9 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
     const { punch_type, latitude, longitude, accuracy_meters, pdv_id, is_offline, offline_local_time, justification, local_id, facial_verified } = req.body;
 
     // ===== WORK SCHEDULE VALIDATION =====
-    const empRes = await query(`SELECT work_schedule, face_descriptor, facial_required, punch_tolerance_minutes FROM employees WHERE id = $1`, [req.employeeId]);
-    
+    const empRes = await query(`SELECT work_schedule, face_descriptor, facial_required, punch_tolerance_minutes, punch_requires_checkin, punch_without_active_route FROM employees WHERE id = $1`, [req.employeeId]);
+    const employee = empRes.rows[0];
+
     // CRITICAL: Database-side NOW() and America/Sao_Paulo context
     // We strictly use NOW() in DB to avoid any drift from app-server JS time
     const timeInfoRes = await query(`
@@ -476,7 +477,56 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
     // Use a date object for is_offline fallback if provided, but standard punch uses DB time
     const now = is_offline && offline_local_time ? new Date(offline_local_time) : new Date();
 
+    // ===== PERMISSÕES DE AÇÕES (Novas flags do perfil do colaborador)
+    // 1. Verificar rota ativa (se punch_without_active_route = false, precisa ter rota hoje)
+    if (!employee?.punch_without_active_route) {
+      try {
+        const todayRoutes = await query(
+          `SELECT COUNT(*) as cnt FROM merch_routes WHERE promoter_id = $1 AND visit_date = $2 AND status NOT IN ('cancelled','canceled')`,
+          [req.employeeId, today]
+        );
+        const hasDailyAssignment = await query(
+          `SELECT COUNT(*) as cnt FROM collaborator_daily_assignments WHERE employee_id = $1 AND assignment_date = $2`,
+          [req.employeeId, today]
+        );
+        const hasLinkedPdvs = await query(
+          `SELECT COUNT(*) as cnt FROM collaborator_pdvs cp JOIN pdvs p ON p.id = cp.pdv_id WHERE cp.employee_id = $1 AND cp.active = true`,
+          [req.employeeId]
+        );
+        const routeCount = parseInt(todayRoutes.rows[0]?.cnt || 0);
+        const assignCount = parseInt(hasDailyAssignment.rows[0]?.cnt || 0);
+        const pdvCount = parseInt(hasLinkedPdvs.rows[0]?.cnt || 0);
+        if (routeCount === 0 && assignCount === 0 && pdvCount === 0) {
+          return res.status(403).json({
+            error: 'Você não tem rota ativa hoje. Contate o RH/supervisor para liberar seu ponto.',
+            code: 'NO_ACTIVE_ROUTE'
+          });
+        }
+      } catch (e) { /* ignore missing tables */ }
+    }
 
+    // 2. Verificar check-in obrigatório (se punch_requires_checkin = true, precisa ter feito check-in num PDV)
+    if (employee?.punch_requires_checkin) {
+      try {
+        const visitCheckins = await query(
+          `SELECT COUNT(*) as cnt FROM pdv_visits WHERE promoter_id = $1 AND visit_date = $2 AND checkin_at IS NOT NULL AND checkout_at IS NULL`,
+          [req.employeeId, today]
+        );
+        const routeCheckins = await query(
+          `SELECT COUNT(*) as cnt FROM merch_routes WHERE promoter_id = $1 AND visit_date = $2 AND status = 'in_progress' AND checkin_at IS NOT NULL`,
+          [req.employeeId, today]
+        );
+        const visitCount = parseInt(visitCheckins.rows[0]?.cnt || 0);
+        const routeCountCI = parseInt(routeCheckins.rows[0]?.cnt || 0);
+        if (visitCount === 0 && routeCountCI === 0) {
+          return res.status(403).json({
+            error: 'Faça o check-in numa loja antes de bater o ponto.',
+            code: 'CHECKIN_REQUIRED_BEFORE_PUNCH'
+          });
+        }
+      } catch (e) { /* ignore missing tables */ }
+    }
+    
     // 1. Check for specific daily assignment (Escala) or recurring schedule first
     let scheduleStart = null, scheduleEnd = null;
     try {
@@ -654,17 +704,28 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
     await ensurePdvGeofenceColumn(query);
     let distance = null;
     let geo_status = 'sem_gps';
+    let geoLastPdvMeta = null;
 
     if (latitude && longitude && pdv_id) {
-      const pdv = await query(`SELECT latitude, longitude, radius_meters, geofence_polygon FROM pdvs WHERE id = $1`, [pdv_id]);
+      const pdv = await query(`SELECT p.id, p.name, p.type, p.latitude, p.longitude, p.radius_meters, p.geofence_polygon
+                                FROM pdvs p WHERE p.id = $1`, [pdv_id]);
       if (pdv.rows[0]) {
+        const p = pdv.rows[0];
         const v = validatePdvLocation({
           userLat: latitude, userLng: longitude,
-          pdvLat: pdv.rows[0].latitude, pdvLng: pdv.rows[0].longitude,
-          radiusMeters: pdv.rows[0].radius_meters,
-          polygon: pdv.rows[0].geofence_polygon,
+          pdvLat: p.latitude, pdvLng: p.longitude,
+          radiusMeters: p.radius_meters,
+          polygon: p.geofence_polygon,
         });
         distance = v.distance != null ? Math.round(v.distance) : null;
+        geoLastPdvMeta = {
+          id: p.id,
+          name: p.name || null,
+          type: p.type === 'sede' ? 'sede' : 'pdv',
+          mode: v.mode === 'polygon' ? 'polygon' : 'radius',
+          radius_meters: p.radius_meters != null ? Number(p.radius_meters) : null,
+          distance_meters: distance,
+        };
         if (v.status === 'inside') geo_status = 'dentro_area';
         else if (v.status === 'outside') geo_status = 'fora_area';
         else geo_status = 'sem_gps';
@@ -673,15 +734,54 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
       geo_status = 'sem_pdv';
     }
 
-
-
     if (geo_status === 'fora_area') {
       const rules = await query(
         `SELECT allow_exception_punch FROM time_rules WHERE organization_id = $1 AND (employee_id = $2 OR employee_id IS NULL) ORDER BY employee_id NULLS LAST LIMIT 1`,
         [req.organizationId, req.employeeId]
       );
-      if (rules.rows[0] && !rules.rows[0].allow_exception_punch && !justification) {
-        return res.status(400).json({ error: 'Você está fora da área permitida. Forneça justificativa para registrar.', geo_status, distance });
+      const allowException = rules.rows[0]?.allow_exception_punch === true;
+      if (!allowException && !justification) {
+        const meta = geoLastPdvMeta || {};
+        const dist = meta.distance_meters != null
+          ? (meta.distance_meters >= 1000
+              ? ` (você está a ~${(meta.distance_meters/1000).toFixed(1).replace('.',',')} km do local)`
+              : ` (você está a ~${meta.distance_meters} m do local)`)
+          : '';
+        const placeShort = meta.type === 'sede'
+          ? 'na Sede cadastrada'
+          : `no PDV selecionado${meta.name ? ` (${meta.name})` : ''}`;
+        const hasOrgHeadquarters = await query(
+          `SELECT 1 FROM pdvs WHERE organization_id=$1 AND type='sede' AND (latitude IS NOT NULL OR geofence_polygon IS NOT NULL) LIMIT 1`,
+          [req.organizationId]
+        ).catch(() => ({ rows: [] }));
+        const hasLinkedSede = await query(
+          `SELECT 1 FROM employees e
+           JOIN pdvs p ON p.id = e.branch_id OR p.id = e.pdv_id
+           WHERE e.id=$1 AND p.type='sede' AND (p.latitude IS NOT NULL OR p.geofence_polygon IS NOT NULL) LIMIT 1`,
+          [req.employeeId]
+        ).catch(() => ({ rows: [] }));
+        const sedeExtra = meta.type !== 'sede' && (hasOrgHeadquarters.rows.length > 0 || hasLinkedSede.rows.length > 0)
+          ? ' ou na Sede da empresa'
+          : '';
+        const modeText = meta.mode === 'polygon'
+          ? 'Perímetro (polígono geográfico) do local.'
+          : 'Raio (em metros) do local.';
+        return res.status(400).json({
+          error: `Você precisa estar ${placeShort}${sedeExtra} dentro da área permitida para bater o ponto.${dist}`,
+          error_code: 'GEO_OUT_OF_RANGE',
+          geo_status,
+          distance,
+          details: {
+            place_type: meta.type,
+            place_name: meta.name,
+            mode: meta.mode,
+            mode_hint: modeText,
+            distance_meters: meta.distance_meters,
+            radius_meters: meta.radius_meters,
+            user_coords: { latitude, longitude },
+            accept_justification: allowException,
+          },
+        });
       }
       if (justification) geo_status = 'excecao';
     }
