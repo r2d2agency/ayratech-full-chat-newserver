@@ -21,8 +21,10 @@ export function SyncStatusIndicator({ className }: { className?: string }) {
         )}
         onClick={() => isOnline && sync()}
       >
-        <RefreshCw className={cn("h-3.5 w-3.5", (isSyncing || isOnline) && "animate-spin")} />
-        {isOnline ? `Sincronizando ${totalPending}...` : `Aguardando conexão (${totalPending})`}
+        <RefreshCw className={cn("h-3.5 w-3.5", isSyncing && "animate-spin")} />
+        {isOnline
+          ? (isSyncing ? `Sincronizando ${totalPending}...` : `${totalPending} pendente(s)`)
+          : `Aguardando conexão (${totalPending})`}
       </Badge>
     );
   }

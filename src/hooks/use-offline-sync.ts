@@ -1,8 +1,34 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { db, type PendingApiCall, type PendingUpload } from '@/lib/offline-db';
-import { api, API_URL } from '@/lib/api';
+import { api, API_URL, getAuthToken } from '@/lib/api';
 
 import { logger } from '@/lib/logger';
+
+function getCurrentOfflineToken() {
+  return (
+    localStorage.getItem('promotor_token') ||
+    getAuthToken() ||
+    localStorage.getItem('agency_auth_token') ||
+    localStorage.getItem('supermarket_auth_token') ||
+    localStorage.getItem('network_auth_token')
+  );
+}
+
+async function readResponseError(response: Response) {
+  const fallback = `Falha no envio (${response.status})`;
+  try {
+    const text = await response.text();
+    if (!text) return fallback;
+    try {
+      const parsed = JSON.parse(text);
+      return parsed?.error || parsed?.message || fallback;
+    } catch {
+      return text.slice(0, 300);
+    }
+  } catch {
+    return fallback;
+  }
+}
 
 export function useOnlineStatus() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -117,13 +143,18 @@ export function useOfflineSync() {
           return;
         }
 
+        if (!upload.file || (typeof upload.file.size === 'number' && upload.file.size <= 0)) {
+          throw new Error('Arquivo offline não está mais disponível neste aparelho');
+        }
+
         const formData = new FormData();
         formData.append('file', upload.file, upload.fileName);
+        const authToken = getCurrentOfflineToken() || upload.token;
 
         const response = await fetch(`${API_URL}/api/uploads`, {
           method: 'POST',
           headers: {
-            ...(upload.token ? { 'Authorization': `Bearer ${upload.token}` } : {}),
+            ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
             // Chave de idempotência: mesmo se um retry de rede reenviar,
             // o cliente reconhece o mesmo upload lógico. Backend pode
             // opcionalmente honrar para deduplicar server-side.
@@ -132,7 +163,10 @@ export function useOfflineSync() {
           body: formData
         });
 
-        if (!response.ok) throw new Error(`Upload failed with status ${response.status}`);
+        if (!response.ok) {
+          const errorMessage = await readResponseError(response);
+          throw new Error(`${errorMessage} [upload ${response.status}]`);
+        }
 
         const result = await response.json();
         let fileUrl = result.file.url;

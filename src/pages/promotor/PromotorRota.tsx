@@ -461,8 +461,8 @@ function ExtraPointPhotoGate({ catId, routeBrandId, categoryName, routeId, pdvNa
 }
 
 // ===== Category After Photo Gate (required to close/complete category) =====
-function CategoryAfterPhotoGate({ catId, routeBrandId, categoryName, routeId, pdvName, brandName, promotorName, qualityConfig, minPhotos, onCompleted, onCaptureOptimistic }: {
-  catId: string; routeBrandId?: string; categoryName: string; routeId: string; pdvName: string; brandName: string; promotorName?: string; qualityConfig?: PhotoQualityConfig; minPhotos: number; onCompleted: () => void; onCaptureOptimistic?: (url: string, type: string) => void;
+function CategoryAfterPhotoGate({ catId, routeBrandId, categoryName, routeId, pdvName, brandName, promotorName, qualityConfig, minPhotos, beforePhotoUrl, onCompleted, onCaptureOptimistic }: {
+  catId: string; routeBrandId?: string; categoryName: string; routeId: string; pdvName: string; brandName: string; promotorName?: string; qualityConfig?: PhotoQualityConfig; minPhotos: number; beforePhotoUrl?: string | null; onCompleted: () => void; onCaptureOptimistic?: (url: string, type: string) => void;
 }) {
   const setCategoryAfterPhoto = usePromotorCategoryAfterPhoto();
   const [photos, setPhotos] = useState<string[]>([]);
@@ -521,6 +521,17 @@ function CategoryAfterPhotoGate({ catId, routeBrandId, categoryName, routeId, pd
             <Badge variant="secondary" className="ml-2 text-[9px] bg-green-100 text-green-700">Foto DEPOIS</Badge>
           </div>
         </div>
+
+        {beforePhotoUrl && (
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold text-primary">Foto ANTES já registrada</Label>
+            <LocalImage
+              src={beforePhotoUrl}
+              alt="Foto antes da categoria"
+              className="w-full h-24 rounded-lg border-2 border-primary/40 object-cover"
+            />
+          </div>
+        )}
 
         <PhotoApprovalCapture
           photos={photos}
@@ -1374,9 +1385,27 @@ export default function PromotorRota() {
                       routeId={id!}
                       catId={catId}
                       routeBrandId={routeBrandId}
-                      photos={[...(route?.photos || []), ...optimisticPhotos].filter((p: any) => (p.category_id || null) === (catId || null) && (p.photo_type === 'category_before' || p.photo_type === 'category_after'))}
-                      hasAnyBefore={!!catStatus?.category_before_photo || [...(route?.photos || []), ...optimisticPhotos].some((p: any) => (p.category_id || null) === (catId || null) && p.photo_type === 'category_before')}
-                      hasAnyAfter={!!catStatus?.category_after_photo || [...(route?.photos || []), ...optimisticPhotos].some((p: any) => (p.category_id || null) === (catId || null) && p.photo_type === 'category_after')}
+                      photos={[...(route?.photos || []), ...optimisticPhotos].filter((p: any) =>
+                        (p.category_id || null) === (catId || null) &&
+                        (p.route_brand_id || null) === (routeBrandId || null) &&
+                        (p.photo_type === 'category_before' || p.photo_type === 'category_after')
+                      )}
+                      hasAnyBefore={
+                        !!catStatus?.category_before_photo ||
+                        [...(route?.photos || []), ...optimisticPhotos].some((p: any) =>
+                          (p.category_id || null) === (catId || null) &&
+                          (p.route_brand_id || null) === (routeBrandId || null) &&
+                          p.photo_type === 'category_before'
+                        )
+                      }
+                      hasAnyAfter={
+                        !!catStatus?.category_after_photo ||
+                        [...(route?.photos || []), ...optimisticPhotos].some((p: any) =>
+                          (p.category_id || null) === (catId || null) &&
+                          (p.route_brand_id || null) === (routeBrandId || null) &&
+                          p.photo_type === 'category_after'
+                        )
+                      }
                       completed={isCompletedCategory}
                       unlockBeforeUrl={catStatus?.category_before_photo || null}
                       unlockAfterUrl={catStatus?.category_after_photo || null}
@@ -1479,6 +1508,14 @@ export default function PromotorRota() {
                       promotorName={route.promotor_name}
                       qualityConfig={photoQualityConfig}
                       minPhotos={Math.max(1, parseInt((rb || route as any)?.min_category_photos_after, 10) || 1)}
+                      beforePhotoUrl={
+                        catStatus?.category_before_photo ||
+                        ([...(route?.photos || []), ...optimisticPhotos].find((p: any) =>
+                          (p.category_id || null) === (catId || null) &&
+                          (p.route_brand_id || null) === (routeBrandId || null) &&
+                          p.photo_type === 'category_before'
+                        )?.photo_url ?? null)
+                      }
                       onCompleted={() => { setOptimisticAfterPhoto(p => ({ ...p, [afterPhotoKey]: true })); }}
                       onCaptureOptimistic={(url, type) => setOptimisticPhotos(prev => [...prev, { photo_url: url, photo_type: type, category_id: catId, route_brand_id: routeBrandId }])}
                     />

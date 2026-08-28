@@ -31,7 +31,39 @@ export function SyncDiagnosticPanel() {
   const { sync, isSyncing } = useOfflineSync();
   const pendingUploads = useLiveQuery(() => db.pending_uploads.count()) || 0;
   const pendingCalls = useLiveQuery(() => db.pending_api_calls.count()) || 0;
+  const failedUploads = useLiveQuery(() =>
+    db.pending_uploads
+      .where('status')
+      .equals('failed')
+      .reverse()
+      .sortBy('timestamp'),
+  ) || [];
+  const failedCalls = useLiveQuery(() =>
+    db.pending_api_calls
+      .where('status')
+      .equals('failed')
+      .reverse()
+      .sortBy('timestamp'),
+  ) || [];
   const totalPending = pendingUploads + pendingCalls;
+  const recentFailures = [
+    ...failedUploads.slice(0, 3).map((item: any) => ({
+      id: `upload-${item.id}`,
+      type: 'Upload de foto',
+      label: item.fileName || item.localId || 'arquivo',
+      error: item.error || 'Falha no upload',
+      timestamp: item.timestamp,
+    })),
+    ...failedCalls.slice(0, 3).map((item: any) => ({
+      id: `call-${item.id}`,
+      type: 'Envio do checklist',
+      label: item.url || 'API',
+      error: item.error || 'Falha na chamada',
+      timestamp: item.timestamp,
+    })),
+  ]
+    .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+    .slice(0, 5);
 
   return (
     <Card>
@@ -86,6 +118,17 @@ export function SyncDiagnosticPanel() {
           </div>
         </div>
 
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-lg border p-2 text-center">
+            <p className="text-base font-bold">{pendingUploads}</p>
+            <p className="text-[10px] text-muted-foreground">Uploads na fila</p>
+          </div>
+          <div className="rounded-lg border p-2 text-center">
+            <p className="text-base font-bold">{pendingCalls}</p>
+            <p className="text-[10px] text-muted-foreground">Chamadas API na fila</p>
+          </div>
+        </div>
+
         {/* Offline Queue Alert */}
         {totalPending > 0 && (
           <div className="flex flex-col gap-2 p-2 rounded-lg bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200">
@@ -106,6 +149,36 @@ export function SyncDiagnosticPanel() {
               {isSyncing ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <RefreshCw className="h-3 w-3 mr-2" />}
               Tentar Sincronizar Agora
             </Button>
+          </div>
+        )}
+
+        {recentFailures.length > 0 && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-2 space-y-2">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
+              <div>
+                <p className="text-xs font-medium text-destructive">
+                  {failedUploads.length + failedCalls.length} falha(s) recentes na sincronização
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  Isso ajuda a identificar por que as fotos não estão subindo.
+                </p>
+              </div>
+            </div>
+            <div className="space-y-1">
+              {recentFailures.map((failure) => (
+                <div key={failure.id} className="rounded border bg-background/80 p-2 text-[10px]">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">{failure.type}</span>
+                    <span className="text-muted-foreground">
+                      {failure.timestamp ? format(new Date(failure.timestamp), 'dd/MM HH:mm') : 'agora'}
+                    </span>
+                  </div>
+                  <p className="truncate text-muted-foreground">{failure.label}</p>
+                  <p className="text-destructive mt-1 break-words">{failure.error}</p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

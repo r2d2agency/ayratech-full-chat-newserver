@@ -3549,9 +3549,17 @@ router.post('/promotor/routes/:routeId/categories/:catId/photo', promotorAuth, a
     } catch {}
 
     // Count previously uploaded before photos for this category/brand
+    const hasRouteBrandColumn = await hasColumn('route_photos', 'route_brand_id');
     const prevCount = (await query(
-      `SELECT COUNT(*)::int as n FROM route_photos WHERE route_id=$1 AND category_id IS NOT DISTINCT FROM $2 AND photo_type='category_before'`,
-      [req.params.routeId, catId]
+      hasRouteBrandColumn
+        ? `SELECT COUNT(*)::int as n FROM route_photos
+           WHERE route_id=$1 AND category_id IS NOT DISTINCT FROM $2
+             AND route_brand_id IS NOT DISTINCT FROM $3
+             AND photo_type='category_before'`
+        : `SELECT COUNT(*)::int as n FROM route_photos
+           WHERE route_id=$1 AND category_id IS NOT DISTINCT FROM $2
+             AND photo_type='category_before'`,
+      hasRouteBrandColumn ? [req.params.routeId, catId, route_brand_id || null] : [req.params.routeId, catId]
     )).rows[0]?.n || 0;
     const totalAfterUpload = prevCount + photoList.length;
     const unlocks = totalAfterUpload >= minBefore;
@@ -3571,14 +3579,26 @@ router.post('/promotor/routes/:routeId/categories/:catId/photo', promotorAuth, a
     // Persist every photo (dedupe: skip if same URL already stored for this category/type)
     for (const pUrl of photoList) {
       const dup = await query(
-        `SELECT 1 FROM route_photos WHERE route_id=$1 AND category_id IS NOT DISTINCT FROM $2 AND photo_type='category_before' AND photo_url=$3 LIMIT 1`,
-        [req.params.routeId, catId, pUrl]
+        hasRouteBrandColumn
+          ? `SELECT 1 FROM route_photos
+             WHERE route_id=$1 AND category_id IS NOT DISTINCT FROM $2
+               AND route_brand_id IS NOT DISTINCT FROM $3
+               AND photo_type='category_before' AND photo_url=$4 LIMIT 1`
+          : `SELECT 1 FROM route_photos
+             WHERE route_id=$1 AND category_id IS NOT DISTINCT FROM $2
+               AND photo_type='category_before' AND photo_url=$3 LIMIT 1`,
+        hasRouteBrandColumn ? [req.params.routeId, catId, route_brand_id || null, pUrl] : [req.params.routeId, catId, pUrl]
       );
       if (dup.rows.length) continue;
       await query(
-        `INSERT INTO route_photos (route_id, photo_type, category_id, photo_url, latitude, longitude, upload_source, uploaded_by)
-         VALUES ($1,'category_before',$2,$3,$4,$5,'app',$6)`,
-        [req.params.routeId, catId, pUrl, latitude, longitude, req.employeeId]
+        hasRouteBrandColumn
+          ? `INSERT INTO route_photos (route_id, photo_type, category_id, photo_url, latitude, longitude, route_brand_id, upload_source, uploaded_by)
+             VALUES ($1,'category_before',$2,$3,$4,$5,$6,'app',$7)`
+          : `INSERT INTO route_photos (route_id, photo_type, category_id, photo_url, latitude, longitude, upload_source, uploaded_by)
+             VALUES ($1,'category_before',$2,$3,$4,$5,'app',$6)`,
+        hasRouteBrandColumn
+          ? [req.params.routeId, catId, pUrl, latitude, longitude, route_brand_id || null, req.employeeId]
+          : [req.params.routeId, catId, pUrl, latitude, longitude, req.employeeId]
       );
       try {
         const routeInfo = await query('SELECT organization_id, brand_id, pdv_id, promoter_id FROM merch_routes WHERE id=$1', [req.params.routeId]);
@@ -3642,9 +3662,17 @@ router.post('/promotor/routes/:routeId/categories/:catId/after-photo', promotorA
       if (minRes.rows[0]?.min_category_photos_after) minAfter = Math.max(1, parseInt(minRes.rows[0].min_category_photos_after, 10));
     } catch {}
 
+    const hasRouteBrandColumn = await hasColumn('route_photos', 'route_brand_id');
     const prevCount = (await query(
-      `SELECT COUNT(*)::int as n FROM route_photos WHERE route_id=$1 AND category_id IS NOT DISTINCT FROM $2 AND photo_type='category_after'`,
-      [req.params.routeId, catId]
+      hasRouteBrandColumn
+        ? `SELECT COUNT(*)::int as n FROM route_photos
+           WHERE route_id=$1 AND category_id IS NOT DISTINCT FROM $2
+             AND route_brand_id IS NOT DISTINCT FROM $3
+             AND photo_type='category_after'`
+        : `SELECT COUNT(*)::int as n FROM route_photos
+           WHERE route_id=$1 AND category_id IS NOT DISTINCT FROM $2
+             AND photo_type='category_after'`,
+      hasRouteBrandColumn ? [req.params.routeId, catId, route_brand_id || null] : [req.params.routeId, catId]
     )).rows[0]?.n || 0;
     const totalAfterUpload = prevCount + photoList.length;
     const completes = totalAfterUpload >= minAfter;
@@ -3664,14 +3692,26 @@ router.post('/promotor/routes/:routeId/categories/:catId/after-photo', promotorA
 
     for (const pUrl of photoList) {
       const dup = await query(
-        `SELECT 1 FROM route_photos WHERE route_id=$1 AND category_id IS NOT DISTINCT FROM $2 AND photo_type='category_after' AND photo_url=$3 LIMIT 1`,
-        [req.params.routeId, catId, pUrl]
+        hasRouteBrandColumn
+          ? `SELECT 1 FROM route_photos
+             WHERE route_id=$1 AND category_id IS NOT DISTINCT FROM $2
+               AND route_brand_id IS NOT DISTINCT FROM $3
+               AND photo_type='category_after' AND photo_url=$4 LIMIT 1`
+          : `SELECT 1 FROM route_photos
+             WHERE route_id=$1 AND category_id IS NOT DISTINCT FROM $2
+               AND photo_type='category_after' AND photo_url=$3 LIMIT 1`,
+        hasRouteBrandColumn ? [req.params.routeId, catId, route_brand_id || null, pUrl] : [req.params.routeId, catId, pUrl]
       );
       if (dup.rows.length) continue;
       await query(
-        `INSERT INTO route_photos (route_id, photo_type, category_id, photo_url, latitude, longitude, upload_source, uploaded_by)
-         VALUES ($1,'category_after',$2,$3,$4,$5,'app',$6)`,
-        [req.params.routeId, catId, pUrl, latitude, longitude, req.employeeId]
+        hasRouteBrandColumn
+          ? `INSERT INTO route_photos (route_id, photo_type, category_id, photo_url, latitude, longitude, route_brand_id, upload_source, uploaded_by)
+             VALUES ($1,'category_after',$2,$3,$4,$5,$6,'app',$7)`
+          : `INSERT INTO route_photos (route_id, photo_type, category_id, photo_url, latitude, longitude, upload_source, uploaded_by)
+             VALUES ($1,'category_after',$2,$3,$4,$5,'app',$6)`,
+        hasRouteBrandColumn
+          ? [req.params.routeId, catId, pUrl, latitude, longitude, route_brand_id || null, req.employeeId]
+          : [req.params.routeId, catId, pUrl, latitude, longitude, req.employeeId]
       );
       try {
         const routeInfo = await query('SELECT organization_id, brand_id, pdv_id, promoter_id FROM merch_routes WHERE id=$1', [req.params.routeId]);
