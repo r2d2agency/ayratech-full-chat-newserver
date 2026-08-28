@@ -264,7 +264,8 @@ router.get('/home', authenticatePromotor, async (req, res) => {
       const routesRes = await query(
         `SELECT r.*, p.name as pdv_name, p.address as pdv_address, p.city as pdv_city,
          p.latitude as pdv_lat, p.longitude as pdv_lng, p.radius_meters as pdv_radius,
-         p.type as pdv_type, p.geofence_polygon as pdv_geofence_polygon,
+         CASE WHEN p.type IS NOT NULL THEN p.type ELSE 'pdv' END as pdv_type,
+         p.geofence_polygon as pdv_geofence_polygon,
          b.name as brand_name, b.logo_url as brand_logo,
          bc.name as checklist_name,
          (SELECT COUNT(*) FROM route_product_executions rpe WHERE rpe.route_id = r.id) as product_count,
@@ -278,7 +279,31 @@ router.get('/home', authenticatePromotor, async (req, res) => {
         [empId, today]
       );
       todayRoutes = routesRes.rows;
-    } catch (e) { if (e.code !== '42P01') logError('promotor.home.routes', e); }
+    } catch (e) {
+      if (e?.code === '42703') {
+        try {
+          const fallbackRes = await query(
+            `SELECT r.*, p.name as pdv_name, p.address as pdv_address, p.city as pdv_city,
+             p.latitude as pdv_lat, p.longitude as pdv_lng, p.radius_meters as pdv_radius,
+             'pdv'::text as pdv_type,
+             b.name as brand_name, b.logo_url as brand_logo,
+             bc.name as checklist_name,
+             (SELECT COUNT(*) FROM route_product_executions rpe WHERE rpe.route_id = r.id) as product_count,
+             (SELECT COUNT(*) FROM route_product_executions rpe WHERE rpe.route_id = r.id AND rpe.status = 'completed') as products_done
+             FROM merch_routes r
+             LEFT JOIN pdvs p ON p.id = r.pdv_id
+             LEFT JOIN merch_brands b ON b.id = r.brand_id
+             LEFT JOIN brand_checklists bc ON bc.id = r.checklist_id
+             WHERE r.promoter_id = $1 AND r.visit_date = $2
+             ORDER BY r.scheduled_time, r.created_at`,
+            [empId, today]
+          );
+          todayRoutes = fallbackRes.rows;
+        } catch (e2) { if (e2.code !== '42P01') logError('promotor.home.routes_fallback', e2); }
+      } else if (e?.code !== '42P01') {
+        logError('promotor.home.routes', e);
+      }
+    }
 
     // ===== PDV VISIT STATUS (group routes by PDV) =====
     let pdvVisits = [];
