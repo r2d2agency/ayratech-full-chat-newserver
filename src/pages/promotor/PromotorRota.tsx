@@ -1826,7 +1826,7 @@ export default function PromotorRota() {
 
 
         {/* Check-in photo requirement */}
-        {needsCheckin && route.require_checkin_photo && !checkinPhotoUrl && (
+        {needsCheckin && requireCheckinPhoto && !checkinPhotoUrl && (
           <Card className="border-primary/30">
             <CardContent className="p-4 space-y-3">
               <div className="flex items-center gap-2 text-sm font-medium">
@@ -1849,7 +1849,7 @@ export default function PromotorRota() {
           </Card>
         )}
 
-        {needsCheckin && route.require_checkin_photo && checkinPhotoUrl && (
+        {needsCheckin && requireCheckinPhoto && checkinPhotoUrl && (
           <Card className="border-primary/30">
             <CardContent className="p-4 space-y-2">
               <LocalImage src={checkinPhotoUrl} alt="Check-in" className="w-full rounded-lg border max-h-64 object-cover" />
@@ -1868,7 +1868,7 @@ export default function PromotorRota() {
         )}
 
         {/* Botão de check-in padrão (sem foto obrigatória) */}
-        {needsCheckin && !route.require_checkin_photo && (
+        {needsCheckin && !requireCheckinPhoto && (
           <Button className="w-full h-14 text-lg" onClick={() => handleCheckin()} disabled={checkin.isPending}>
             {isFacialActiveCheckin ? <ScanFace className="h-5 w-5 mr-2" /> : <MapPin className="h-5 w-5 mr-2" />}
             {checkin.isPending ? 'Realizando check-in...' : 'Fazer Check-in'}
