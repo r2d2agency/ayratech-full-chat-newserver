@@ -23,7 +23,7 @@ import {
   usePromotorRegisterExtraPoint,
 } from "@/hooks/use-promotor-routes";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   MapPin, Camera, Check, AlertTriangle, Archive, Clock,
   CheckCircle2, Circle, Calendar as CalendarIcon, Trash2, Store, Info,
@@ -780,6 +780,7 @@ function CategoryExtraPhotosPanel({
 export default function PromotorRota() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const { data: route, isLoading, refetch, error: routeError } = usePromotorRouteDetail(id);
   const checkin = usePromotorCheckin();
   const checkout = usePromotorCheckout();
@@ -882,6 +883,34 @@ export default function PromotorRota() {
       setActiveBrandId(route.brand_id);
     }
   }, [route, isMultiBrand, activeBrandId]);
+
+  // Evita ciclo "volta para tela de check-in" ao abrir uma rota recém-check-inada
+  // pela Home do promotor:
+  //   1) se backend já retornou checkin_at / status=in_progress, marca submitted
+  //   2) se tem pdv_visit com checkin_at na promotor-home c/ mesmo pdv, marca submitted
+  //   3) senão apaga o cache stale de 30min e refaz fetch fresco do servidor
+  useEffect(() => {
+    if (!route || !id) return;
+    if (route.checkin_at || route.status === 'in_progress' || route.status === 'completed') {
+      setCheckinSubmitted(true);
+      return;
+    }
+    try {
+      const home = (qc.getQueryData(['promotor-home']) as any) || null;
+      const homePdvId = home?.dailyAssignment?.pdv_id || home?.availablePdvs?.[0]?.id || null;
+      const alreadyCheckedInAtHome =
+        homePdvId &&
+        Array.isArray(home?.pdvVisits) &&
+        home.pdvVisits.some((v: any) => v && v.pdv_id === homePdvId && v.checkin_at);
+      if (alreadyCheckedInAtHome && homePdvId === route.pdv_id) {
+        setCheckinSubmitted(true);
+        return;
+      }
+    } catch {}
+    qc.removeQueries({ queryKey: ['promotor-route', id] });
+    refetch().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   // Timer to keep current time updated for min duration check
   useEffect(() => {
@@ -1339,8 +1368,26 @@ export default function PromotorRota() {
   if (isLoading) return <PromotorLayout><div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" /></div></PromotorLayout>;
   if (!route) return <PromotorLayout><div className="text-center py-12 text-muted-foreground">Rota não encontrada</div></PromotorLayout>;
 
-  const needsCheckin = (route.status === 'scheduled' || route.status === 'confirmed') && !checkinSubmitted;
-  const isActive = route.status === 'in_progress' || (checkinSubmitted && (route.status === 'scheduled' || route.status === 'confirmed'));
+  // 3 fontes de verdade para needsCheckin (evita "volta para tela de check-in"):
+  //   (1) status do backend (scheduled/confirmed → candidata a precisa)
+  //   (2) checkin_at populado na própria rota → já check-inou
+  //   (3) submitted otimista OU pdv_visit em promotor-home com checkin_at → já check-inou
+  const needsCheckin = useMemo(() => {
+    const statusNeeds = route.status === 'scheduled' || route.status === 'confirmed';
+    if (!statusNeeds) return false;
+    if (route.checkin_at) return false;
+    if (checkinSubmitted) return false;
+    try {
+      const home = (qc.getQueryData(['promotor-home']) as any) || null;
+      if (Array.isArray(home?.pdvVisits)) {
+        const hasVisit = home.pdvVisits.some((v: any) => v && v.pdv_id === route.pdv_id && v.checkin_at);
+        if (hasVisit) return false;
+      }
+    } catch {}
+    return true;
+  }, [route, checkinSubmitted, qc]);
+
+  const isActive = route.status === 'in_progress' || route.status === 'completed' || !!route.checkin_at || !needsCheckin;
   const isCompleted = route.status === 'completed';
   // Foto de check-in: padrão do checklist é obrigatória. Só liberamos sem foto quando o flag vier explicitamente false.
   const requireCheckinPhoto = (route as any)?.require_checkin_photo !== false;

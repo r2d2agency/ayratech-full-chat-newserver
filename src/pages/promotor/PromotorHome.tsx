@@ -382,7 +382,14 @@ export default function PromotorHome() {
         markPdvRoutesCheckedIn();
         setShowPdvCheckin(false);
         setPdvCheckinPhoto('');
-        setTimeout(() => navigate(`/promotor/rota/${activeRouteForPdv.id}`), 100);
+
+        // Mesmo em offline limpamos caches para não reapresentar tela de check-in
+        // ao navegar. O UI otimista + queueApiCall + sync vai atualizar depois.
+        queryClient.removeQueries({ queryKey: ['promotor-route', activeRouteForPdv.id] });
+        queryClient.removeQueries({ queryKey: ['promotor-agenda'] });
+        queryClient.removeQueries({ queryKey: ['promotor-home'] });
+
+        setTimeout(() => navigate(`/promotor/rota/${activeRouteForPdv.id}`, { replace: true }), 150);
         return;
       }
 
@@ -449,11 +456,22 @@ export default function PromotorHome() {
       markPdvRoutesCheckedIn();
       setShowPdvCheckin(false);
       setPdvCheckinPhoto('');
-      
-      // Pequeno delay para garantir que o estado local foi limpo antes de navegar
+
+      // Garante que o React Query vai pegar a rota ATUALIZADA do servidor
+      // (status=in_progress, checkin_at preenchido) quando a tela do detalhe da rota
+      // abrir — evita o bug de "baixa a rota e volta pra tela de check-in".
+      queryClient.removeQueries({ queryKey: ['promotor-route', activeRouteForPdv.id] });
+      queryClient.refetchQueries({ queryKey: ['promotor-route', activeRouteForPdv.id] }).catch(() => {});
+      queryClient.removeQueries({ queryKey: ['promotor-agenda'] });
+      queryClient.refetchQueries({ queryKey: ['promotor-agenda'] }).catch(() => {});
+      queryClient.removeQueries({ queryKey: ['promotor-home'] });
+      queryClient.refetchQueries({ queryKey: ['promotor-home'] }).catch(() => {});
+
+      // Delay curto para o backend gravar + invalidar cache antes da navegação
+      const delayMs = 350;
       setTimeout(() => {
-        navigate(`/promotor/rota/${activeRouteForPdv.id}`);
-      }, 100);
+        navigate(`/promotor/rota/${activeRouteForPdv.id}`, { replace: true });
+      }, delayMs);
       
     } catch (err: any) {
       logger.error('[handlePdvCheckin] Erro fatal no check-in', { message: err.message, pdvId }, err);
