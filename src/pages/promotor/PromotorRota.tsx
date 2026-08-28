@@ -1369,7 +1369,7 @@ export default function PromotorRota() {
                   </div>
 
                   {/* Painel de fotos extras da categoria */}
-                  {extraPhotosOpen[accordionKey] && hasBeforeUnlock && !isExtraGroup && (
+                  {extraPhotosOpen[accordionKey] && !isExtraGroup && (
                     <CategoryExtraPhotosPanel
                       routeId={id!}
                       catId={catId}
