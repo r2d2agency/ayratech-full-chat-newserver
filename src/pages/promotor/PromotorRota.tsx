@@ -1031,7 +1031,7 @@ export default function PromotorRota() {
       return;
     }
 
-    if (route?.require_checkin_photo && !effectivePhotoUrl) {
+    if ((route as any)?.require_checkin_photo !== false && !effectivePhotoUrl) {
       (handleCheckin as any)._running = false;
       toast.error('Esta rota exige foto obrigatória no check-in');
       return;
