@@ -1254,7 +1254,11 @@ export default function PromotorRota() {
               const isCompletedCategory = hasAfterPhoto;
               
               const photoOnlyMode = !requireStockCount && !requireValidityCheck;
-              const readyForAfterPhoto = allProductsDone || (photoOnlyMode && photoMode === 'after' && !effectivelyLocked);
+              const readyForAfterPhoto =
+                allProductsDone ||
+                execs.length === 0 ||
+                (photoOnlyMode && !effectivelyLocked) ||
+                (photoMode === 'after' && !effectivelyLocked);
 
               // Show after photo gate when products are done OR photo-only checklist asks only after-photo
               const needsAfterPhoto = requireCategoryPhotos && 
