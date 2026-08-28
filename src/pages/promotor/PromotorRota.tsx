@@ -1200,6 +1200,8 @@ export default function PromotorRota() {
   const needsCheckin = (route.status === 'scheduled' || route.status === 'confirmed') && !checkinSubmitted;
   const isActive = route.status === 'in_progress' || (checkinSubmitted && (route.status === 'scheduled' || route.status === 'confirmed'));
   const isCompleted = route.status === 'completed';
+  // Foto de check-in: padrão do checklist é obrigatória. Só liberamos sem foto quando o flag vier explicitamente false.
+  const requireCheckinPhoto = (route as any)?.require_checkin_photo !== false;
 
   // Multi-brand: show brand selection screen after check-in
   const showBrandSelector = isMultiBrand && isActive && !activeBrandId;
