@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBrands, useProducts, usePdvBrands, useAddPdvBrand, useRemovePdvBrand, useBrandPdvs, useMix, useAddToMix, useRemoveFromMix, useNetworks, useNetworkPdvs, useAddToMixBulk, useClearMixByBrand } from "@/hooks/use-merchandising";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { Search, Plus, Store, Building2, Package, ArrowRight, ArrowLeft, ChevronRight, Upload, LayoutGrid, Download, Loader2, Trash2 } from "lucide-react";
+import { Search, Plus, Store, Building2, Package, ArrowRight, ArrowLeft, ChevronRight, Upload, LayoutGrid, Download, Loader2, Trash2, CheckSquare, Square } from "lucide-react";
 import { toast } from "sonner";
 import { MixImportDialog } from "@/components/merchandising/MixImportDialog";
 import { Progress } from "@/components/ui/progress";
@@ -105,6 +105,48 @@ export default function MerchMixPDV() {
 
   const toggleAdd = (id: string) => setSelectedToAdd(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
   const toggleRemove = (id: string) => setSelectedToRemove(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
+
+  const availableNetworkProducts = useMemo(
+    () => allBrandProducts.filter((p: any) => p.name.toLowerCase().includes(productSearch.toLowerCase())),
+    [allBrandProducts, productSearch]
+  );
+
+  const selectAllAdd = useCallback((ids: string[]) => {
+    if (ids.length === 0) return;
+    const allSelected = ids.every(id => selectedToAdd.includes(id));
+    if (allSelected) {
+      setSelectedToAdd(prev => prev.filter(id => !ids.includes(id)));
+    } else {
+      setSelectedToAdd(prev => Array.from(new Set([...prev, ...ids])));
+    }
+  }, [selectedToAdd]);
+
+  const selectAllRemove = useCallback((ids: string[]) => {
+    if (ids.length === 0) return;
+    const allSelected = ids.every(id => selectedToRemove.includes(id));
+    if (allSelected) {
+      setSelectedToRemove(prev => prev.filter(id => !ids.includes(id)));
+    } else {
+      setSelectedToRemove(prev => Array.from(new Set([...prev, ...ids])));
+    }
+  }, [selectedToRemove]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target as HTMLElement)?.isContentEditable;
+      if (isEditable) return;
+      if (e.key === 'ArrowRight' && selectedToAdd.length > 0) {
+        e.preventDefault();
+        void handleAddToMix();
+      } else if (e.key === 'ArrowLeft' && selectedToRemove.length > 0) {
+        e.preventDefault();
+        void handleRemoveFromMix();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedToAdd, selectedToRemove, handleAddToMix, handleRemoveFromMix]);
 
   const handleExportAll = async () => {
     try {
@@ -346,6 +388,19 @@ export default function MerchMixPDV() {
                       <div className="border rounded-lg p-3">
                         <div className="flex items-center justify-between mb-2">
                           <p className="text-sm font-medium text-muted-foreground">Produtos Disponíveis ({availableProducts.length})</p>
+                          {availableProducts.length > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-[11px] px-2 -my-1"
+                              onClick={() => selectAllAdd(availableProducts.map((p: any) => p.id))}
+                              title={availableProducts.every((p: any) => selectedToAdd.includes(p.id)) ? 'Desmarcar todos' : 'Selecionar todos'}
+                            >
+                              {availableProducts.every((p: any) => selectedToAdd.includes(p.id))
+                                ? <><Square className="h-3.5 w-3.5 mr-1" /> Todos</>
+                                : <><CheckSquare className="h-3.5 w-3.5 mr-1" /> Todos</>}
+                            </Button>
+                          )}
                         </div>
                         <div className="relative mb-2">
                           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
@@ -364,17 +419,32 @@ export default function MerchMixPDV() {
 
                       {/* Action Buttons */}
                       <div className="flex md:flex-col items-center justify-center gap-2">
-                        <Button size="sm" variant="outline" disabled={selectedToAdd.length === 0} onClick={handleAddToMix}>
+                        <Button size="sm" variant="outline" disabled={selectedToAdd.length === 0} onClick={handleAddToMix} title="Adicionar selecionados (→)">
                           <ArrowRight className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="outline" disabled={selectedToRemove.length === 0} onClick={handleRemoveFromMix}>
+                        <Button size="sm" variant="outline" disabled={selectedToRemove.length === 0} onClick={handleRemoveFromMix} title="Remover selecionados (←)">
                           <ArrowLeft className="h-4 w-4" />
                         </Button>
                       </div>
 
                       {/* Mix Products */}
                       <div className="border rounded-lg p-3 border-primary/30 bg-primary/5">
-                        <p className="text-sm font-medium mb-2">Mix Atual ({mixProducts.length})</p>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-sm font-medium">Mix Atual ({mixProducts.length})</p>
+                          {mixProducts.length > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-[11px] px-2 -my-1"
+                              onClick={() => selectAllRemove(mixProducts.map((m: any) => m.product_id))}
+                              title={mixProducts.every((m: any) => selectedToRemove.includes(m.product_id)) ? 'Desmarcar todos' : 'Selecionar todos'}
+                            >
+                              {mixProducts.every((m: any) => selectedToRemove.includes(m.product_id))
+                                ? <><Square className="h-3.5 w-3.5 mr-1" /> Todos</>
+                                : <><CheckSquare className="h-3.5 w-3.5 mr-1" /> Todos</>}
+                            </Button>
+                          )}
+                        </div>
                         <ScrollArea className="h-[332px]">
                           {mixProducts.map((m: any) => (
                             <div key={m.id} className="flex items-center gap-2 p-1.5 hover:bg-muted rounded text-sm cursor-pointer" onClick={() => toggleRemove(m.product_id)}>
@@ -411,13 +481,26 @@ export default function MerchMixPDV() {
                       <div className="border rounded-lg p-3">
                         <div className="flex items-center justify-between mb-2">
                           <p className="text-sm font-medium text-muted-foreground">Produtos Disponíveis</p>
+                          {availableNetworkProducts.length > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-[11px] px-2 -my-1"
+                              onClick={() => selectAllAdd(availableNetworkProducts.map((p: any) => p.id))}
+                              title={availableNetworkProducts.every((p: any) => selectedToAdd.includes(p.id)) ? 'Desmarcar todos' : 'Selecionar todos'}
+                            >
+                              {availableNetworkProducts.every((p: any) => selectedToAdd.includes(p.id))
+                                ? <><Square className="h-3.5 w-3.5 mr-1" /> Todos</>
+                                : <><CheckSquare className="h-3.5 w-3.5 mr-1" /> Todos</>}
+                            </Button>
+                          )}
                         </div>
                         <div className="relative mb-2">
                           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
                           <Input placeholder="Buscar..." value={productSearch} onChange={e => setProductSearch(e.target.value)} className="pl-7 h-8 text-sm" />
                         </div>
                         <ScrollArea className="h-[300px]">
-                          {allBrandProducts.filter((p: any) => p.name.toLowerCase().includes(productSearch.toLowerCase())).map((p: any) => (
+                          {availableNetworkProducts.map((p: any) => (
                             <div key={p.id} className="flex items-center gap-2 p-1.5 hover:bg-muted rounded text-sm cursor-pointer" onClick={() => toggleAdd(p.id)}>
                               <Checkbox checked={selectedToAdd.includes(p.id)} />
                               {p.image_url ? <img src={p.image_url} className="h-6 w-6 rounded object-cover" /> : <Package className="h-4 w-4 text-muted-foreground" />}
