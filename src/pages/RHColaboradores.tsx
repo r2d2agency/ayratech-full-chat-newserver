@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Search, UserCircle, Building2, FileText, Edit, Trash2, Eye, EyeOff, Users, Loader2, Calendar, Briefcase, X, MapPin, UserCog, DollarSign, Gift, Smartphone, KeyRound, Copy, RefreshCw, FileSpreadsheet, UserPlus, UserMinus, Link2 } from "lucide-react";
+import { Plus, Search, UserCircle, Building2, FileText, Edit, Trash2, Eye, EyeOff, Users, Loader2, Calendar, Briefcase, X, MapPin, UserCog, DollarSign, Gift, Smartphone, KeyRound, Copy, RefreshCw, FileSpreadsheet, UserPlus, UserMinus, Link2, CalendarDays } from "lucide-react";
 import { EmployeeImportExportDialog } from "@/components/rh/EmployeeImportExportDialog";
 import { EmployeeOnboardingLinkDialog } from "@/components/rh/EmployeeOnboardingLinkDialog";
 import { useUpload } from "@/hooks/use-upload";
@@ -143,6 +143,8 @@ const EMPTY_FORM = {
   ctps_number: "", pis_pasep: "", cnpj: "", company_name: "", status: "ativo",
   facial_required: null as boolean | null,
   punch_tolerance_minutes: null as number | null,
+  punch_requires_checkin: false as boolean | null,
+  punch_without_active_route: false as boolean | null,
   salary_items: [] as { type: string; description: string; value: string }[],
 
   benefits: [] as { type: string; description: string; value: string; employer_cost: string }[],
@@ -192,6 +194,8 @@ function buildCreateEmployeePayload(form: any) {
     status: form.status || "ativo",
     facial_required: form.facial_required,
     punch_tolerance_minutes: form.punch_tolerance_minutes ?? undefined,
+    punch_requires_checkin: form.punch_requires_checkin,
+    punch_without_active_route: form.punch_without_active_route,
     salary_items: Array.isArray(form.salary_items) ? form.salary_items : [],
     benefits: Array.isArray(form.benefits) ? form.benefits : [],
   };
@@ -1047,6 +1051,46 @@ export default function RHColaboradores() {
                   <p className="text-xs text-muted-foreground mt-1">
                     Substitui a configuração global de RH → Biometria Facial apenas para este colaborador.
                   </p>
+                </div>
+
+                {/* Seção Ações */}
+                <div className="md:col-span-2 space-y-3 mt-2 p-4 rounded-lg border bg-amber-50/50 border-amber-200/60">
+                  <Label className="text-sm font-semibold flex items-center gap-2 text-amber-800">
+                    <Smartphone className="h-4 w-4" /> Ações — Regras Especiais para este Colaborador
+                  </Label>
+                  <p className="text-xs text-amber-700/80 mb-3">
+                    Configurações que alteram como este colaborador interage com o ponto e as rotas de merchandising.
+                  </p>
+                  {[
+                    {
+                      key: "punch_requires_checkin",
+                      label: "Requer check-in na loja para bater o ponto",
+                      desc: "Se ativado, o ponto só será liberado após o colaborador fazer check-in numa loja/rota ativa.",
+                      icon: MapPin,
+                      warn: true,
+                    },
+                    {
+                      key: "punch_without_active_route",
+                      label: "Permitir bater ponto sem rota ativa",
+                      desc: "Se ativado, o colaborador poderá bater ponto mesmo sem rota programada, atribuição diária ou PDV vinculado.",
+                      icon: CalendarDays,
+                      warn: false,
+                    },
+                  ].map(r => (
+                    <div key={r.key} className="flex items-center justify-between p-3 rounded-lg border bg-background/70">
+                      <div className="flex items-start gap-3 max-w-[80%]">
+                        <r.icon className={`h-4 w-4 mt-0.5 ${r.warn ? "text-amber-600" : "text-muted-foreground"}`} />
+                        <div>
+                          <span className="text-sm font-medium leading-tight block">{r.label}</span>
+                          <span className="text-xs text-muted-foreground block mt-1">{r.desc}</span>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={!!form[r.key]}
+                        onCheckedChange={v => setField(r.key, v)}
+                      />
+                    </div>
+                  ))}
                 </div>
 
                 {/* Acesso App Promotor */}

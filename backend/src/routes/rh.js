@@ -284,6 +284,11 @@ async function ensureEmployeeExtraColumns() {
     // facial_required: null = segue config da organização; true = sempre exigir; false = dispensado
     await query(`ALTER TABLE employees ADD COLUMN IF NOT EXISTS facial_required BOOLEAN`);
     await query(`ALTER TABLE employees ADD COLUMN IF NOT EXISTS punch_tolerance_minutes INTEGER`);
+    // Ações: permissões para bater ponto
+    // punch_requires_checkin: true = só pode bater ponto após fazer check-in numa loja/rota
+    await query(`ALTER TABLE employees ADD COLUMN IF NOT EXISTS punch_requires_checkin BOOLEAN DEFAULT false`);
+    // punch_without_active_route: true = pode bater ponto sem ter uma rota ativa
+    await query(`ALTER TABLE employees ADD COLUMN IF NOT EXISTS punch_without_active_route BOOLEAN DEFAULT false`);
     employeeExtraColsReady = true;
 
   } catch (e) {
@@ -305,7 +310,8 @@ const EMPLOYEE_UPDATABLE_COLS = new Set([
   'admission_date','contract_end_date','salary','work_schedule','bank_name','bank_agency',
   'bank_account','bank_account_type','pix_key','pix_key_type','ctps_number','ctps_series',
   'pis_pasep','voter_id','voter_zone','voter_section','skin_color','cnpj','company_name',
-  'status','photo_url','home_latitude','home_longitude','facial_required','punch_tolerance_minutes'
+  'status','photo_url','home_latitude','home_longitude','facial_required','punch_tolerance_minutes',
+  'punch_requires_checkin','punch_without_active_route'
 ]);
 
 let EMPLOYEE_TABLE_COLS_CACHE = null;
@@ -410,6 +416,8 @@ function normalizeEmployeePayload(body = {}) {
     home_latitude: emptyToNull(body.home_latitude) ? Number(body.home_latitude) : null,
     home_longitude: emptyToNull(body.home_longitude) ? Number(body.home_longitude) : null,
     punch_tolerance_minutes: parseOptionalInteger(body.punch_tolerance_minutes),
+    punch_requires_checkin: body.punch_requires_checkin === true ? true : body.punch_requires_checkin === false ? false : null,
+    punch_without_active_route: body.punch_without_active_route === true ? true : body.punch_without_active_route === false ? false : null,
   };
 }
 
@@ -615,7 +623,8 @@ router.put('/employees/:id', async (req, res) => {
       'bank_account','bank_account_type','pix_key','pix_key_type','ctps_number','ctps_series','pis_pasep',
       'voter_id','voter_zone','voter_section','skin_color','cnpj',
       'company_name','status','photo_url','salary_items','benefits',
-      'home_latitude','home_longitude','facial_required','punch_tolerance_minutes'
+      'home_latitude','home_longitude','facial_required','punch_tolerance_minutes',
+      'punch_requires_checkin','punch_without_active_route'
     ]);
 
 
