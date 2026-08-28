@@ -7,6 +7,15 @@ import { logError } from '../logger.js';
 const router = express.Router();
 router.use(authenticate);
 
+// Ensure checklist_type column exists
+async function ensureChecklistTypeColumn() {
+  try {
+    await query(`ALTER TABLE brand_checklists ADD COLUMN IF NOT EXISTS checklist_type VARCHAR(20) DEFAULT 'standard'`);
+  } catch (e) {
+    logError('merch-checklists.ensureType', e);
+  }
+}
+
 // Middleware: attach orgId to every request
 router.use(async (req, res, next) => {
   try {
@@ -16,6 +25,7 @@ router.use(async (req, res, next) => {
     );
     if (!orgRes.rows.length) return res.status(403).json({ error: 'Organização não encontrada' });
     req.orgId = orgRes.rows[0].organization_id;
+    await ensureChecklistTypeColumn();
     next();
   } catch (e) {
     logError('merch checklist middleware', e);
@@ -45,11 +55,12 @@ router.get('/', async (req, res) => {
 // Create checklist
 router.post('/', async (req, res) => {
   try {
-    const { name, brand_id, description, require_checkin_photo, require_checkout_photo } = req.body;
+    const { name, brand_id, description, require_checkin_photo, require_checkout_photo, checklist_type } = req.body;
+    const type = checklist_type === 'checkin_only' ? 'checkin_only' : 'standard';
     const r = await query(
-      `INSERT INTO brand_checklists (organization_id, brand_id, name, description, require_checkin_photo, require_checkout_photo)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [req.orgId, brand_id, name, description, require_checkin_photo ?? true, require_checkout_photo ?? false]
+      `INSERT INTO brand_checklists (organization_id, brand_id, name, description, require_checkin_photo, require_checkout_photo, checklist_type)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [req.orgId, brand_id, name, description, require_checkin_photo ?? true, require_checkout_photo ?? false, type]
     );
     res.json(r.rows[0]);
   } catch (e) {
@@ -61,11 +72,12 @@ router.post('/', async (req, res) => {
 // Update checklist
 router.put('/:id', async (req, res) => {
   try {
-    const { name, description, require_checkin_photo, require_checkout_photo, active } = req.body;
+    const { name, description, require_checkin_photo, require_checkout_photo, active, checklist_type } = req.body;
+    const type = checklist_type === 'checkin_only' ? 'checkin_only' : 'standard';
     const r = await query(
-      `UPDATE brand_checklists SET name=$1, description=$2, require_checkin_photo=$3, require_checkout_photo=$4, active=$5, updated_at=NOW()
-       WHERE id=$6 AND organization_id=$7 RETURNING *`,
-      [name, description, require_checkin_photo, require_checkout_photo, active, req.params.id, req.orgId]
+      `UPDATE brand_checklists SET name=$1, description=$2, require_checkin_photo=$3, require_checkout_photo=$4, active=$5, checklist_type=$6, updated_at=NOW()
+       WHERE id=$7 AND organization_id=$8 RETURNING *`,
+      [name, description, require_checkin_photo, require_checkout_photo, active, type, req.params.id, req.orgId]
     );
     res.json(r.rows[0]);
   } catch (e) {

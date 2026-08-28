@@ -27,7 +27,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   MapPin, Camera, Check, AlertTriangle, Archive, Clock,
   CheckCircle2, Circle, Calendar as CalendarIcon, Trash2, Store, Info,
-  Lock, Unlock, ChevronRight, ChevronDown, ChevronUp, Target, ImagePlus, Plus, ScanFace, Package,
+  Lock, Unlock, ChevronRight, ChevronDown, ChevronUp, Target, ImagePlus, Plus, ScanFace, Package, X,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { logger } from "@/lib/logger";
@@ -802,6 +802,7 @@ export default function PromotorRota() {
   const [pdvCheckoutPhoto, setPdvCheckoutPhoto] = useState('');
   const [checkinPhotoUrl, setCheckinPhotoUrl] = useState('');
   const [checkinSubmitted, setCheckinSubmitted] = useState(false);
+  const [checkinGeoError, setCheckinGeoError] = useState<{ title: string; message: string; details: any } | null>(null);
 
 
   // Load photo quality config
@@ -901,20 +902,27 @@ export default function PromotorRota() {
     return map;
   }, [route?.category_statuses]);
 
-  const requireStockCount = useMemo(() => (isMultiBrand ? currentBrand?.require_stock_count : route?.require_stock_count) ?? false, [isMultiBrand, currentBrand, route]);
-  const requireValidityCheck = useMemo(() => (isMultiBrand ? currentBrand?.require_validity_check : route?.require_validity_check) ?? false, [isMultiBrand, currentBrand, route]);
+  const checklistType = useMemo(() => (isMultiBrand ? currentBrand?.checklist_type : route?.checklist_type) || 'standard', [isMultiBrand, currentBrand, route]);
+  const isCheckinOnlyMode = checklistType === 'checkin_only';
+
+  const requireStockCountRaw = useMemo(() => (isMultiBrand ? currentBrand?.require_stock_count : route?.require_stock_count) ?? false, [isMultiBrand, currentBrand, route]);
+  const requireValidityCheckRaw = useMemo(() => (isMultiBrand ? currentBrand?.require_validity_check : route?.require_validity_check) ?? false, [isMultiBrand, currentBrand, route]);
+
+  const requireStockCount = isCheckinOnlyMode ? false : requireStockCountRaw;
+  const requireValidityCheck = isCheckinOnlyMode ? false : requireValidityCheckRaw;
   const canQuickCheck = !requireStockCount && !requireValidityCheck;
 
   // Stock count executions (Contagem de Saldo) for this route
   const { data: stockCountExecs = [] } = useRouteStockCount(id);
   const stockCountBlocking = useMemo(() => {
+    if (isCheckinOnlyMode) return [];
     // Sempre bloqueia a conclusão da rota quando houver contagem pendente.
     // Só libera se a contagem foi concluída, justificada ou adiada com motivo.
     return (stockCountExecs as any[]).filter((e: any) => {
       const resolved = e.status === 'completed' || e.status === 'justified' || e.status === 'postponed';
       return !resolved;
     });
-  }, [stockCountExecs]);
+  }, [stockCountExecs, isCheckinOnlyMode]);
 
 
 
@@ -1082,6 +1090,8 @@ export default function PromotorRota() {
         accuracy: pos?.coords.accuracy 
       });
 
+      setCheckinGeoError(null);
+
       const body = {
         id,
         latitude: pos?.coords.latitude,
@@ -1092,14 +1102,77 @@ export default function PromotorRota() {
         all_routes_at_pdv: true,
       };
 
-      // Always use background queue for check-in for performance
-      await queueApiCall({
-        url: `/api/merch/promotor/routes/${id}/checkin`,
-        method: 'POST',
-        body,
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('promotor_token') || localStorage.getItem('auth_token')}` },
-        dependsOnUploadId: effectivePhotoUrl?.startsWith('local-file://') ? effectivePhotoUrl.replace('local-file://', '') : undefined
-      });
+      if (isOnline) {
+        try {
+          const token = localStorage.getItem('promotor_token') || localStorage.getItem('auth_token') || '';
+          const baseUrl = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+          const url = `${baseUrl}/api/merch/promotor/routes/${id}/checkin`;
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify(body),
+          });
+          let result: any = {};
+          try { result = await response.json(); } catch {}
+          const errorCode = result?.error_code || result?.error || '';
+          const details = result?.details || {};
+          const isGeoError =
+            result?.error === 'outside_geofence' ||
+            errorCode === 'GEO_OUT_OF_RANGE' ||
+            (typeof result?.error === 'string' && result.error.includes('área permitida'));
+
+          if (!response.ok && isGeoError) {
+            const placeType = details.place_type === 'sede' ? 'Sede' : (details.place_name || 'PDV');
+            const modeLabel = details.mode === 'polygon'
+              ? 'polígono geográfico (perímetro)'
+              : (details.radius_meters != null ? `raio de ${Number(details.radius_meters)} m` : 'raio de alcance');
+            const distText = details.distance_meters != null
+              ? ` — você está a ~${details.distance_meters >= 1000
+                  ? `${(details.distance_meters/1000).toFixed(1).replace('.',',')} km`
+                  : `${details.distance_meters} m`} do local`
+              : '';
+            const fullMsg = result?.message || `Você precisa estar no ${placeType} para fazer check-in.${distText}`;
+            const hintMsg = details.mode_hint
+              ? `${details.mode_hint} Aproxime-se para concluir o check-in.`
+              : `Verificação: ${modeLabel}. Aproxime-se do local para habilitar o check-in.${details.accept_justification ? ' Caso esteja impossibilitado, envie justificativa.' : ''}`;
+            setCheckinGeoError({ title: '📍 Fora da área permitida', message: fullMsg, details: { ...details, hint: hintMsg, placeType } });
+            logger.warn('[handleCheckin] Check-in bloqueado por geofence', { routeId: id, details });
+            toast.error(fullMsg, { duration: 10000 });
+            toast.error(hintMsg, { duration: 10000 });
+            return;
+          }
+          if (!response.ok) {
+            throw new Error(result?.error || result?.message || `Erro na requisição (${response.status})`);
+          }
+        } catch (e: any) {
+          if (e?.message && (
+            e.message.includes('área permitida') ||
+            e.message.includes('GEO_OUT_OF_RANGE') ||
+            e.message.includes('outside_geofence')
+          )) {
+            throw e;
+          }
+          logger.warn('[handleCheckin] Chamada síncrona falhou, caindo para queueApiCall', { error: e?.message });
+          await queueApiCall({
+            url: `/api/merch/promotor/routes/${id}/checkin`,
+            method: 'POST',
+            body,
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('promotor_token') || localStorage.getItem('auth_token')}` },
+            dependsOnUploadId: effectivePhotoUrl?.startsWith('local-file://') ? effectivePhotoUrl.replace('local-file://', '') : undefined
+          });
+        }
+      } else {
+        await queueApiCall({
+          url: `/api/merch/promotor/routes/${id}/checkin`,
+          method: 'POST',
+          body,
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('promotor_token') || localStorage.getItem('auth_token')}` },
+          dependsOnUploadId: effectivePhotoUrl?.startsWith('local-file://') ? effectivePhotoUrl.replace('local-file://', '') : undefined
+        });
+      }
       // Removed toast per user request
 
       // Otimista: libera a UI imediatamente para o promotor seguir o trabalho
@@ -1219,6 +1292,34 @@ export default function PromotorRota() {
 
   const categoriesBlock = (isActive && (!isMultiBrand || activeBrandId)) ? (
           <div className="space-y-4">
+            {isCheckinOnlyMode ? (
+              <Card className="border-emerald-300/60 bg-emerald-50/60">
+                <CardContent className="p-5 text-center space-y-3">
+                  <div className="w-14 h-14 rounded-full bg-emerald-100 mx-auto flex items-center justify-center">
+                    <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-emerald-900">
+                      {isMultiBrand && currentBrand?.brand_name ? `${currentBrand.brand_name} · ` : ''}
+                      Checklist de Presença
+                    </h3>
+                    <p className="text-sm text-emerald-800 mt-1">
+                      Este checklist é apenas para confirmar sua presença no PDV.
+                      Não são necessários produtos, estoque, validade ou fotos de categorias.
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-center gap-1 text-[11px] text-emerald-700 pt-1">
+                    <p className="flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" /> Check-in realizado
+                    </p>
+                    <p className="text-muted-foreground text-[10px]">
+                      Ao finalizar a rota abaixo, sua visita será registrada.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+            <>
             {(() => {
               const stockBrandId = isMultiBrand ? activeBrandId : route?.brand_id;
               const stockBrandName = isMultiBrand ? (currentBrand?.brand_name || route.brand_name) : route?.brand_name;
@@ -1523,14 +1624,20 @@ export default function PromotorRota() {
                 </div>
               );
             })}
+            </>
+            )}
 
             {/* Complete Route button */}
             {(() => {
               // Para rotas multi-marcas, a conclusão global deve checar TODOS os produtos de TODAS as marcas
               const allExecutions = route?.executions || [];
-              const totalExecsGlobal = allExecutions.length;
-              const completedExecsGlobal = allExecutions.filter((e: any) => e.status === 'completed').length;
-              const allProductsDoneGlobal = totalExecsGlobal > 0 && completedExecsGlobal === totalExecsGlobal;
+              const totalExecsGlobalRaw = allExecutions.length;
+              const completedExecsGlobalRaw = allExecutions.filter((e: any) => e.status === 'completed').length;
+
+              // MODO CHECKIN_ONLY: zera as exigências de produtos/fotos de categoria
+              const totalExecsGlobal = isCheckinOnlyMode ? 0 : totalExecsGlobalRaw;
+              const completedExecsGlobal = isCheckinOnlyMode ? 0 : completedExecsGlobalRaw;
+              const allProductsDoneGlobal = isCheckinOnlyMode ? true : (totalExecsGlobal > 0 && completedExecsGlobal === totalExecsGlobal);
               
               // Verificação global de fotos de categoria (DEPOIS) em todas as marcas/categorias
               const allExecutionsGroupedGlobal = allExecutions.reduce((acc: any, e: any) => {
@@ -1540,7 +1647,7 @@ export default function PromotorRota() {
                 return acc;
               }, {});
 
-              const globalMissingBeforePhotos = Object.entries(allExecutionsGroupedGlobal).filter(([key, data]: [string, any]) => {
+              const globalMissingBeforePhotos = isCheckinOnlyMode ? [] : Object.entries(allExecutionsGroupedGlobal).filter(([key, data]: [string, any]) => {
                 const { catId, routeBrandId, execs } = data;
                 const catStatus = categoryStatusMap[key] || categoryStatusMap[catId];
                 const rbConfig = isMultiBrand ? routeBrands.find((b: any) => b.id === routeBrandId) : null;
@@ -1554,7 +1661,7 @@ export default function PromotorRota() {
                 return !hasBefore;
               });
 
-              const globalMissingAfterPhotos = Object.entries(allExecutionsGroupedGlobal).filter(([key, data]: [string, any]) => {
+              const globalMissingAfterPhotos = isCheckinOnlyMode ? [] : Object.entries(allExecutionsGroupedGlobal).filter(([key, data]: [string, any]) => {
                 const { catId, routeBrandId, execs } = data;
                 const catStatus = categoryStatusMap[key] || categoryStatusMap[catId];
                 const allDone = execs.every((e: any) => e.status === 'completed');
@@ -1649,24 +1756,32 @@ export default function PromotorRota() {
                     handleCompleteRoute();
                     }
                   }} disabled={checkout.isPending} variant={canCompleteRoute ? 'default' : 'secondary'}>
-                    <Check className="h-5 w-5 mr-2" /> Concluir Rota ({completedExecsGlobal}/{totalExecsGlobal})
+                    <Check className="h-5 w-5 mr-2" /> {isCheckinOnlyMode ? 'Concluir Presença' : `Concluir Rota (${completedExecsGlobal}/${totalExecsGlobal})`}
                   </Button>
                   {!canCompleteRoute && (
                     <div className="space-y-1">
                       <p className="text-[10px] text-center text-destructive">
-                        ⚠️ {!allProductsDoneGlobal 
-                          ? 'Todos os produtos de TODAS as marcas devem estar executados (100%) para concluir a rota.'
-                          : !allBeforePhotosDone
-                            ? 'Tire as fotos obrigatórias (ANTES) de todas as categorias.'
-                            : !allAfterPhotosDone
-                              ? 'Tire as fotos obrigatórias (DEPOIS) de todas as categorias concluídas.'
-                              : !allBrandsCompleted 
-                                ? 'Conclua o checklist de todas as marcas antes de finalizar a rota.'
-                                : stockCountPending > 0
-                                  ? `Contagem de estoque obrigatória pendente em ${stockCountPending} marca(s).`
-                                  : `Tempo mínimo: faltam ${minDuration - elapsedMinutes} min.`}
+                        ⚠️ {isCheckinOnlyMode
+                          ? (stockCountPending > 0
+                              ? `Contagem de estoque obrigatória pendente em ${stockCountPending} marca(s).`
+                              : !hasMinDurationMet
+                                ? `Tempo mínimo: faltam ${minDuration - elapsedMinutes} min.`
+                                : !allBrandsCompleted
+                                  ? 'Conclua o checklist de todas as marcas antes de finalizar a rota.'
+                                  : 'Aguarde o check-in ser processado.')
+                          : !allProductsDoneGlobal 
+                            ? 'Todos os produtos de TODAS as marcas devem estar executados (100%) para concluir a rota.'
+                            : !allBeforePhotosDone
+                              ? 'Tire as fotos obrigatórias (ANTES) de todas as categorias.'
+                              : !allAfterPhotosDone
+                                ? 'Tire as fotos obrigatórias (DEPOIS) de todas as categorias concluídas.'
+                                : !allBrandsCompleted 
+                                  ? 'Conclua o checklist de todas as marcas antes de finalizar a rota.'
+                                  : stockCountPending > 0
+                                    ? `Contagem de estoque obrigatória pendente em ${stockCountPending} marca(s).`
+                                    : `Tempo mínimo: faltam ${minDuration - elapsedMinutes} min.`}
                       </p>
-                      {allProductsDoneGlobal && allBrandsCompleted && allAfterPhotosDone && !hasMinDurationMet && (
+                      {(isCheckinOnlyMode ? hasMinDurationMet : allProductsDoneGlobal && allBrandsCompleted && allAfterPhotosDone) && !hasMinDurationMet && (
                         <p className="text-[10px] text-center text-muted-foreground flex items-center justify-center gap-1">
                           <Clock className="h-3 w-3" /> Tempo mínimo de permanência: {minDuration} min
                         </p>
@@ -1680,7 +1795,9 @@ export default function PromotorRota() {
 
 
             {/* Extra Point button */}
-            <Button variant="outline" className="w-full h-10 border-dashed border-orange-400/50 text-orange-600 hover:bg-orange-50"
+            {!isCheckinOnlyMode && (
+            <>
+              <Button variant="outline" className="w-full h-10 border-dashed border-orange-400/50 text-orange-600 hover:bg-orange-50"
               onClick={() => {
                 const cats = Object.entries(groupedExecs).filter(([, v]) => !v.isExtraGroup);
                 if (cats.length === 1) {
@@ -1699,6 +1816,8 @@ export default function PromotorRota() {
                 ? 'Concluir a rota finaliza todas as marcas. O checkout da loja só será feito na última rota do PDV.'
                 : 'Concluir a rota finaliza o checklist desta marca. O checkout da loja só será feito na última rota do PDV.'}
             </p>
+            </>
+            )}
           </div>
   ) : null;
 
@@ -1727,6 +1846,11 @@ export default function PromotorRota() {
               <Badge className={route.status === 'in_progress' ? 'bg-orange-500/20 text-orange-700' : route.status === 'completed' ? 'bg-green-500/20 text-green-700' : 'bg-blue-500/20 text-blue-700'}>
                 {route.status === 'in_progress' ? 'Em Andamento' : route.status === 'completed' ? 'Concluída' : 'Agendada'}
               </Badge>
+              {isCheckinOnlyMode && (
+                <Badge className="bg-emerald-500/15 text-emerald-700 border-0">
+                  📍 Apenas Presença
+                </Badge>
+              )}
             </div>
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{route.pdv_address || route.pdv_city}</span>
@@ -1864,7 +1988,77 @@ export default function PromotorRota() {
           </div>
         )}
 
+        {/* Alerta explícito quando check-in falha por GPS */}
+        {needsCheckin && checkinGeoError && (
+          <Card className="border-destructive/60 bg-destructive/5 shadow-md">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="shrink-0 w-10 h-10 rounded-full bg-destructive/15 flex items-center justify-center">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <h3 className="text-sm font-bold text-destructive flex items-center gap-2">
+                    {checkinGeoError.title}
+                  </h3>
+                  <p className="text-sm font-medium leading-relaxed">
+                    {checkinGeoError.message}
+                  </p>
+                  <p className="text-[13px] text-destructive/90 leading-relaxed">
+                    {checkinGeoError.details?.hint ||
+                      `Você precisa estar dentro da área permitida (polígono ou raio) da ${checkinGeoError.details?.placeType || 'Sede/PDV'} para fazer o check-in.`}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="shrink-0 -mt-1 -mr-1 h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+                  onClick={() => setCheckinGeoError(null)}
+                  aria-label="Fechar aviso"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
 
+              {!!checkinGeoError.details?.distance_meters && (
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="rounded-lg border border-destructive/20 bg-background/60 p-2.5">
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Distância do local</p>
+                    <p className="text-sm font-bold mt-0.5">
+                      {checkinGeoError.details.distance_meters >= 1000
+                        ? `${(checkinGeoError.details.distance_meters / 1000).toFixed(1).replace('.',',')} km`
+                        : `${checkinGeoError.details.distance_meters} m`}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-destructive/20 bg-background/60 p-2.5">
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Tipo de verificação</p>
+                    <p className="text-sm font-bold mt-0.5">
+                      {checkinGeoError.details?.mode === 'polygon' ? 'Polígono (perímetro)' : `Raio (${checkinGeoError.details?.radius_meters != null ? `${Number(checkinGeoError.details.radius_meters)} m` : 'configurado'})`}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 pt-1">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="flex-1 h-9"
+                  onClick={() => {
+                    setCheckinGeoError(null);
+                    if (navigator.geolocation) {
+                      navigator.geolocation.getCurrentPosition(() => {}, () => {}, { enableHighAccuracy: true, timeout: 5000 });
+                    }
+                    if (route.require_checkin_photo) {
+                      setCheckinPhotoUrl('');
+                    }
+                  }}
+                >
+                  <MapPin className="h-4 w-4 mr-1.5" /> Tentar novamente
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Check-in photo requirement */}
         {needsCheckin && requireCheckinPhoto && !checkinPhotoUrl && (

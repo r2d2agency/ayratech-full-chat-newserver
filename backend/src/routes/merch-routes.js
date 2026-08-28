@@ -116,6 +116,7 @@ const EFF_CHECKLIST_COLUMNS = [
   ['eff_category_photo_mode', 'VARCHAR(20)'],
   ['eff_min_category_photos_before', 'INT'],
   ['eff_min_category_photos_after', 'INT'],
+  ['eff_checklist_type', 'VARCHAR(20)'],
 ];
 
 let checklistMergeColumnsReady = null;
@@ -184,18 +185,23 @@ async function computeMergedChecklist(checklistIds) {
     const v = r[field] == null ? def : parseInt(r[field], 10);
     return Number.isFinite(v) ? Math.max(acc, v) : acc;
   }, 0);
+  // Determina o tipo efetivo: se QUALQUER checklist for "standard" (exige produtos),
+  // domina. Apenas retorna checkin_only se TODOS forem checkin_only.
+  const allCheckinOnly = rows.every((r) => (r.checklist_type || 'standard') === 'checkin_only');
+  const effChecklistType = allCheckinOnly && rows.length > 0 ? 'checkin_only' : 'standard';
 
   return {
     checklist_ids: ids,
     eff_require_checkin_photo: anyTrue('require_checkin_photo', true),
     eff_require_checkout_photo: anyTrue('require_checkout_photo', false),
-    eff_require_stock_count: anyTrue('require_stock_count', false),
-    eff_require_validity_check: anyTrue('require_validity_check', false),
+    eff_require_stock_count: effChecklistType === 'standard' ? anyTrue('require_stock_count', false) : false,
+    eff_require_validity_check: effChecklistType === 'standard' ? anyTrue('require_validity_check', false) : false,
     eff_require_extra_point: anyTrue('require_extra_point', false),
-    eff_require_category_photos: anyTrue('require_category_photos', true),
+    eff_require_category_photos: effChecklistType === 'standard' ? anyTrue('require_category_photos', true) : false,
     eff_category_photo_mode: mergePhotoModes(rows.map((r) => r.category_photo_mode || 'both')) || 'both',
     eff_min_category_photos_before: maxInt('min_category_photos_before', 1) || 0,
     eff_min_category_photos_after: maxInt('min_category_photos_after', 1) || 0,
+    eff_checklist_type: effChecklistType,
   };
 }
 
@@ -448,6 +454,16 @@ router.get('/routes', async (req, res) => {
           `SELECT rb.route_id, rb.id, rb.brand_id, rb.checklist_id, rb.sort_order,
                   rb.progress_pct as stored_progress_pct, rb.status as stored_status,
                   b.name as brand_name, bc.name as checklist_name,
+                  COALESCE(rb.eff_checklist_type, bc.checklist_type, 'standard') as checklist_type,
+                  COALESCE(rb.eff_require_checkin_photo, bc.require_checkin_photo, true) as require_checkin_photo,
+                  COALESCE(rb.eff_require_checkout_photo, bc.require_checkout_photo, false) as require_checkout_photo,
+                  COALESCE(rb.eff_require_stock_count, bc.require_stock_count, false) as require_stock_count,
+                  COALESCE(rb.eff_require_validity_check, bc.require_validity_check, false) as require_validity_check,
+                  COALESCE(rb.eff_require_extra_point, bc.require_extra_point, false) as require_extra_point,
+                  COALESCE(rb.eff_require_category_photos, bc.require_category_photos, true) as require_category_photos,
+                  COALESCE(rb.eff_category_photo_mode, bc.category_photo_mode, 'both') as category_photo_mode,
+                  COALESCE(rb.eff_min_category_photos_before, bc.min_category_photos_before, 1) as min_category_photos_before,
+                  COALESCE(rb.eff_min_category_photos_after, bc.min_category_photos_after, 1) as min_category_photos_after,
                   (SELECT COUNT(*) FROM route_product_executions rpe WHERE rpe.route_brand_id = rb.id) as total_products,
                   (SELECT COUNT(*) FROM route_product_executions rpe WHERE rpe.route_brand_id = rb.id AND rpe.status = 'completed') as completed_products,
                   -- Conta apenas fotos realmente sincronizadas (ignora blob:/local-file: pendentes)
@@ -2594,6 +2610,15 @@ ensureRouteBrandsTables()
 // Helper: hydrate products for a route_brand
 async function hydrateRouteBrandProducts(routeId, routeBrandId, pdvId, brandId) {
   try {
+    const typeCheck = await query(
+      `SELECT COALESCE(rb.eff_checklist_type, bc.checklist_type, 'standard') as checklist_type
+       FROM route_brands rb
+       LEFT JOIN brand_checklists bc ON bc.id = rb.checklist_id
+       WHERE rb.id = $1 LIMIT 1`,
+      [routeBrandId]
+    ).catch(() => ({ rows: [] }));
+    if (typeCheck.rows[0]?.checklist_type === 'checkin_only') return 0;
+
     const mixProducts = await query(
       `SELECT pbp.product_id, p.category_id
        FROM merch_pdv_brand_products pbp
@@ -2869,6 +2894,7 @@ router.get('/promotor/routes/:id', promotorAuth, async (req, res) => {
        p.latitude as pdv_lat, p.longitude as pdv_lng, p.radius_meters as pdv_radius,
        b.name as brand_name, 
        COALESCE(bc.name, bc2.name) as checklist_name,
+       COALESCE(r.eff_checklist_type, bc.checklist_type, bc2.checklist_type, 'standard') as checklist_type,
        COALESCE(r.eff_require_checkin_photo, bc.require_checkin_photo, bc2.require_checkin_photo, true) as require_checkin_photo,
        COALESCE(r.eff_require_checkout_photo, bc.require_checkout_photo, bc2.require_checkout_photo, false) as require_checkout_photo,
        COALESCE(r.eff_require_stock_count, bc.require_stock_count, bc2.require_stock_count, false) as require_stock_count,
@@ -2910,7 +2936,8 @@ router.get('/promotor/routes/:id', promotorAuth, async (req, res) => {
 
       const simpleRoute = await query(
         `SELECT r.*, p.name as pdv_name, p.address as pdv_address, p.city as pdv_city,
-         p.latitude as pdv_lat, p.longitude as pdv_lng, p.radius_meters as pdv_radius
+         p.latitude as pdv_lat, p.longitude as pdv_lng, p.radius_meters as pdv_radius,
+         'standard' as checklist_type
          FROM merch_routes r
          LEFT JOIN pdvs p ON p.id = r.pdv_id
          WHERE r.id=$1`, [req.params.id]
@@ -2944,6 +2971,7 @@ router.get('/promotor/routes/:id', promotorAuth, async (req, res) => {
       const rbRes = await query(
         `SELECT DISTINCT ON (rb.id) rb.*, b.name as brand_name, 
          COALESCE(bc.name, bc2.name) as checklist_name,
+         COALESCE(rb.eff_checklist_type, bc.checklist_type, bc2.checklist_type, 'standard') as checklist_type,
          COALESCE(rb.eff_require_checkin_photo, bc.require_checkin_photo, bc2.require_checkin_photo, true) as require_checkin_photo,
          COALESCE(rb.eff_require_checkout_photo, bc.require_checkout_photo, bc2.require_checkout_photo, false) as require_checkout_photo,
          COALESCE(rb.eff_require_stock_count, bc.require_stock_count, bc2.require_stock_count, false) as require_stock_count,
@@ -3151,22 +3179,55 @@ router.post('/promotor/routes/:id/checkin', promotorAuth, async (req, res) => {
       const routeInfo = await query(`SELECT pdv_id FROM merch_routes WHERE id=$1 AND promoter_id=$2`, [req.params.id, req.employeeId]);
       const pdvId0 = routeInfo.rows[0]?.pdv_id;
       if (pdvId0 && latitude != null && longitude != null) {
-        const pdvGeo = await query(`SELECT latitude, longitude, radius_meters, geofence_polygon FROM pdvs WHERE id=$1`, [pdvId0]);
+        const pdvGeo = await query(`SELECT p.id, p.name, p.type, p.latitude, p.longitude, p.radius_meters, p.geofence_polygon
+                                    FROM pdvs p WHERE p.id=$1`, [pdvId0]);
         if (pdvGeo.rows[0]) {
+          const pdv = pdvGeo.rows[0];
           const v = validatePdvLocation({
             userLat: latitude, userLng: longitude,
-            pdvLat: pdvGeo.rows[0].latitude, pdvLng: pdvGeo.rows[0].longitude,
-            radiusMeters: pdvGeo.rows[0].radius_meters,
-            polygon: pdvGeo.rows[0].geofence_polygon,
+            pdvLat: pdv.latitude, pdvLng: pdv.longitude,
+            radiusMeters: pdv.radius_meters,
+            polygon: pdv.geofence_polygon,
           });
           if (v.status === 'outside' && !geo_justification) {
+            const placeLabel = pdv.type === 'sede' ? 'Sede' : `PDV ${pdv.name ? '— ' + pdv.name : ''}`;
+            const dist = v.distance != null ? Math.round(v.distance) : null;
+            const hint = dist != null
+              ? ` (você está a ~${dist >= 1000 ? `${(dist/1000).toFixed(1).replace('.',',')} km` : `${dist} m` do local)`
+              : '';
+            const modeHint = v.mode === 'polygon'
+              ? 'Você está fora do perímetro (polígono geográfico) cadastrado para este local.'
+              : 'Você está fora do raio de alcance (em metros) cadastrado para este local.';
+            const hasOrgHeadquarters = await query(
+              `SELECT 1 FROM pdvs WHERE organization_id=$1 AND type='sede' AND (latitude IS NOT NULL OR geofence_polygon IS NOT NULL) LIMIT 1`,
+              [req.orgId]
+            ).catch(() => ({ rows: [] }));
+            const hasLinkedSede = await query(
+              `SELECT 1 FROM employees e
+               JOIN pdvs p ON p.id = e.branch_id OR p.id = e.pdv_id
+               WHERE e.id=$1 AND p.type='sede' AND (p.latitude IS NOT NULL OR p.geofence_polygon IS NOT NULL) LIMIT 1`,
+              [req.employeeId]
+            ).catch(() => ({ rows: [] }));
+            const locationOptions = [
+              pdv.type === 'sede' ? 'na Sede cadastrada' : `no PDV de destino da rota${pdv.name ? ` (${pdv.name})` : ''}`,
+            ];
+            if (pdv.type !== 'sede' && (hasOrgHeadquarters.rows.length > 0 || hasLinkedSede.rows.length > 0)) {
+              locationOptions.push('ou na Sede da empresa');
+            }
             return res.status(400).json({
               error: 'outside_geofence',
-              message: v.mode === 'polygon'
-                ? 'Você está fora do perímetro do PDV. Entre no local para fazer check-in ou envie justificativa.'
-                : 'Você está fora da área permitida do PDV. Aproxime-se ou envie justificativa.',
-              distance: v.distance != null ? Math.round(v.distance) : null,
-              mode: v.mode,
+              error_code: 'GEO_OUT_OF_RANGE',
+              message: `Você precisa estar ${locationOptions.join(' ')} dentro da área permitida para fazer o check-in.${hint}`,
+              details: {
+                place_type: pdv.type === 'sede' ? 'sede' : 'pdv',
+                place_name: pdv.name || null,
+                mode: v.mode === 'polygon' ? 'polygon' : 'radius',
+                mode_hint: modeHint,
+                distance_meters: dist,
+                radius_meters: pdv.radius_meters != null ? Number(pdv.radius_meters) : null,
+                user_coords: { latitude, longitude },
+                accept_justification: true,
+              },
             });
           }
         }
@@ -3790,7 +3851,33 @@ router.post('/promotor/routes/:id/checkout', promotorAuth, async (req, res) => {
     // Fallback: materialize executions for rules that didn't exist when route was scheduled
     await ensureStockCountExecutionsForRoute(route);
 
-    const missingStockCounts = await getMissingMandatoryStockCountsForRoute(route);
+    // Determina o tipo efetivo do checklist da rota (e suas marcas). Se todas forem checkin_only, pula alguns bloqueios.
+    let allBrandsCheckinOnly = true;
+    let hasAnyBrand = false;
+    try {
+      const ctRes = await query(
+        `SELECT COALESCE(r.eff_checklist_type, bc_r.checklist_type, 'standard') as route_type,
+                COALESCE(rb.eff_checklist_type, bc_b.checklist_type, 'standard') as brand_type
+         FROM merch_routes r
+         LEFT JOIN brand_checklists bc_r ON bc_r.id = r.checklist_id
+         LEFT JOIN route_brands rb ON rb.route_id = r.id
+         LEFT JOIN brand_checklists bc_b ON bc_b.id = rb.checklist_id
+         WHERE r.id = $1`,
+        [req.params.id]
+      );
+      if (ctRes.rows.length > 0) {
+        for (const row of ctRes.rows) {
+          hasAnyBrand = true;
+          if ((row.route_type || 'standard') !== 'checkin_only' && (row.brand_type || 'standard') !== 'checkin_only') {
+            allBrandsCheckinOnly = false;
+            break;
+          }
+        }
+      }
+      if (!hasAnyBrand) allBrandsCheckinOnly = false;
+    } catch { allBrandsCheckinOnly = false; }
+
+    const missingStockCounts = allBrandsCheckinOnly ? [] : await getMissingMandatoryStockCountsForRoute(route);
     if (missingStockCounts.length > 0) {
       return res.status(409).json({
         error: 'stock_count_pending',
@@ -3798,10 +3885,13 @@ router.post('/promotor/routes/:id/checkout', promotorAuth, async (req, res) => {
       });
     }
 
-    // Check pending items
-    const pending = await query(
-      `SELECT COUNT(*) as cnt FROM route_product_executions WHERE route_id=$1 AND status != 'completed'`, [req.params.id]
-    );
+    // Check pending items (se checkin_only, não conta produtos pois não deve haver nenhum)
+    const pending = allBrandsCheckinOnly
+      ? { rows: [{ cnt: 0 }] }
+      : await query(
+          `SELECT COUNT(*) as cnt FROM route_product_executions WHERE route_id=$1 AND status != 'completed'`,
+          [req.params.id]
+        );
 
     // Complete the route
     const result = await query(
