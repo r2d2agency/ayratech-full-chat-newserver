@@ -3192,9 +3192,16 @@ router.post('/promotor/routes/:id/checkin', promotorAuth, async (req, res) => {
           if (v.status === 'outside' && !geo_justification) {
             const placeLabel = pdv.type === 'sede' ? 'Sede' : `PDV ${pdv.name ? '— ' + pdv.name : ''}`;
             const dist = v.distance != null ? Math.round(v.distance) : null;
-            const hint = dist != null
-              ? ` (você está a ~${dist >= 1000 ? `${(dist/1000).toFixed(1).replace('.',',')} km` : `${dist} m` do local)`
-              : '';
+            let distStr = '';
+            if (dist != null) {
+              if (dist >= 1000) {
+                const km = (dist / 1000).toFixed(1).replace('.', ',');
+                distStr = ` (você está a ~${km} km do local)`;
+              } else {
+                distStr = ` (você está a ~${dist} m do local)`;
+              }
+            }
+            const hint = distStr;
             const modeHint = v.mode === 'polygon'
               ? 'Você está fora do perímetro (polígono geográfico) cadastrado para este local.'
               : 'Você está fora do raio de alcance (em metros) cadastrado para este local.';

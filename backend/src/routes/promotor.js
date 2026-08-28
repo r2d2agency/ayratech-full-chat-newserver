@@ -742,11 +742,15 @@ router.post('/punch', authenticatePromotor, async (req, res) => {
       const allowException = rules.rows[0]?.allow_exception_punch === true;
       if (!allowException && !justification) {
         const meta = geoLastPdvMeta || {};
-        const dist = meta.distance_meters != null
-          ? (meta.distance_meters >= 1000
-              ? ` (você está a ~${(meta.distance_meters/1000).toFixed(1).replace('.',',')} km do local)`
-              : ` (você está a ~${meta.distance_meters} m do local)`)
-          : '';
+        let dist = '';
+        if (meta.distance_meters != null) {
+          if (meta.distance_meters >= 1000) {
+            const km = (meta.distance_meters / 1000).toFixed(1).replace('.', ',');
+            dist = ` (você está a ~${km} km do local)`;
+          } else {
+            dist = ` (você está a ~${meta.distance_meters} m do local)`;
+          }
+        }
         const placeShort = meta.type === 'sede'
           ? 'na Sede cadastrada'
           : `no PDV selecionado${meta.name ? ` (${meta.name})` : ''}`;
