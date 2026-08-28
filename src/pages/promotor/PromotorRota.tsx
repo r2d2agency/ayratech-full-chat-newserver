@@ -1031,7 +1031,7 @@ export default function PromotorRota() {
       return;
     }
 
-    if (route?.require_checkin_photo && !effectivePhotoUrl) {
+    if ((route as any)?.require_checkin_photo !== false && !effectivePhotoUrl) {
       (handleCheckin as any)._running = false;
       toast.error('Esta rota exige foto obrigatória no check-in');
       return;
@@ -1200,6 +1200,8 @@ export default function PromotorRota() {
   const needsCheckin = (route.status === 'scheduled' || route.status === 'confirmed') && !checkinSubmitted;
   const isActive = route.status === 'in_progress' || (checkinSubmitted && (route.status === 'scheduled' || route.status === 'confirmed'));
   const isCompleted = route.status === 'completed';
+  // Foto de check-in: padrão do checklist é obrigatória. Só liberamos sem foto quando o flag vier explicitamente false.
+  const requireCheckinPhoto = (route as any)?.require_checkin_photo !== false;
 
   // Multi-brand: show brand selection screen after check-in
   const showBrandSelector = isMultiBrand && isActive && !activeBrandId;
@@ -1252,7 +1254,11 @@ export default function PromotorRota() {
               const isCompletedCategory = hasAfterPhoto;
               
               const photoOnlyMode = !requireStockCount && !requireValidityCheck;
-              const readyForAfterPhoto = allProductsDone || (photoOnlyMode && photoMode === 'after' && !effectivelyLocked);
+              const readyForAfterPhoto =
+                allProductsDone ||
+                execs.length === 0 ||
+                (photoOnlyMode && !effectivelyLocked) ||
+                (photoMode === 'after' && !effectivelyLocked);
 
               // Show after photo gate when products are done OR photo-only checklist asks only after-photo
               const needsAfterPhoto = requireCategoryPhotos && 
@@ -1345,7 +1351,7 @@ export default function PromotorRota() {
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      {hasBeforeUnlock && !isExtraGroup && (
+                      {!isExtraGroup && (
                         <Button
                           size="sm"
                           variant="ghost"
@@ -1363,7 +1369,7 @@ export default function PromotorRota() {
                   </div>
 
                   {/* Painel de fotos extras da categoria */}
-                  {extraPhotosOpen[accordionKey] && hasBeforeUnlock && !isExtraGroup && (
+                  {extraPhotosOpen[accordionKey] && !isExtraGroup && (
                     <CategoryExtraPhotosPanel
                       routeId={id!}
                       catId={catId}
@@ -1824,7 +1830,7 @@ export default function PromotorRota() {
 
 
         {/* Check-in photo requirement */}
-        {needsCheckin && route.require_checkin_photo && !checkinPhotoUrl && (
+        {needsCheckin && requireCheckinPhoto && !checkinPhotoUrl && (
           <Card className="border-primary/30">
             <CardContent className="p-4 space-y-3">
               <div className="flex items-center gap-2 text-sm font-medium">
@@ -1847,7 +1853,7 @@ export default function PromotorRota() {
           </Card>
         )}
 
-        {needsCheckin && route.require_checkin_photo && checkinPhotoUrl && (
+        {needsCheckin && requireCheckinPhoto && checkinPhotoUrl && (
           <Card className="border-primary/30">
             <CardContent className="p-4 space-y-2">
               <LocalImage src={checkinPhotoUrl} alt="Check-in" className="w-full rounded-lg border max-h-64 object-cover" />
@@ -1866,7 +1872,7 @@ export default function PromotorRota() {
         )}
 
         {/* Botão de check-in padrão (sem foto obrigatória) */}
-        {needsCheckin && !route.require_checkin_photo && (
+        {needsCheckin && !requireCheckinPhoto && (
           <Button className="w-full h-14 text-lg" onClick={() => handleCheckin()} disabled={checkin.isPending}>
             {isFacialActiveCheckin ? <ScanFace className="h-5 w-5 mr-2" /> : <MapPin className="h-5 w-5 mr-2" />}
             {checkin.isPending ? 'Realizando check-in...' : 'Fazer Check-in'}
