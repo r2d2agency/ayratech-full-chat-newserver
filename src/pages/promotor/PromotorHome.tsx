@@ -227,6 +227,86 @@ export default function PromotorHome() {
     });
   }, [todayRoutes, pdvVisits]);
 
+  const preValidateGeoForPdv = useCallback(async (pdvId: string, pdvName?: string, mode: 'pdv_checkin' | 'punch') => {
+    const { validatePdvLocation, formatDistanceMeters } = await import('@/lib/geofence');
+    const target: any = (mode === 'punch' ? (dailyAssignment || availablePdvs[0]) : null) || null;
+    let pdv: any = null;
+    if (target && (target.id === pdvId || !pdvId || mode === 'punch')) {
+      pdv = target;
+    }
+    if (!pdv) {
+      const found = (todayRoutes.find((r: any) => r.pdv_id === pdvId)) as any;
+      if (found?.pdv_lat != null) {
+        pdv = {
+          id: found.pdv_id,
+          name: found.pdv_name,
+          latitude: found.pdv_lat,
+          longitude: found.pdv_lng,
+          radius_meters: found.pdv_radius,
+          geofence_polygon: found.pdv_geofence_polygon,
+        };
+      }
+    }
+    if (!pdv) {
+      const listPdv = availablePdvs.find((p: any) => p.id === pdvId);
+      if (listPdv) pdv = listPdv;
+    }
+
+    let userPos: { lat: number; lng: number } | null = null;
+    if (mode === 'punch' && currentPos) {
+      userPos = currentPos;
+    } else {
+      try {
+        const p = await new Promise<GeolocationPosition>((resolve, reject) => {
+          if (!navigator.geolocation) return reject(new Error('GPS não suportado'));
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true, timeout: 10000, maximumAge: 0,
+          });
+        });
+        userPos = { lat: p.coords.latitude, lng: p.coords.longitude };
+      } catch (e: any) {
+        if (e?.code === 1) throw new Error('Permissão de GPS negada. Por favor, autorize a localização.');
+        if (e?.code === 2) throw new Error('Posição indisponível. Verifique se o GPS está ativado.');
+        if (e?.code === 3) throw new Error('Tempo limite do GPS esgotado. Tente novamente em local aberto.');
+        throw new Error(e?.message || 'Não foi possível obter sua localização para validar a área permitida.');
+      }
+    }
+
+    const preCheck = validatePdvLocation({
+      userLat: userPos.lat, userLng: userPos.lng,
+      pdvLat: pdv?.latitude, pdvLng: pdv?.longitude,
+      radiusMeters: pdv?.radius_meters, polygon: pdv?.geofence_polygon || null,
+    });
+
+    if (preCheck.status === 'outside') {
+      const isPolygon = preCheck.mode === 'polygon';
+      const distFormatted = formatDistanceMeters(preCheck.distance);
+      const placeType = pdv?.type === 'sede' ? 'na Sede cadastrada' : (pdv?.name ? `no PDV (${pdv.name})` : 'no PDV selecionado');
+      const modeLabel = isPolygon
+        ? 'polígono geográfico (perímetro)'
+        : (pdv?.radius_meters != null ? `raio de ${Number(pdv.radius_meters)} m` : 'raio de alcance');
+      const distText = distFormatted.label ? ` — você está a ${distFormatted.label}` : '';
+      const actionLabel = mode === 'punch' ? 'para bater o ponto' : 'para fazer o check-in';
+      const msg = `Você precisa estar ${placeType} dentro da área permitida ${actionLabel}.${distText}`;
+      const hint = isPolygon
+        ? 'Fora do perímetro (polígono geográfico) cadastrado. Aproxime-se do local.'
+        : `Fora do raio de alcance (em metros) cadastrado. Verificação: ${modeLabel}. Aproxime-se do local para habilitar. Caso impossibilitado, envie justificativa.`;
+      const explicit: any = new Error(msg);
+      explicit._geoPreBlocked = true;
+      explicit.details = {
+        place_name: pdv?.name || pdvName || null,
+        place_type: pdv?.type || 'pdv',
+        mode: preCheck.mode,
+        distance_meters: preCheck.distance,
+        radius_meters: pdv?.radius_meters != null ? Number(pdv.radius_meters) : null,
+        hint,
+      };
+      throw explicit;
+    }
+
+    return userPos;
+  }, [todayRoutes, availablePdvs, dailyAssignment, currentPos]);
+
   // PDV Check-in handler
   const handlePdvCheckin = useCallback(async (pdvId: string, photoOverride?: string) => {
     const effectivePhoto = photoOverride || pdvCheckinPhoto;
@@ -555,7 +635,31 @@ export default function PromotorHome() {
       toast({ title: 'GPS necessário', description: 'Ative a localização para bater o ponto', variant: 'destructive' });
       return;
     }
-    // If facial is active, require verification first
+
+    // PRÉ-VALIDAÇÃO DE GEODEFENCE ANTES DA FACIAL: usuário não deve perder tempo com biometria
+    // se já está longe do PDV/Sede de destino do ponto.
+    const pdvId = dailyAssignment?.pdv_id || availablePdvs[0]?.id;
+    if (!facialVerified && isOnline) {
+      try {
+        await preValidateGeoForPdv(pdvId, dailyAssignment?.pdv_name || availablePdvs[0]?.name, 'punch');
+      } catch (e: any) {
+        if (e?._geoPreBlocked) {
+          const details = e.details || {};
+          setPunchGeoError({
+            title: '📍 Fora da área permitida',
+            message: e.message,
+            details,
+          });
+          toast({ title: '📍 Fora da área permitida', description: e.message, variant: 'destructive', duration: 11000 });
+          toast({ title: 'Área permitida', description: details.hint, variant: 'destructive', duration: 11000 });
+          return;
+        }
+        toast({ title: 'Aviso de localização', description: e?.message || 'Não foi possível validar sua área permitida.', variant: 'destructive' });
+        return;
+      }
+    }
+
+    // If facial is active, require verification first (SÓ após geo aprovado)
     if (isFacialActive && !facialVerified) {
       setShowFaceVerify(true);
       return;
@@ -926,9 +1030,26 @@ export default function PromotorHome() {
             {/* Next route */}
             {!activeRoute && nextRoute && (
               <Card className="border-primary/30 bg-primary/5 cursor-pointer active:scale-[0.98]"
-                onClick={() => {
+                onClick={async () => {
                   const hasCheckin = pdvVisits.some((v: any) => v.pdv_id === nextRoute.pdv_id && v.checkin_at);
                   if (!hasCheckin) {
+                    try {
+                      await preValidateGeoForPdv(nextRoute.pdv_id, nextRoute.pdv_name, 'pdv_checkin');
+                    } catch (e: any) {
+                      if (e?._geoPreBlocked) {
+                        const details = e.details || {};
+                        setPdvCheckinGeoError({
+                          title: '📍 Fora da área permitida',
+                          message: e.message,
+                          details,
+                        });
+                        toast({ title: '📍 Fora da área permitida', description: e.message, variant: 'destructive', duration: 9000 });
+                        toast({ title: 'Área permitida', description: details.hint, variant: 'destructive', duration: 9000 });
+                        return;
+                      }
+                      toast({ title: 'Aviso de localização', description: e?.message || 'Não foi possível validar sua área permitida.', variant: 'destructive' });
+                      return;
+                    }
                     setActionPdv({ pdv_id: nextRoute.pdv_id, pdv_name: nextRoute.pdv_name });
                     if (isFacialActive && facialConfig?.descriptor) {
                       setShowFaceVerify(true);
@@ -979,11 +1100,28 @@ export default function PromotorHome() {
                         r.id === activeRoute?.id ? 'border-orange-400/50' :
                         r.status === 'completed' && !isAwaitingCheckout ? 'opacity-60' : 'hover:border-primary/30'
                       }`}
-                      onClick={() => {
+                      onClick={async () => {
                         if (r.status === 'cancelled' || r.status === 'not_done') return;
                         
                         const hasCheckin = pdvVisits.some((v: any) => v.pdv_id === r.pdv_id && v.checkin_at);
                         if (!hasCheckin) {
+                          try {
+                            await preValidateGeoForPdv(r.pdv_id, r.pdv_name, 'pdv_checkin');
+                          } catch (e: any) {
+                            if (e?._geoPreBlocked) {
+                              const details = e.details || {};
+                              setPdvCheckinGeoError({
+                                title: '📍 Fora da área permitida',
+                                message: e.message,
+                                details,
+                              });
+                              toast({ title: '📍 Fora da área permitida', description: e.message, variant: 'destructive', duration: 9000 });
+                              toast({ title: 'Área permitida', description: details.hint, variant: 'destructive', duration: 9000 });
+                              return;
+                            }
+                            toast({ title: 'Aviso de localização', description: e?.message || 'Não foi possível validar sua área permitida.', variant: 'destructive' });
+                            return;
+                          }
                           setActionPdv({ pdv_id: r.pdv_id, pdv_name: r.pdv_name });
                           if (isFacialActive && facialConfig?.descriptor) {
                             setShowFaceVerify(true);

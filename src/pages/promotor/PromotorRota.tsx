@@ -1055,6 +1055,91 @@ export default function PromotorRota() {
       toast.error('Esta rota exige foto obrigatória no check-in');
       return;
     }
+
+    setCheckinGeoError(null);
+
+    // 1) OBTÉM GPS E VALIDA GEODEFENCE ANTES MESMO DE PEDIR FACIAL —
+    //    usuário não deve perder tempo com biometria se está longe do PDV/Sede.
+    const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('GPS não suportado pelo seu navegador.'));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      });
+    }).catch(err => {
+      logger.error('[handleCheckin] Erro de GPS no check-in', { err, routeId: id });
+      if (err.code === 1) throw new Error('Permissão de GPS negada. Por favor, autorize o acesso à localização.');
+      if (err.code === 2) throw new Error('Posição indisponível. Verifique se o GPS está ativado.');
+      if (err.code === 3) throw new Error('Tempo limite do GPS esgotado. Tente novamente em um local mais aberto.');
+      return null;
+    });
+
+    logger.info('[handleCheckin] Localização obtida para check-in', {
+      routeId: id,
+      lat: pos?.coords.latitude,
+      lng: pos?.coords.longitude,
+      accuracy: pos?.coords.accuracy,
+    });
+
+    if (pos) {
+      try {
+        const { validatePdvLocation, formatDistanceMeters } = await import('@/lib/geofence');
+        const r = route as any || {};
+        const preCheck = validatePdvLocation({
+          userLat: pos.coords.latitude,
+          userLng: pos.coords.longitude,
+          pdvLat: r.pdv_lat,
+          pdvLng: r.pdv_lng,
+          radiusMeters: r.pdv_radius,
+          polygon: r.pdv_geofence_polygon || null,
+        });
+        if (preCheck.status === 'outside') {
+          const pdvType = r.pdv_type;
+          const placeType = pdvType === 'sede' ? 'Sede' : (r.pdv_name || 'PDV');
+          const distFormatted = formatDistanceMeters(preCheck.distance);
+          const isPolygon = preCheck.mode === 'polygon';
+          const modeLabel = isPolygon
+            ? 'polígono geográfico (perímetro)'
+            : (r.pdv_radius != null ? `raio de ${Number(r.pdv_radius)} m` : 'raio de alcance');
+          const distText = distFormatted.label ? ` — você está a ${distFormatted.label}` : '';
+          const msg = `Você precisa estar ${pdvType === 'sede' ? 'na Sede cadastrada' : `no PDV de destino da rota${r.pdv_name ? ` (${r.pdv_name})` : ''}`} dentro da área permitida para fazer o check-in.${distText}`;
+          const hint = isPolygon
+            ? 'Você está fora do perímetro (polígono geográfico) cadastrado para este local. Aproxime-se para concluir o check-in.'
+            : `Você está fora do raio de alcance (em metros) cadastrado para este local. Verificação: ${modeLabel}. Aproxime-se do local para habilitar o check-in. Caso esteja impossibilitado, envie justificativa.`;
+          setCheckinGeoError({
+            title: '📍 Fora da área permitida',
+            message: msg,
+            details: {
+              place_type: pdvType || 'pdv',
+              place_name: r.pdv_name || null,
+              mode: preCheck.mode,
+              mode_hint: isPolygon ? 'Você está fora do perímetro (polígono geográfico) cadastrado para este local.' : 'Você está fora do raio de alcance (em metros) cadastrado para este local.',
+              distance_meters: preCheck.distance,
+              radius_meters: r.pdv_radius != null ? Number(r.pdv_radius) : null,
+              user_coords: { latitude: pos.coords.latitude, longitude: pos.coords.longitude },
+              accept_justification: true,
+              hint,
+              placeType,
+            },
+          });
+          logger.warn('[handleCheckin] Pré-validação geo local reprovou ANTES de facial', { routeId: id, preCheck });
+          toast.error(msg, { duration: 10000 });
+          toast.error(hint, { duration: 10000 });
+          (handleCheckin as any)._running = false;
+          return;
+        }
+      } catch (e: any) {
+        // não bloqueia por erro da importação; segue para validação do backend
+        logger.warn('[handleCheckin] Pré-validação geo local falhou, seguindo para validação backend', { message: e?.message });
+      }
+    }
+
+    // 2) Geolocalização OK (ou sem GPS para validar em modo offline):
+    //    SÓ pede facial SE e SOMENTE SE passou pela etapa de GPS.
     if (isFacialActiveCheckin && faceVerifyAction !== 'checkin') {
       (handleCheckin as any)._running = false;
       setFaceVerifyAction('checkin');
@@ -1063,34 +1148,7 @@ export default function PromotorRota() {
     }
     setFaceVerifyAction(null);
     try {
-      logger.info('[handleCheckin] Iniciando check-in da rota', { routeId: id, pdvName: route?.pdv_name });
-      
-      const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-        if (!navigator.geolocation) {
-          reject(new Error('GPS não suportado pelo seu navegador.'));
-          return;
-        }
-        navigator.geolocation.getCurrentPosition(resolve, reject, { 
-          enableHighAccuracy: true, 
-          timeout: 10000,
-          maximumAge: 0
-        });
-      }).catch(err => {
-        logger.error('[handleCheckin] Erro de GPS no check-in', { err, routeId: id });
-        if (err.code === 1) throw new Error('Permissão de GPS negada. Por favor, autorize o acesso à localização.');
-        if (err.code === 2) throw new Error('Posição indisponível. Verifique se o GPS está ativado.');
-        if (err.code === 3) throw new Error('Tempo limite do GPS esgotado. Tente novamente em um local mais aberto.');
-        return null; // Don't block if GPS fails (especially offline)
-      });
-
-      logger.info('[handleCheckin] Localização obtida para check-in', { 
-        routeId: id, 
-        lat: pos?.coords.latitude, 
-        lng: pos?.coords.longitude,
-        accuracy: pos?.coords.accuracy 
-      });
-
-      setCheckinGeoError(null);
+      logger.info('[handleCheckin] Iniciando check-in da rota (após validação GPS OK)', { routeId: id, pdvName: route?.pdv_name });
 
       const body = {
         id,
@@ -1187,7 +1245,7 @@ export default function PromotorRota() {
       logger.error('[handleCheckin] Erro fatal no check-in', { message: err.message, routeId: id }, err);
       toast.error(err.message || 'Não foi possível realizar o check-in');
     }
-  }, [id, checkin, route?.require_checkin_photo, route?.status, checkinPhotoUrl, isFacialActiveCheckin, faceVerifyAction, route?.pdv_name, isOnline, queueApiCall, refetch, checkinSubmitted]);
+  }, [id, checkin, route, checkinPhotoUrl, isFacialActiveCheckin, faceVerifyAction, isOnline, queueApiCall, refetch, checkinSubmitted]);
 
   const handleCompleteRoute = useCallback(async () => {
     if (!id) return;

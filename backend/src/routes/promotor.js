@@ -263,7 +263,8 @@ router.get('/home', authenticatePromotor, async (req, res) => {
     try {
       const routesRes = await query(
         `SELECT r.*, p.name as pdv_name, p.address as pdv_address, p.city as pdv_city,
-         p.latitude as pdv_lat, p.longitude as pdv_lng,
+         p.latitude as pdv_lat, p.longitude as pdv_lng, p.radius_meters as pdv_radius,
+         p.type as pdv_type, p.geofence_polygon as pdv_geofence_polygon,
          b.name as brand_name, b.logo_url as brand_logo,
          bc.name as checklist_name,
          (SELECT COUNT(*) FROM route_product_executions rpe WHERE rpe.route_id = r.id) as product_count,

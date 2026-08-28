@@ -2892,6 +2892,7 @@ router.get('/promotor/routes/:id', promotorAuth, async (req, res) => {
     const routeRes = await query(
       `SELECT r.*, p.name as pdv_name, p.address as pdv_address, p.city as pdv_city,
        p.latitude as pdv_lat, p.longitude as pdv_lng, p.radius_meters as pdv_radius,
+       p.type as pdv_type, p.geofence_polygon as pdv_geofence_polygon,
        b.name as brand_name, 
        COALESCE(bc.name, bc2.name) as checklist_name,
        COALESCE(r.eff_checklist_type, bc.checklist_type, bc2.checklist_type, 'standard') as checklist_type,
@@ -2937,6 +2938,7 @@ router.get('/promotor/routes/:id', promotorAuth, async (req, res) => {
       const simpleRoute = await query(
         `SELECT r.*, p.name as pdv_name, p.address as pdv_address, p.city as pdv_city,
          p.latitude as pdv_lat, p.longitude as pdv_lng, p.radius_meters as pdv_radius,
+         p.type as pdv_type, p.geofence_polygon as pdv_geofence_polygon,
          'standard' as checklist_type
          FROM merch_routes r
          LEFT JOIN pdvs p ON p.id = r.pdv_id
