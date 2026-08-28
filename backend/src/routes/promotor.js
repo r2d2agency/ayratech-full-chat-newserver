@@ -4,10 +4,55 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { query } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
-import { logInfo, logError } from '../logger.js';
+import { logInfo, logError, logWarn } from '../logger.js';
 import { validatePdvLocation, ensurePdvGeofenceColumn } from '../lib/geofence.js';
 
 const router = express.Router();
+
+let homeColumnsReady = null;
+async function ensurePromotorHomeColumns() {
+  if (homeColumnsReady) return homeColumnsReady;
+  homeColumnsReady = (async () => {
+    try {
+      await ensurePdvGeofenceColumn();
+    } catch (e) { /* ignore */ }
+    try {
+      await query(`ALTER TABLE pdvs ADD COLUMN IF NOT EXISTS type VARCHAR(20) DEFAULT 'pdv'`);
+      await query(`ALTER TABLE pdvs ADD COLUMN IF NOT EXISTS geofence_polygon JSONB`);
+    } catch (e) { /* ignore */ }
+    try {
+      await query(`ALTER TABLE merch_routes ADD COLUMN IF NOT EXISTS checklist_ids JSONB`);
+      await query(`ALTER TABLE merch_routes ADD COLUMN IF NOT EXISTS eff_require_checkin_photo BOOLEAN`);
+      await query(`ALTER TABLE merch_routes ADD COLUMN IF NOT EXISTS eff_require_checkout_photo BOOLEAN`);
+      await query(`ALTER TABLE merch_routes ADD COLUMN IF NOT EXISTS eff_require_stock_count BOOLEAN`);
+      await query(`ALTER TABLE merch_routes ADD COLUMN IF NOT EXISTS eff_require_validity_check BOOLEAN`);
+      await query(`ALTER TABLE merch_routes ADD COLUMN IF NOT EXISTS eff_require_extra_point BOOLEAN`);
+      await query(`ALTER TABLE merch_routes ADD COLUMN IF NOT EXISTS eff_require_category_photos BOOLEAN`);
+      await query(`ALTER TABLE merch_routes ADD COLUMN IF NOT EXISTS eff_category_photo_mode VARCHAR(20)`);
+      await query(`ALTER TABLE merch_routes ADD COLUMN IF NOT EXISTS eff_min_category_photos_before INT`);
+      await query(`ALTER TABLE merch_routes ADD COLUMN IF NOT EXISTS eff_min_category_photos_after INT`);
+      await query(`ALTER TABLE merch_routes ADD COLUMN IF NOT EXISTS eff_checklist_type VARCHAR(20)`);
+    } catch (e) { /* ignore */ }
+    try {
+      await query(`ALTER TABLE route_brands ADD COLUMN IF NOT EXISTS checklist_ids JSONB`);
+      await query(`ALTER TABLE route_brands ADD COLUMN IF NOT EXISTS eff_checklist_type VARCHAR(20)`);
+      for (const col of ['eff_require_checkin_photo', 'eff_require_checkout_photo', 'eff_require_stock_count', 'eff_require_validity_check', 'eff_require_extra_point', 'eff_require_category_photos']) {
+        await query(`ALTER TABLE route_brands ADD COLUMN IF NOT EXISTS ${col} BOOLEAN`).catch(() => {});
+      }
+      await query(`ALTER TABLE route_brands ADD COLUMN IF NOT EXISTS eff_category_photo_mode VARCHAR(20)`).catch(() => {});
+      await query(`ALTER TABLE route_brands ADD COLUMN IF NOT EXISTS eff_min_category_photos_before INT`).catch(() => {});
+      await query(`ALTER TABLE route_brands ADD COLUMN IF NOT EXISTS eff_min_category_photos_after INT`).catch(() => {});
+    } catch (e) { /* ignore */ }
+    try {
+      await query(`ALTER TABLE brand_checklists ADD COLUMN IF NOT EXISTS require_category_photos BOOLEAN DEFAULT true`);
+      await query(`ALTER TABLE brand_checklists ADD COLUMN IF NOT EXISTS category_photo_mode VARCHAR(20) DEFAULT 'both'`);
+      await query(`ALTER TABLE brand_checklists ADD COLUMN IF NOT EXISTS min_category_photos_before INT DEFAULT 1`);
+      await query(`ALTER TABLE brand_checklists ADD COLUMN IF NOT EXISTS min_category_photos_after INT DEFAULT 1`);
+      await query(`ALTER TABLE brand_checklists ADD COLUMN IF NOT EXISTS checklist_type VARCHAR(20) DEFAULT 'standard'`);
+    } catch (e) { /* ignore */ }
+  })().catch(() => {});
+  return homeColumnsReady;
+}
 router.use((req, res, next) => {
   // Skip auth for promotor app routes that use their own middleware
   const isPromotorRoute = req.path.startsWith('/login') ||
@@ -227,6 +272,7 @@ router.post('/change-password', authenticatePromotor, async (req, res) => {
 // =============================================
 router.get('/home', authenticatePromotor, async (req, res) => {
   try {
+    await ensurePromotorHomeColumns();
     // Use America/Sao_Paulo timezone - ensures the current date matches the collaborator's region
     // CRITICAL: Database-side NOW() and America/Sao_Paulo context
     // We strictly use NOW() in DB to avoid any drift from app-server JS time
@@ -234,7 +280,7 @@ router.get('/home', authenticatePromotor, async (req, res) => {
     const today = todayResult.rows[0].today.toISOString().split('T')[0];
     const empId = req.employeeId;
 
-    // Helper to run a query safely – returns empty result on missing-table errors
+    // Helper to run a query safely – returns empty result on missing-table/column errors
     const safeQuery = async (sql, params) => {
       try { return await query(sql, params); }
       catch (e) { if (e.code === '42P01' || e.code === '42703') return { rows: [] }; throw e; }
@@ -280,26 +326,53 @@ router.get('/home', authenticatePromotor, async (req, res) => {
       );
       todayRoutes = routesRes.rows;
     } catch (e) {
-      if (e?.code === '42703') {
+      if (e?.code === '42703' || e?.code === '42P01') {
         try {
           const fallbackRes = await query(
             `SELECT r.*, p.name as pdv_name, p.address as pdv_address, p.city as pdv_city,
              p.latitude as pdv_lat, p.longitude as pdv_lng, p.radius_meters as pdv_radius,
              'pdv'::text as pdv_type,
+             NULL::jsonb as pdv_geofence_polygon,
              b.name as brand_name, b.logo_url as brand_logo,
-             bc.name as checklist_name,
-             (SELECT COUNT(*) FROM route_product_executions rpe WHERE rpe.route_id = r.id) as product_count,
-             (SELECT COUNT(*) FROM route_product_executions rpe WHERE rpe.route_id = r.id AND rpe.status = 'completed') as products_done
+             NULL::text as checklist_name,
+             0::bigint as product_count,
+             0::bigint as products_done
              FROM merch_routes r
              LEFT JOIN pdvs p ON p.id = r.pdv_id
              LEFT JOIN merch_brands b ON b.id = r.brand_id
-             LEFT JOIN brand_checklists bc ON bc.id = r.checklist_id
              WHERE r.promoter_id = $1 AND r.visit_date = $2
              ORDER BY r.scheduled_time, r.created_at`,
             [empId, today]
           );
           todayRoutes = fallbackRes.rows;
-        } catch (e2) { if (e2.code !== '42P01') logError('promotor.home.routes_fallback', e2); }
+        } catch (e2) {
+          if (e2?.code === '42P01' || e2?.code === '42703') {
+            try {
+              const fallbackFinal = await query(
+                `SELECT r.*, p.name as pdv_name, p.address as pdv_address, p.city as pdv_city,
+                 p.latitude as pdv_lat, p.longitude as pdv_lng, p.radius_meters as pdv_radius,
+                 'pdv'::text as pdv_type,
+                 NULL::jsonb as pdv_geofence_polygon,
+                 NULL::text as brand_name,
+                 NULL::text as brand_logo,
+                 NULL::text as checklist_name,
+                 0::bigint as product_count,
+                 0::bigint as products_done
+                 FROM merch_routes r
+                 LEFT JOIN pdvs p ON p.id = r.pdv_id
+                 WHERE r.promoter_id = $1 AND r.visit_date = $2
+                 ORDER BY r.scheduled_time, r.created_at`,
+                [empId, today]
+              );
+              todayRoutes = fallbackFinal.rows;
+            } catch (e3) {
+              if (e3.code !== '42P01') logError('promotor.home.routes_final_fallback', e3);
+              todayRoutes = [];
+            }
+          } else if (e2.code !== '42P01') {
+            logError('promotor.home.routes_fallback', e2);
+          }
+        }
       } else if (e?.code !== '42P01') {
         logError('promotor.home.routes', e);
       }

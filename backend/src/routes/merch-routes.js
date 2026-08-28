@@ -2643,9 +2643,33 @@ async function ensureChecklistPhotoColumns() {
     await query(`ALTER TABLE brand_checklists ADD COLUMN IF NOT EXISTS category_photo_mode VARCHAR(20) DEFAULT 'both'`);
     await query(`ALTER TABLE brand_checklists ADD COLUMN IF NOT EXISTS min_category_photos_before INT DEFAULT 1`);
     await query(`ALTER TABLE brand_checklists ADD COLUMN IF NOT EXISTS min_category_photos_after INT DEFAULT 1`);
+    await query(`ALTER TABLE brand_checklists ADD COLUMN IF NOT EXISTS checklist_type VARCHAR(20) DEFAULT 'standard'`);
   } catch (e) {
     logWarn('ensureChecklistPhotoColumns.failed', { error: e?.message });
   }
+}
+
+let pdvGeoColumnsReady = null;
+async function ensurePdvGeoColumns() {
+  if (pdvGeoColumnsReady) return pdvGeoColumnsReady;
+  pdvGeoColumnsReady = (async () => {
+    try {
+      await query(`ALTER TABLE pdvs ADD COLUMN IF NOT EXISTS type VARCHAR(20) DEFAULT 'pdv'`);
+      await query(`ALTER TABLE pdvs ADD COLUMN IF NOT EXISTS geofence_polygon JSONB`);
+    } catch (e) {
+      logWarn('ensurePdvGeoColumns.failed', { error: e?.message });
+    }
+  })().catch(() => {});
+  return pdvGeoColumnsReady;
+}
+
+async function ensureAllRouteDetailColumns() {
+  try {
+    await ensureChecklistMergeColumns();
+    await ensureChecklistPhotoColumns();
+    await ensurePdvGeoColumns();
+    await ensureRouteBrandsTables();
+  } catch (e) { /* always proceed, we have SQL fallbacks */ }
 }
 
 async function calculateRouteExecutionProgress(routeId, routeBrandId = null) {
@@ -2889,6 +2913,8 @@ router.get('/promotor/agenda', promotorAuth, async (req, res) => {
 // Promotor: Route detail with products
 router.get('/promotor/routes/:id', promotorAuth, async (req, res) => {
   try {
+    await ensureAllRouteDetailColumns();
+
     let routeRes;
     try {
       routeRes = await query(
@@ -2923,38 +2949,63 @@ router.get('/promotor/routes/:id', promotorAuth, async (req, res) => {
          )`, [req.params.id, req.employeeId]
       );
     } catch (e) {
-      if (e?.code === '42703') {
-        // Coluna p.type e/ou p.geofence_polygon ainda não existem nesta DB
-        routeRes = await query(
-          `SELECT r.*, p.name as pdv_name, p.address as pdv_address, p.city as pdv_city,
-           p.latitude as pdv_lat, p.longitude as pdv_lng, p.radius_meters as pdv_radius,
-           'pdv'::text as pdv_type,
-           b.name as brand_name,
-           COALESCE(bc.name, bc2.name) as checklist_name,
-           COALESCE(r.eff_checklist_type, bc.checklist_type, bc2.checklist_type, 'standard') as checklist_type,
-           COALESCE(r.eff_require_checkin_photo, bc.require_checkin_photo, bc2.require_checkin_photo, true) as require_checkin_photo,
-           COALESCE(r.eff_require_checkout_photo, bc.require_checkout_photo, bc2.require_checkout_photo, false) as require_checkout_photo,
-           COALESCE(r.eff_require_stock_count, bc.require_stock_count, bc2.require_stock_count, false) as require_stock_count,
-           COALESCE(r.eff_require_validity_check, bc.require_validity_check, bc2.require_validity_check, false) as require_validity_check,
-           COALESCE(r.eff_require_extra_point, bc.require_extra_point, bc2.require_extra_point, false) as require_extra_point,
-           COALESCE(r.eff_require_category_photos, bc.require_category_photos, bc2.require_category_photos, true) as require_category_photos,
-            COALESCE(r.eff_min_category_photos_before, bc.min_category_photos_before, bc2.min_category_photos_before, 1) as min_category_photos_before,
-            COALESCE(r.eff_min_category_photos_after, bc.min_category_photos_after, bc2.min_category_photos_after, 1) as min_category_photos_after,
-            COALESCE(r.eff_category_photo_mode, bc.category_photo_mode, bc2.category_photo_mode, 'both') as category_photo_mode
-
-           FROM merch_routes r
-           LEFT JOIN pdvs p ON p.id = r.pdv_id
-           LEFT JOIN merch_brands b ON b.id = r.brand_id
-           LEFT JOIN brand_checklists bc ON bc.id = r.checklist_id
-           LEFT JOIN brand_checklists bc2 ON bc2.brand_id = r.brand_id AND bc2.active = true
-           WHERE r.id=$1 AND (
-             r.promoter_id=$2
-             OR EXISTS (
-               SELECT 1 FROM route_person_assignments rpa
-                WHERE rpa.route_id = r.id AND rpa.employee_id = $2 AND COALESCE(rpa.active, true) = true
-             )
-           )`, [req.params.id, req.employeeId]
-        );
+      if (e?.code === '42703' || e?.code === '42P01') {
+        try {
+          routeRes = await query(
+            `SELECT r.*, p.name as pdv_name, p.address as pdv_address, p.city as pdv_city,
+             p.latitude as pdv_lat, p.longitude as pdv_lng, p.radius_meters as pdv_radius,
+             'pdv'::text as pdv_type,
+             NULL::jsonb as pdv_geofence_polygon,
+             b.name as brand_name,
+             NULL::text as checklist_name,
+             'standard'::text as checklist_type,
+             true as require_checkin_photo,
+             false as require_checkout_photo,
+             false as require_stock_count,
+             false as require_validity_check,
+             false as require_extra_point,
+             true as require_category_photos,
+             1 as min_category_photos_before,
+             1 as min_category_photos_after,
+             'both'::text as category_photo_mode
+             FROM merch_routes r
+             LEFT JOIN pdvs p ON p.id = r.pdv_id
+             LEFT JOIN merch_brands b ON b.id = r.brand_id
+             WHERE r.id=$1 AND (
+               r.promoter_id=$2
+               OR EXISTS (
+                 SELECT 1 FROM route_person_assignments rpa
+                  WHERE rpa.route_id = r.id AND rpa.employee_id = $2 AND COALESCE(rpa.active, true) = true
+               )
+             )`, [req.params.id, req.employeeId]
+          );
+        } catch (e2) {
+          if (e2?.code === '42P01') {
+            routeRes = await query(
+              `SELECT r.*, p.name as pdv_name, p.address as pdv_address, p.city as pdv_city,
+               p.latitude as pdv_lat, p.longitude as pdv_lng, p.radius_meters as pdv_radius,
+               'pdv'::text as pdv_type,
+               NULL::jsonb as pdv_geofence_polygon,
+               NULL::text as brand_name,
+               NULL::text as checklist_name,
+               'standard'::text as checklist_type,
+               true as require_checkin_photo,
+               false as require_checkout_photo,
+               false as require_stock_count,
+               false as require_validity_check,
+               false as require_extra_point,
+               true as require_category_photos,
+               1 as min_category_photos_before,
+               1 as min_category_photos_after,
+               'both'::text as category_photo_mode
+               FROM merch_routes r
+               LEFT JOIN pdvs p ON p.id = r.pdv_id
+               WHERE r.id=$1 AND r.promoter_id=$2`, [req.params.id, req.employeeId]
+            );
+          } else {
+            throw e2;
+          }
+        }
       } else {
         throw e;
       }
@@ -2987,11 +3038,12 @@ router.get('/promotor/routes/:id', promotorAuth, async (req, res) => {
            WHERE r.id=$1`, [req.params.id]
         );
       } catch (e) {
-        if (e?.code === '42703') {
+        if (e?.code === '42703' || e?.code === '42P01') {
           simpleRoute = await query(
             `SELECT r.*, p.name as pdv_name, p.address as pdv_address, p.city as pdv_city,
              p.latitude as pdv_lat, p.longitude as pdv_lng, p.radius_meters as pdv_radius,
              'pdv'::text as pdv_type,
+             NULL::jsonb as pdv_geofence_polygon,
              'standard' as checklist_type
              FROM merch_routes r
              LEFT JOIN pdvs p ON p.id = r.pdv_id
@@ -3007,22 +3059,37 @@ router.get('/promotor/routes/:id', promotorAuth, async (req, res) => {
 
     const route = routeRes.rows[0];
 
-    const executions = await query(
-      `SELECT rpe.*, (COALESCE(rpe.qty_store,0) + COALESCE(rpe.qty_stock,0)) as qty_total,
-       pr.name as product_name, pr.sku, pr.barcode, pr.image_url,
-       pc.name as category_name, ps.name as subcategory_name,
-       (SELECT pve.expiry_date FROM product_validity_entries pve WHERE pve.execution_id = rpe.id ORDER BY pve.expiry_date ASC LIMIT 1) as nearest_expiry_date,
-       (SELECT pve.id FROM product_validity_entries pve WHERE pve.execution_id = rpe.id ORDER BY pve.expiry_date ASC LIMIT 1) as nearest_expiry_id,
-       (SELECT pve.qty_store FROM product_validity_entries pve WHERE pve.execution_id = rpe.id ORDER BY pve.expiry_date ASC LIMIT 1) as nearest_expiry_qty_store,
-       (SELECT pve.qty_stock FROM product_validity_entries pve WHERE pve.execution_id = rpe.id ORDER BY pve.expiry_date ASC LIMIT 1) as nearest_expiry_qty_stock
-       FROM route_product_executions rpe
-       JOIN merch_products pr ON pr.id = rpe.product_id
-       LEFT JOIN merch_categories pc ON pc.id = rpe.category_id
-       LEFT JOIN merch_subcategories ps ON ps.id = pr.subcategory_id
-       WHERE rpe.route_id=$1 ORDER BY pc.name, ps.name, pr.name`, [req.params.id]
-    );
+    let executions;
+    try {
+      executions = await query(
+        `SELECT rpe.*, (COALESCE(rpe.qty_store,0) + COALESCE(rpe.qty_stock,0)) as qty_total,
+         pr.name as product_name, pr.sku, pr.barcode, pr.image_url,
+         pc.name as category_name, ps.name as subcategory_name,
+         (SELECT pve.expiry_date FROM product_validity_entries pve WHERE pve.execution_id = rpe.id ORDER BY pve.expiry_date ASC LIMIT 1) as nearest_expiry_date,
+         (SELECT pve.id FROM product_validity_entries pve WHERE pve.execution_id = rpe.id ORDER BY pve.expiry_date ASC LIMIT 1) as nearest_expiry_id,
+         (SELECT pve.qty_store FROM product_validity_entries pve WHERE pve.execution_id = rpe.id ORDER BY pve.expiry_date ASC LIMIT 1) as nearest_expiry_qty_store,
+         (SELECT pve.qty_stock FROM product_validity_entries pve WHERE pve.execution_id = rpe.id ORDER BY pve.expiry_date ASC LIMIT 1) as nearest_expiry_qty_stock
+         FROM route_product_executions rpe
+         JOIN merch_products pr ON pr.id = rpe.product_id
+         LEFT JOIN merch_categories pc ON pc.id = rpe.category_id
+         LEFT JOIN merch_subcategories ps ON ps.id = pr.subcategory_id
+         WHERE rpe.route_id=$1 ORDER BY pc.name, ps.name, pr.name`, [req.params.id]
+      );
+    } catch (e) {
+      if (e?.code === '42P01') {
+        executions = { rows: [] };
+      } else {
+        logWarn('promotor.route_detail.executions_failed', e);
+        executions = { rows: [] };
+      }
+    }
 
-    const photos = await query('SELECT * FROM route_photos WHERE route_id=$1 ORDER BY captured_at', [req.params.id]);
+    let photos = { rows: [] };
+    try {
+      photos = await query('SELECT * FROM route_photos WHERE route_id=$1 ORDER BY captured_at', [req.params.id]);
+    } catch (e) {
+      if (e?.code !== '42P01') logWarn('promotor.route_detail.photos_failed', e);
+    }
 
     // Load route brands (multi-brand support)
     let routeBrands = [];
@@ -3049,9 +3116,40 @@ router.get('/promotor/routes/:id', promotorAuth, async (req, res) => {
          LEFT JOIN brand_checklists bc2 ON bc2.brand_id = rb.brand_id AND bc2.active = true
          WHERE rb.route_id = $1 ORDER BY rb.id, bc2.created_at DESC`, [req.params.id]);
       routeBrands = rbRes.rows;
-      // Re-sort by original sort_order if needed, or just keep rb.id ordering
-      routeBrands.sort((a, b) => a.sort_order - b.sort_order);
-    } catch (e) { logWarn('promotor.route_detail.route_brands_failed', e); }
+      routeBrands.sort((a, b) => (Number.isFinite(a.sort_order) && Number.isFinite(b.sort_order) ? a.sort_order - b.sort_order : 0));
+    } catch (e) {
+      if (e?.code === '42703' || e?.code === '42P01') {
+        try {
+          const rbRes2 = await query(
+            `SELECT DISTINCT ON (rb.id) rb.*, b.name as brand_name,
+             NULL::text as checklist_name,
+             'standard'::text as checklist_type,
+             true as require_checkin_photo,
+             false as require_checkout_photo,
+             false as require_stock_count,
+             false as require_validity_check,
+             false as require_extra_point,
+             true as require_category_photos,
+             'both'::text as category_photo_mode,
+             1 as min_category_photos_before,
+             1 as min_category_photos_after,
+             (SELECT COUNT(*) FROM route_product_executions rpe WHERE rpe.route_brand_id = rb.id) as total_products,
+             (SELECT COUNT(*) FROM route_product_executions rpe WHERE rpe.route_brand_id = rb.id AND rpe.status = 'completed') as completed_products
+             FROM route_brands rb
+             LEFT JOIN merch_brands b ON b.id = rb.brand_id
+             WHERE rb.route_id = $1 ORDER BY rb.id`, [req.params.id]
+          );
+          routeBrands = rbRes2.rows;
+          routeBrands.sort((a, b) => (Number.isFinite(a.sort_order) && Number.isFinite(b.sort_order) ? a.sort_order - b.sort_order : 0));
+        } catch (e2) {
+          routeBrands = [];
+          if (e2?.code !== '42P01') logWarn('promotor.route_detail.route_brands_fallback_failed', e2);
+        }
+      } else {
+        logWarn('promotor.route_detail.route_brands_failed', e);
+        routeBrands = [];
+      }
+    }
 
     // Safety net: hydrate products for any route_brand that has zero linked products
     try {
