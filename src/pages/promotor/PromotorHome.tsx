@@ -227,7 +227,7 @@ export default function PromotorHome() {
     });
   }, [todayRoutes, pdvVisits]);
 
-  const preValidateGeoForPdv = useCallback(async (pdvId: string, pdvName?: string, mode: 'pdv_checkin' | 'punch') => {
+  const preValidateGeoForPdv = useCallback(async (pdvId: string, pdvName: string | undefined, mode: 'pdv_checkin' | 'punch') => {
     const { validatePdvLocation, formatDistanceMeters } = await import('@/lib/geofence');
     const target: any = (mode === 'punch' ? (dailyAssignment || availablePdvs[0]) : null) || null;
     let pdv: any = null;
