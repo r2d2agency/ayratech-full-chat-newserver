@@ -1623,6 +1623,9 @@ export default function PromotorRota() {
                       onUploaded={(url, type) => {
                         if (url && type) {
                           setOptimisticPhotos(prev => [...prev, { photo_url: url, photo_type: type, category_id: catId, route_brand_id: routeBrandId }]);
+                           if (type === 'category_after') {
+                             setOptimisticAfterPhoto(prev => ({ ...prev, [afterPhotoKey]: true }));
+                           }
                         }
                         refetch();
                       }}
@@ -1778,7 +1781,11 @@ export default function PromotorRota() {
                 const pMode = (rbConfig || route as any)?.category_photo_mode || 'both';
                 
                  const needsAfter = reqPhotos && (pMode === 'both' || pMode === 'after');
-                 const hasAfterPhotoInRoute = (route?.photos || []).some((p: any) => (p.category_id || null) === (catId || null) && (!routeBrandId || (p.route_brand_id || null) === routeBrandId) && p.photo_type === 'category_after');
+                 const hasAfterPhotoInRoute = [...(route?.photos || []), ...optimisticPhotos].some((p: any) =>
+                   (p.category_id || null) === (catId || null) &&
+                   (!isMultiBrand || (p.route_brand_id || null) === (routeBrandId || null)) &&
+                   p.photo_type === 'category_after'
+                 );
                  // Mesma definição de "foto do depois concluída" usada no card da categoria (hasAfterPhoto):
                  // category_after_photo OU completed (backend já aceitou a foto) OU foto na rota OU estado offline.
                  // Sem o fallback `completed`, uma categoria marcada como concluída no backend mas sem
