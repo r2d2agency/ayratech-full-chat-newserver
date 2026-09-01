@@ -1365,14 +1365,12 @@ export default function PromotorRota() {
     setActiveAction(null);
   }, [categoryStatusMap, optimisticBeforeUnlock]);
 
-  if (isLoading) return <PromotorLayout><div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" /></div></PromotorLayout>;
-  if (!route) return <PromotorLayout><div className="text-center py-12 text-muted-foreground">Rota não encontrada</div></PromotorLayout>;
-
   // 3 fontes de verdade para needsCheckin (evita "volta para tela de check-in"):
   //   (1) status do backend (scheduled/confirmed → candidata a precisa)
   //   (2) checkin_at populado na própria rota → já check-inou
   //   (3) submitted otimista OU pdv_visit em promotor-home com checkin_at → já check-inou
   const needsCheckin = useMemo(() => {
+    if (!route) return false;
     const statusNeeds = route.status === 'scheduled' || route.status === 'confirmed';
     if (!statusNeeds) return false;
     if (route.checkin_at) return false;
@@ -1386,6 +1384,9 @@ export default function PromotorRota() {
     } catch {}
     return true;
   }, [route, checkinSubmitted, qc]);
+
+  if (isLoading) return <PromotorLayout><div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" /></div></PromotorLayout>;
+  if (!route) return <PromotorLayout><div className="text-center py-12 text-muted-foreground">Rota não encontrada</div></PromotorLayout>;
 
   const isActive = route.status === 'in_progress' || route.status === 'completed' || !!route.checkin_at || !needsCheckin;
   const isCompleted = route.status === 'completed';
